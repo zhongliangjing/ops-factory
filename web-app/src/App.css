@@ -1261,8 +1261,7 @@ textarea {
     max-height: 200px;
     resize: none;
     color: var(--color-text-primary);
-    font-size: 1.0625rem;
-    line-height: 1.45;
+    font-size: 15px !important;
     background: transparent;
 }
 
@@ -1491,7 +1490,6 @@ textarea {
 .message.assistant .message-avatar {
     background: #eef1f4;
     color: #4b5563;
-    border: 1px solid var(--border-soft);
 }
 
 .message-content {
@@ -1507,14 +1505,12 @@ textarea {
     background: #2f3540;
     color: white;
     border-bottom-right-radius: var(--radius-sm);
-    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.18);
 }
 
 .message.assistant .message-content {
-    background: var(--surface-2);
-    border: 1px solid var(--border-soft);
+    background: transparent;
+    padding: 0;
     border-bottom-left-radius: var(--radius-sm);
-    box-shadow: 0 1px 1px rgba(15, 23, 42, 0.03);
 }
 
 /* Markdown content styles */
@@ -1611,7 +1607,7 @@ textarea {
    ======================================== */
 .tool-call {
     margin: var(--spacing-3) 0;
-    border: 1px solid var(--border-soft);
+    border: none;
     border-radius: 12px;
     overflow: hidden;
     background: var(--surface-1);
@@ -1776,6 +1772,123 @@ textarea {
     padding: 8px 0 4px;
     color: #7d8694;
     font-size: var(--font-size-sm);
+}
+
+.todo-update-card .tool-call-body {
+    display: grid;
+    gap: 10px;
+}
+
+.todo-title {
+    font-weight: 650;
+    color: var(--text-strong);
+    font-size: var(--font-size-base);
+}
+
+.todo-status-badge {
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1;
+    padding: 5px 8px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+}
+
+.todo-status-badge.active {
+    background: rgba(59, 130, 246, 0.1);
+    color: #1d4ed8;
+    border-color: rgba(59, 130, 246, 0.2);
+}
+
+.todo-status-badge.success {
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+.todo-status-badge.pending {
+    background: rgba(245, 158, 11, 0.12);
+    color: #b45309;
+    border-color: rgba(245, 158, 11, 0.25);
+}
+
+.todo-status-badge.error {
+    background: rgba(239, 68, 68, 0.12);
+    color: #b91c1c;
+    border-color: rgba(239, 68, 68, 0.22);
+}
+
+.todo-progress-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #667085;
+    font-size: 0.82rem;
+}
+
+.todo-progress-percent {
+    color: #475467;
+    font-weight: 600;
+}
+
+.todo-progress-track {
+    width: 100%;
+    height: 7px;
+    border-radius: 999px;
+    background: #e9eef5;
+    overflow: hidden;
+}
+
+.todo-progress-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #0ea5e9 0%, #22c55e 100%);
+    transition: width 0.25s ease;
+}
+
+.todo-list {
+    display: grid;
+    gap: 8px;
+}
+
+.todo-item {
+    display: grid;
+    grid-template-columns: 18px 1fr;
+    gap: 10px;
+    align-items: start;
+    color: #334155;
+    line-height: 1.5;
+}
+
+.todo-item.done .todo-item-text {
+    color: #64748b;
+    text-decoration: line-through;
+}
+
+.todo-checkmark {
+    color: #64748b;
+    font-size: 0.95rem;
+    line-height: 1.2;
+    margin-top: 1px;
+}
+
+.todo-item.done .todo-checkmark {
+    color: #16a34a;
+}
+
+.todo-updated-text {
+    color: #667085;
+    font-size: 0.78rem;
+}
+
+.todo-updated-text.error {
+    color: #b42318;
+}
+
+.todo-association-text {
+    color: #667085;
+    font-size: 0.78rem;
 }
 
 /* ========================================
@@ -2233,13 +2346,27 @@ textarea {
 }
 
 @keyframes citation-card-above-in {
-    from { opacity: 0; transform: translateX(-50%) translateY(4px); }
-    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
 }
 
 @keyframes citation-card-below-in {
-    from { opacity: 0; transform: translateX(-50%) translateY(-4px); }
-    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
 }
 
 .citation-card-title {
