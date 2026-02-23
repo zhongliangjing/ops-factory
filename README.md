@@ -2,6 +2,32 @@
 
 A multi-tenant AI agent management platform built on [Goose](https://github.com/block/goose). Ops Factory provides a unified web interface for managing multiple AI agents that collaborate on operations tasks such as incident analysis, knowledge retrieval, and report generation.
 
+## Demo Videos
+
+### 1. Universal Agent Planning
+
+![Universal Agent Planning](videos/1-universal-agent-planning.gif)
+
+### 2. Visualization & Chart
+
+![Visualization Chart](videos/2-visualization-chart.gif)
+
+### 3. Artifacts Preview
+
+![Artifacts Preview](videos/3-artifacts-preview.gif)
+
+### 4. Scheduler
+
+![Scheduler](videos/4-scheduler.gif)
+
+### 5. Monitoring & Observation
+
+![Monitoring Observation](videos/5-monitoring-observation.gif)
+
+### 6. KB Agent (Feishu)
+
+![KB Agent Feishu](videos/6-kb-agent-feishu.gif)
+
 ## Architecture
 
 ```text
