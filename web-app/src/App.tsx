@@ -7,6 +7,7 @@ import Files from './pages/Files'
 import Agents from './pages/Agents'
 import AgentConfigure from './pages/AgentConfigure'
 import ScheduledActions from './pages/ScheduledActions'
+import Monitoring from './pages/Monitoring'
 import Inbox from './pages/Inbox'
 import Login from './pages/Login'
 import Settings from './pages/Settings'
@@ -31,6 +32,7 @@ function AppContent() {
                         <Route path="/history" element={<History />} />
                         <Route path="/files" element={<Files />} />
                         <Route path="/scheduled-actions" element={<ScheduledActions />} />
+                        <Route path="/monitoring" element={<Monitoring />} />
                         <Route path="/inbox" element={<Inbox />} />
                         <Route path="/agents" element={<Agents />} />
                         <Route path="/agents/:agentId/configure" element={<AgentConfigure />} />

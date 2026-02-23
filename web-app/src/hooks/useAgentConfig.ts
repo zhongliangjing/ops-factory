@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import type { AgentConfig, UpdateAgentConfigRequest, UpdateAgentConfigResponse, PortValidationResponse } from '../types/agentConfig'
+import type { AgentConfig, UpdateAgentConfigRequest, UpdateAgentConfigResponse } from '../types/agentConfig'
 
 const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL || 'http://127.0.0.1:3000'
 const GATEWAY_SECRET_KEY = import.meta.env.VITE_GATEWAY_SECRET_KEY || 'test'
@@ -10,7 +10,6 @@ interface UseAgentConfigResult {
     error: string | null
     fetchConfig: (agentId: string) => Promise<void>
     updateConfig: (agentId: string, updates: UpdateAgentConfigRequest) => Promise<UpdateAgentConfigResponse>
-    validatePort: (agentId: string, port: number) => Promise<PortValidationResponse>
 }
 
 export function useAgentConfig(): UseAgentConfigResult {
@@ -72,37 +71,11 @@ export function useAgentConfig(): UseAgentConfigResult {
         }
     }, [])
 
-    const validatePort = useCallback(async (
-        agentId: string,
-        port: number
-    ): Promise<PortValidationResponse> => {
-        try {
-            const res = await fetch(`${GATEWAY_URL}/agents/${agentId}/validate-port`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-secret-key': GATEWAY_SECRET_KEY,
-                },
-                body: JSON.stringify({ port }),
-                signal: AbortSignal.timeout(5000),
-            })
-
-            if (!res.ok) {
-                return { valid: false }
-            }
-
-            return await res.json()
-        } catch {
-            return { valid: false }
-        }
-    }, [])
-
     return {
         config,
         isLoading,
         error,
         fetchConfig,
         updateConfig,
-        validatePort,
     }
 }

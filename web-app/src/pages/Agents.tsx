@@ -74,10 +74,6 @@ export default function Agents() {
                                         <span className="agent-meta-label">Model</span>
                                         <span className="agent-meta-value">{formatModel(agent.provider, agent.model)}</span>
                                     </div>
-                                    <div className="agent-meta-row">
-                                        <span className="agent-meta-label">Port</span>
-                                        <span className="agent-meta-value">{agent.port}</span>
-                                    </div>
                                 </div>
 
                                 <div className="agent-extensions">

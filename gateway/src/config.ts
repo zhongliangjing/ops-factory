@@ -6,7 +6,6 @@ import { parse } from 'yaml'
 export interface AgentConfig {
   id: string
   name: string
-  port: number
   host: string
   secret_key: string
 }
@@ -15,13 +14,13 @@ export interface GatewayYamlConfig {
   agents: Array<{
     id: string
     name: string
-    port: number
   }>
   officePreview?: {
     enabled?: boolean
     onlyofficeUrl?: string
     fileBaseUrl?: string
   }
+  idleTimeoutMinutes?: number
 }
 
 export interface OfficePreviewConfig {
@@ -36,9 +35,12 @@ export interface GatewayConfig {
   secretKey: string
   projectRoot: string
   agentsDir: string
+  usersDir: string
   goosedBin: string
   agents: AgentConfig[]
   officePreview: OfficePreviewConfig
+  idleTimeoutMs: number
+  idleCheckIntervalMs: number
 }
 
 const __filename = fileURLToPath(import.meta.url)
@@ -51,6 +53,7 @@ export function loadGatewayConfig(): GatewayConfig {
   // Default to repository root regardless of current working directory.
   const projectRoot = resolve(process.env.PROJECT_ROOT || join(__dirname, '../..'))
   const agentsDir = resolve(process.env.AGENTS_DIR || join(projectRoot, 'agents'))
+  const usersDir = resolve(process.env.USERS_DIR || join(projectRoot, 'users'))
   const goosedBin = process.env.GOOSED_BIN || 'goosed'
 
   // Load centralized agents config
@@ -72,7 +75,6 @@ export function loadGatewayConfig(): GatewayConfig {
   const agents: AgentConfig[] = (yamlConfig.agents || []).map(agent => ({
     id: agent.id,
     name: agent.name,
-    port: agent.port,
     host,
     secret_key: secretKey,
   }))
@@ -87,14 +89,22 @@ export function loadGatewayConfig(): GatewayConfig {
     fileBaseUrl: process.env.ONLYOFFICE_FILE_BASE_URL || yamlOp.fileBaseUrl || `http://host.docker.internal:${port}`,
   }
 
+  // Idle timeout for per-user goosed instances
+  const idleTimeoutMinutes = yamlConfig.idleTimeoutMinutes ?? 15
+  const idleTimeoutMs = parseInt(process.env.IDLE_TIMEOUT_MS || String(idleTimeoutMinutes * 60 * 1000), 10)
+  const idleCheckIntervalMs = parseInt(process.env.IDLE_CHECK_INTERVAL_MS || '60000', 10)
+
   return {
     host,
     port,
     secretKey,
     projectRoot,
     agentsDir,
+    usersDir,
     goosedBin,
     agents,
     officePreview,
+    idleTimeoutMs,
+    idleCheckIntervalMs,
   }
 }

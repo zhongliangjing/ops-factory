@@ -270,7 +270,7 @@ export default function Chat() {
             <div className="chat-input-area-bottom">
                 <div className="chat-input-area-inner">
                     <div className={`chat-inline-hint ${showStopHint ? 'visible' : ''}`}>
-                        已停止生成
+                        Generation stopped
                     </div>
                     <ChatInput
                         onSubmit={handleSendMessage}

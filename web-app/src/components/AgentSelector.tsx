@@ -78,14 +78,8 @@ export default function AgentSelector({
                                 onAgentChange(agent.id)
                                 setIsOpen(false)
                             }}
-                            disabled={agent.status !== 'running'}
                         >
                             {agent.name}
-                            {agent.status !== 'running' && (
-                                <span className="agent-option-status">
-                                    ({agent.status})
-                                </span>
-                            )}
                             {agent.id === selectedAgent && (
                                 <svg
                                     viewBox="0 0 24 24"

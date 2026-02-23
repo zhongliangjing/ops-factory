@@ -11,7 +11,7 @@ interface ModelInfo {
     model: string
 }
 
-const AGENT_TAB_ORDER = ['all', 'universal-agent', 'report-agent', 'kb-agent', 'contract-agent'] as const
+const AGENT_TAB_ORDER = ['all', 'universal-agent', 'kb-agent'] as const
 
 export default function Home() {
     const navigate = useNavigate()

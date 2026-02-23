@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import ToolCallDisplay from './ToolCallDisplay'
@@ -72,7 +73,7 @@ interface ToolCallPair {
 const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL || 'http://127.0.0.1:3000'
 const GATEWAY_SECRET_KEY = import.meta.env.VITE_GATEWAY_SECRET_KEY || 'test'
 
-export default function Message({
+function MessageInner({
     message,
     toolResponses = new Map(),
     agentId,
@@ -259,8 +260,12 @@ export default function Message({
         }
     }
 
-    const scanUnknown = (value: unknown) => {
+    const scanUnknown = (value: unknown, key?: string) => {
+        // Skip blob fields entirely — they contain large base64 data (e.g. mermaid.js inline)
+        if (key === 'blob') return
         if (typeof value === 'string') {
+            // Skip strings > 10KB to avoid expensive regex on multi-MB base64 blobs
+            if (value.length > 10_000) return
             scanStringForFiles(value)
             return
         }
@@ -269,8 +274,8 @@ export default function Message({
             for (const item of value) scanUnknown(item)
             return
         }
-        for (const field of Object.values(value as Record<string, unknown>)) {
-            scanUnknown(field)
+        for (const [k, field] of Object.entries(value as Record<string, unknown>)) {
+            scanUnknown(field, k)
         }
     }
 
@@ -332,7 +337,15 @@ export default function Message({
 
         return (
             <div className="file-capsule">
-                <span className="file-capsule-icon">📄</span>
+                <span className="file-capsule-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                        <polyline points="10 9 9 9 8 9" />
+                    </svg>
+                </span>
                 <span className="file-capsule-name">{fileName}</span>
                 <div className="file-capsule-actions">
                     {canPreview && (
@@ -369,10 +382,10 @@ export default function Message({
                             <line x1="12" y1="8" x2="12" y2="12" />
                             <line x1="12" y1="16" x2="12.01" y2="16" />
                         </svg>
-                        <span>模型未返回有效响应，可能是服务临时异常</span>
+                        <span>The model did not return a valid response. This may be a temporary service issue.</span>
                         {onRetry && (
                             <button className="message-error-retry" onClick={onRetry}>
-                                重试
+                                Retry
                             </button>
                         )}
                     </div>
@@ -474,3 +487,5 @@ export default function Message({
         </div>
     )
 }
+
+export default memo(MessageInner)

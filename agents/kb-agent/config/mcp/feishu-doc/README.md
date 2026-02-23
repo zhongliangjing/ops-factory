@@ -19,8 +19,8 @@ Extension name: `feishu-doc`
 
 | Tool | Usage |
 |------|-------|
-| `wiki_v1_node_search` | 搜索知识库文档，必须传 `space_id: "7599469732730850247"`，静态 token 模式不要传 `useUAT` |
-| `docs_v1_content_get` | 获取文档 Markdown 内容，传 `doc_token`（来自搜索结果的 `obj_token`），静态 token 模式不要传 `useUAT` |
+| `wiki_v1_node_search` | Search knowledge base documents. Always pass `space_id: "7599469732730850247"`. Do not pass `useUAT` in static token mode. |
+| `docs_v1_content_get` | Fetch document Markdown content. Pass `doc_token` (from search results `obj_token`). Do not pass `useUAT` in static token mode. |
 
 ## Authentication
 
@@ -55,5 +55,4 @@ Required secrets in `agents/kb-agent/config/secrets.yaml`:
    - `OFFICE_PREVIEW_ENABLED=false ./scripts/startup.sh`
 3. Check mcp list:
    - `curl -H 'x-secret-key: test' http://127.0.0.1:3000/agents/kb-agent/mcp`
-4. In kb-agent chat, ask:
-   - `reportAgent 包含哪些报表？`
+4. In kb-agent chat, ask a question about your knowledge base content.

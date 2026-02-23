@@ -36,17 +36,11 @@ LANGFUSE_DIR="${ROOT_DIR}/langfuse"
 [ -n "${ONLYOFFICE_URL:-}" ]         && export ONLYOFFICE_URL
 [ -n "${ONLYOFFICE_FILE_BASE_URL:-}" ] && export ONLYOFFICE_FILE_BASE_URL
 
-# Goosed agent ports parsed from agents.yaml (fallback to hardcoded range)
-_parse_agent_ports() {
-    awk '/^[[:space:]]*-[[:space:]]*id:/{in_agent=1}
-         in_agent && /^[[:space:]]*port:[[:space:]]*[0-9]+/{
-             gsub(/[^0-9]/,"",$2); print $2; in_agent=0
-         }' "${ROOT_DIR}/gateway/config/agents.yaml" 2>/dev/null || true
-}
-GOOSED_PORTS="$(_parse_agent_ports)"
-[ -z "${GOOSED_PORTS}" ] && GOOSED_PORTS="3001 3002 3003 3004 3005"
+# Note: goosed instances use dynamic ports (lazy-started per-user by gateway).
+# No fixed GOOSED_PORTS needed.
 
 GATEWAY_PID=""
+WEBAPP_PID=""
 
 # ==============================================================================
 # Colors & Logging
@@ -84,6 +78,50 @@ wait_http_ok() {
         sleep "${delay}"
     done
     log_error "${name} health check failed: ${url}"
+    return 1
+}
+
+wait_webapp_visible() {
+    local url="${1}"
+    local timeout_sec="${2:-90}"
+    local root_dir="${ROOT_DIR}"
+
+    # Use Playwright to verify the first paint has meaningful content,
+    # not just an open port.
+    if (cd "${root_dir}/test" && TARGET_URL="${url}" TIMEOUT_MS="$((timeout_sec * 1000))" node --input-type=module <<'NODE'
+import { chromium } from 'playwright'
+
+const targetUrl = process.env.TARGET_URL || 'http://127.0.0.1:5173'
+const timeout = Number(process.env.TIMEOUT_MS || '90000')
+
+const expectedTexts = [
+  "Hello, I'm Ops Agent", // logged-in home
+  'Ops Factory',          // login page
+]
+
+const browser = await chromium.launch({ headless: true })
+const page = await browser.newPage()
+
+try {
+  await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout })
+  await page.waitForFunction(
+    (texts) => {
+      const bodyText = document.body?.innerText || ''
+      return texts.some((text) => bodyText.includes(text))
+    },
+    expectedTexts,
+    { timeout }
+  )
+  await browser.close()
+} catch (err) {
+  await browser.close()
+  throw err
+}
+NODE
+    ); then
+        return 0
+    fi
+
     return 1
 }
 
@@ -312,16 +350,19 @@ status_gateway() {
 # Component: Agents (goosed processes, managed by gateway)
 # ==============================================================================
 startup_agents() {
-    log_info "Agents are child processes of gateway — restarting gateway to spawn agents..."
+    log_info "Agents are lazy-started per-user by gateway — restarting gateway..."
     shutdown_agents
     shutdown_gateway
     startup_gateway "${1:-foreground}"
 }
 
 shutdown_agents() {
-    for port in ${GOOSED_PORTS}; do
-        stop_port "${port}" "goosed"
-    done
+    # Kill all goosed processes (dynamic ports, managed by gateway)
+    if pgrep -f goosed >/dev/null 2>&1; then
+        log_info "Stopping goosed processes..."
+        pkill -f goosed 2>/dev/null || true
+        sleep 1
+    fi
 }
 
 status_agents() {
@@ -340,12 +381,9 @@ status_agents() {
                 if [ "${total}" -eq 0 ]; then
                     log_fail "No agents configured in gateway"
                     return 1
-                elif [ "${running}" -eq "${total}" ]; then
-                    log_ok "Agents running (${running}/${total})"
                 else
-                    log_fail "Agents not all running (${running}/${total})"
-                    [ -n "${bad}" ] && log_fail "  ${bad}"
-                    return 1
+                    # With lazy startup, agents spawn on demand — 0 running is normal
+                    log_ok "Agents configured (${total} total, ${running} with active instances)"
                 fi
             else
                 log_fail "Failed to parse /agents response"
@@ -356,42 +394,51 @@ status_agents() {
             http_code="$(curl -s -o /dev/null -w "%{http_code}" "${base_url}/agents" \
                 -H "x-secret-key: ${GATEWAY_SECRET_KEY}" 2>/dev/null || true)"
             if [ "${http_code}" = "401" ] || [ "${http_code}" = "403" ]; then
-                log_warn "Cannot read /agents (auth failed); fallback to port checks"
-                _status_agents_by_port
+                log_warn "Cannot read /agents (auth failed)"
             else
                 log_fail "Failed to query /agents"
                 return 1
             fi
         fi
     else
-        log_warn "Gateway unreachable; fallback to agent port checks"
-        _status_agents_by_port
+        log_warn "Gateway unreachable"
+        return 1
     fi
-}
-
-_status_agents_by_port() {
-    local found=0 fail=0
-    for port in ${GOOSED_PORTS}; do
-        found=1
-        if check_port "${port}"; then
-            log_ok "Agent port listening (${port})"
-        else
-            log_fail "Agent port not listening (${port})"
-            fail=1
-        fi
-    done
-    [ "${found}" -eq 0 ] && log_warn "No agent ports configured"
-    return "${fail}"
 }
 
 # ==============================================================================
 # Component: Webapp
 # ==============================================================================
 startup_webapp() {
+    local mode="${1:-foreground}" # foreground | background
     stop_port "${VITE_PORT}" "webapp"
     log_info "Starting webapp at http://${GATEWAY_HOST}:${VITE_PORT}"
     cd "${WEB_DIR}"
-    npm run dev -- --host "${GATEWAY_HOST}"
+
+    npm run dev -- --host "${GATEWAY_HOST}" &
+    WEBAPP_PID=$!
+
+    if ! kill -0 "${WEBAPP_PID}" 2>/dev/null; then
+        log_error "Failed to start webapp"
+        return 1
+    fi
+
+    if ! wait_http_ok "Webapp" "http://127.0.0.1:${VITE_PORT}" "" 120 1; then
+        return 1
+    fi
+
+    log_info "Checking homepage visual readiness..."
+    if ! wait_webapp_visible "http://127.0.0.1:${VITE_PORT}" 90; then
+        log_error "Webapp visual readiness check failed"
+        log_error "The page is reachable but key content did not render in time"
+        return 1
+    fi
+
+    log_info "Webapp ready at http://localhost:${VITE_PORT}"
+
+    if [ "${mode}" = "foreground" ]; then
+        wait "${WEBAPP_PID}"
+    fi
 }
 
 shutdown_webapp() {
@@ -421,6 +468,11 @@ cleanup() {
         kill "${GATEWAY_PID}" 2>/dev/null || true
         wait "${GATEWAY_PID}" 2>/dev/null || true
     fi
+    if [[ -n "${WEBAPP_PID}" ]] && kill -0 "${WEBAPP_PID}" 2>/dev/null; then
+        log_info "Stopping webapp (PID: ${WEBAPP_PID})..."
+        kill "${WEBAPP_PID}" 2>/dev/null || true
+        wait "${WEBAPP_PID}" 2>/dev/null || true
+    fi
 }
 
 do_startup() {
@@ -442,12 +494,12 @@ do_startup() {
             startup_onlyoffice
             # 2. Langfuse (Docker, returns when ready)
             startup_langfuse
-            # 3. Gateway in background (spawns agents)
+            # 3. Gateway in background (agents spawn on demand per-user)
             trap cleanup EXIT INT TERM
             startup_gateway background
-            # 4. Verify agents
-            if ! check_agents_running; then
-                log_error "Agents failed to start"
+            # 4. Verify agents are configured
+            if ! check_agents_configured; then
+                log_error "No agents configured"
                 exit 1
             fi
             # 5. Webapp in foreground (blocking)
@@ -520,8 +572,8 @@ do_restart() {
     do_startup "${component}" true  # skip_shutdown=true to avoid double shutdown
 }
 
-# Helper used during startup_all to verify agents via gateway API
-check_agents_running() {
+# Helper used during startup_all to verify agents are configured in gateway
+check_agents_configured() {
     local agents_json
     agents_json="$(curl -fsS "http://127.0.0.1:${GATEWAY_PORT}/agents" \
         -H "x-secret-key: ${GATEWAY_SECRET_KEY}" 2>/dev/null || true)"
@@ -535,16 +587,11 @@ check_agents_running() {
     read -r total running bad <<< "${summary}"
 
     if [ "${total}" -eq 0 ]; then
-        log_error "No agents available from gateway"
-        return 1
-    fi
-    if [ "${running}" -ne "${total}" ]; then
-        log_error "Agents not all running (${running}/${total})"
-        [ -n "${bad}" ] && log_error "  ${bad}"
+        log_error "No agents configured in gateway"
         return 1
     fi
 
-    log_info "Agents running (${running}/${total})"
+    log_info "Agents configured (${total} total, instances spawn on demand)"
 }
 
 # ==============================================================================

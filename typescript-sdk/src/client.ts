@@ -402,7 +402,7 @@ export class GoosedClient {
 
     // === Schedule APIs ===
 
-    async createSchedule(request: { id: string; recipe_source: string; cron: string }): Promise<ScheduledJob> {
+    async createSchedule(request: { id: string; recipe: Recipe; cron: string }): Promise<ScheduledJob> {
         return this.post<ScheduledJob>('/schedule/create', request);
     }
 

@@ -1,10 +1,11 @@
 import http from 'node:http'
+import { PassThrough } from 'node:stream'
 import { join } from 'node:path'
-import { mkdir } from 'node:fs/promises'
-import { existsSync, readdirSync, renameSync, mkdirSync, writeFileSync } from 'node:fs'
+import { mkdir, rename, readdir, rm } from 'node:fs/promises'
+import { existsSync, mkdirSync, writeFileSync, readdirSync } from 'node:fs'
 import httpProxy from 'http-proxy'
 import { loadGatewayConfig } from './config.js'
-import { ProcessManager } from './process-manager.js'
+import { InstanceManager, SYSTEM_USER } from './instance-manager.js'
 import { listOutputFiles, serveFile } from './file-server.js'
 import { SessionOwnerCache, extractUserFromWorkingDir } from './user-registry.js'
 
@@ -18,12 +19,7 @@ interface AgentSession extends JsonRecord {
   agentId: string
 }
 
-interface SessionProbeResult {
-  agentId: string
-  session: JsonRecord
-}
-
-const DEFAULT_USER = 'sys'
+const DEFAULT_USER = SYSTEM_USER
 
 /** Read request body as a string */
 function readBody(req: http.IncomingMessage): Promise<string> {
@@ -37,17 +33,21 @@ function readBody(req: http.IncomingMessage): Promise<string> {
 
 async function main() {
   const config = loadGatewayConfig()
-  const manager = new ProcessManager(config)
+  const manager = new InstanceManager(config)
   const ownerCache = new SessionOwnerCache()
 
-  console.log(`Gateway starting — ${config.agents.length} agent(s) configured`)
-  await manager.startAll()
+  console.log(`Gateway starting — ${config.agents.length} agent(s) configured (per-user instances, lazy start)`)
 
-  // --- One-time data migration ---
-  await migrateExistingData(manager, config)
+  // Run data migration from old directory structure
+  await migrateToPerUserLayout(manager, config)
+
+  // Start idle reaper for per-user instances
+  manager.startIdleReaper(config.idleCheckIntervalMs, config.idleTimeoutMs)
+
+  // Pre-start sys instances for all agents (sys = system user, always ready, never reaped)
+  await manager.startAllForSystemUser()
 
   const proxy = httpProxy.createProxyServer({
-    // Increase timeout for SSE streaming (5 minutes)
     proxyTimeout: 5 * 60 * 1000,
     timeout: 5 * 60 * 1000,
   })
@@ -60,10 +60,61 @@ async function main() {
     }
   })
 
+  // ===== Helper: fetch JSON from a specific target URL =====
+
+  const upstreamHeaders = (secretKey: string) => ({
+    'x-secret-key': secretKey,
+    'Content-Type': 'application/json',
+  })
+
+  const tryParseJson = (text: string): JsonRecord | null => {
+    try { return JSON.parse(text) as JsonRecord } catch { return null }
+  }
+
+  const fetchJsonFromTarget = async (target: string, path: string, secretKey: string, method: 'GET' | 'DELETE' = 'GET') => {
+    try {
+      const response = await fetch(`${target}${path}`, {
+        method,
+        headers: upstreamHeaders(secretKey),
+        signal: AbortSignal.timeout(5000),
+      })
+      const text = await response.text()
+      return { ok: response.ok, status: response.status, json: tryParseJson(text), raw: text }
+    } catch (error) {
+      return { ok: false as const, status: 502, json: null as JsonRecord | null, raw: '', error: error instanceof Error ? error.message : 'Unknown upstream error' }
+    }
+  }
+
+  const postJsonToTarget = async (target: string, path: string, body: unknown, secretKey: string) => {
+    try {
+      const response = await fetch(`${target}${path}`, {
+        method: 'POST',
+        headers: upstreamHeaders(secretKey),
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(30000),
+      })
+      const text = await response.text()
+      return { ok: response.ok, status: response.status, json: tryParseJson(text), raw: text }
+    } catch (error) {
+      return { ok: false as const, status: 502, json: null as JsonRecord | null, raw: '', error: error instanceof Error ? error.message : 'Unknown upstream error' }
+    }
+  }
+
+  const parseSessions = (agentId: string, payload: JsonRecord | null): AgentSession[] => {
+    const raw = payload?.sessions
+    if (!Array.isArray(raw)) return []
+    return raw
+      .filter((item): item is JsonRecord => typeof item === 'object' && item !== null)
+      .filter((item): item is JsonRecord & { id: string } => typeof item.id === 'string')
+      .map(item => ({ ...item, agentId }))
+  }
+
+  // ===== HTTP Server =====
+
   const server = http.createServer(async (req, res) => {
     const url = req.url || '/'
 
-    // CORS headers must be set before auth check (browsers send OPTIONS without custom headers)
+    // CORS
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-secret-key, x-user-id')
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
@@ -73,7 +124,7 @@ async function main() {
       return
     }
 
-    // Auth check (header-based, with query param fallback for file routes)
+    // Auth
     const headerKey = req.headers['x-secret-key']
     const urlObj = new URL(url, `http://${req.headers.host || 'localhost'}`)
     const queryKey = urlObj.searchParams.get('key')
@@ -86,226 +137,65 @@ async function main() {
       return
     }
 
-    // Extract user identity from header
     const userId = (req.headers['x-user-id'] as string) || DEFAULT_USER
-
     const pathname = urlObj.pathname
-    const upstreamHeaders = {
-      'x-secret-key': config.secretKey,
-      'Content-Type': 'application/json',
-    }
 
-    const runningAgentIds = () =>
-      manager
-        .listAgents()
-        .filter(agent => agent.status === 'running')
-        .map(agent => agent.id)
-
-    const getUpstreamTarget = (agentId: string): string | null => manager.getTarget(agentId)
-
-    const fetchJsonFromAgent = async (agentId: string, path: string, method: 'GET' | 'DELETE' = 'GET') => {
-      const target = getUpstreamTarget(agentId)
-      if (!target) {
-        return { ok: false as const, status: 503, error: 'Agent not running' }
-      }
-
-      try {
-        const response = await fetch(`${target}${path}`, {
-          method,
-          headers: upstreamHeaders,
-          signal: AbortSignal.timeout(5000),
-        })
-
-        const text = await response.text()
-        const json = text ? (JSON.parse(text) as JsonRecord) : null
-        return {
-          ok: response.ok,
-          status: response.status,
-          json,
-        }
-      } catch (error) {
-        return {
-          ok: false as const,
-          status: 502,
-          error: error instanceof Error ? error.message : 'Unknown upstream error',
-        }
-      }
-    }
-
-    /** POST JSON to agent and return parsed response */
-    const postJsonToAgent = async (agentId: string, path: string, body: unknown) => {
-      const target = getUpstreamTarget(agentId)
-      if (!target) {
-        return { ok: false as const, status: 503, error: 'Agent not running' }
-      }
-
-      try {
-        const response = await fetch(`${target}${path}`, {
-          method: 'POST',
-          headers: upstreamHeaders,
-          body: JSON.stringify(body),
-          signal: AbortSignal.timeout(30000),
-        })
-
-        const text = await response.text()
-        const json = text ? (JSON.parse(text) as JsonRecord) : null
-        return {
-          ok: response.ok,
-          status: response.status,
-          json,
-          raw: text,
-        }
-      } catch (error) {
-        return {
-          ok: false as const,
-          status: 502,
-          error: error instanceof Error ? error.message : 'Unknown upstream error',
-        }
-      }
-    }
-
-    const parseSessions = (agentId: string, payload: JsonRecord | null): AgentSession[] => {
-      const raw = payload?.sessions
-      if (!Array.isArray(raw)) return []
-      return raw
-        .filter((item): item is JsonRecord => typeof item === 'object' && item !== null)
-        .filter((item): item is JsonRecord & { id: string } => typeof item.id === 'string')
-        .map(item => ({ ...item, agentId }))
-    }
-
-    const resolveSessionOwners = async (sessionId: string, preferredAgentId?: string): Promise<SessionProbeResult[]> => {
-      const agentIds = preferredAgentId ? [preferredAgentId] : runningAgentIds()
-      const probes = await Promise.all(agentIds.map(async agentId => {
-        const result = await fetchJsonFromAgent(agentId, `/sessions/${encodeURIComponent(sessionId)}`)
-        if (!result.ok) return null
-        if (!result.json || typeof result.json !== 'object') return null
-        return {
-          agentId,
-          session: result.json,
-        } satisfies SessionProbeResult
-      }))
-      return probes.filter((probe): probe is SessionProbeResult => probe !== null)
-    }
-
-    /**
-     * Check if the current user owns a session.
-     * Ownership is derived from working_dir:
-     *   - /users/{userId}/  → belongs to userId
-     *   - no /users/ segment → shared (sys), accessible to all
-     */
-    const checkSessionOwnership = async (sessionId: string, session?: JsonRecord): Promise<boolean> => {
-      // 1. Check in-memory cache
-      let owner = ownerCache.get(sessionId)
-
-      // 2. If cache miss but we have the session object, derive from working_dir
-      if (!owner && session) {
-        const workingDir = session.working_dir as string | undefined
-        if (workingDir) {
-          owner = extractUserFromWorkingDir(workingDir)
-          ownerCache.set(sessionId, owner)
-        }
-      }
-
-      // 3. If still no owner, fetch session details from goosed
-      if (!owner) {
-        const probes = await resolveSessionOwners(sessionId)
-        if (probes.length > 0) {
-          const workingDir = probes[0].session.working_dir as string | undefined
-          if (workingDir) {
-            owner = extractUserFromWorkingDir(workingDir)
-            ownerCache.set(sessionId, owner)
-          }
-        }
-      }
-
-      // 4. If owner is DEFAULT_USER (sys), allow everyone
-      if (!owner || owner === DEFAULT_USER) return true
-
-      // 5. Otherwise, only the owner can access
-      return owner === userId
-    }
-
-    // Helper to send 403
-    const sendForbidden = () => {
+    // Path traversal protection: check raw URL before URL normalization strips ".."
+    // new URL() resolves ".." segments, which could bypass file route guards
+    if (/\/files\//.test(url) && /\.\./.test(url)) {
       res.writeHead(403, { 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Forbidden: session does not belong to this user' }))
+      res.end(JSON.stringify({ error: 'Forbidden: path traversal detected' }))
+      return
     }
 
     // ===== Routes =====
 
-    // GET /status — gateway health
+    // GET /status
     if (pathname === '/status' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'text/plain' })
       res.end('ok')
       return
     }
 
-    // GET /me — current user identity
+    // GET /me
     if (pathname === '/me' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ userId }))
       return
     }
 
-    // GET /config — gateway configuration (office preview, etc.)
+    // GET /config
     if (pathname === '/config' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({
-        officePreview: config.officePreview,
-      }))
+      res.end(JSON.stringify({ officePreview: config.officePreview }))
       return
     }
 
-    // GET /agents — list agents
+    // GET /agents
     if (pathname === '/agents' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ agents: manager.listAgents() }))
       return
     }
 
-    // ===== Session Routes (with user isolation) =====
+    // ===== Session Routes =====
 
-    // POST /agents/:id/agent/start — intercept session creation
+    // POST /agents/:id/agent/start — create session (spawn user instance if needed)
     const startMatch = pathname.match(/^\/agents\/([^/]+)\/agent\/start\/?$/)
     if (startMatch && req.method === 'POST') {
       const agentId = startMatch[1]
-      const target = getUpstreamTarget(agentId)
-      if (!target) {
-        res.writeHead(404, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ error: `Agent '${agentId}' not found or not running` }))
-        return
-      }
 
       try {
+        const target = await manager.getOrSpawn(agentId, userId)
         const bodyStr = await readBody(req)
         const body = bodyStr ? JSON.parse(bodyStr) : {}
 
-        // Rewrite working_dir to per-user absolute path
-        const userArtifactsAbs = manager.getUserArtifactsPath(agentId, userId)
-        if (userArtifactsAbs) {
-          await mkdir(userArtifactsAbs, { recursive: true })
-          body.working_dir = userArtifactsAbs
-
-          // Create .goosehints to instruct the LLM to write files using absolute paths
-          // (goose's text_editor resolves relative paths against process CWD, not session working_dir)
-          const hintsPath = join(userArtifactsAbs, '.goosehints')
-          const hintsContent = [
-            `Your working directory is: ${userArtifactsAbs}`,
-            '',
-            'IMPORTANT: When creating or writing files, you MUST use absolute paths starting with',
-            `${userArtifactsAbs}/. For example, to create "report.md", use the full path:`,
-            `${userArtifactsAbs}/report.md`,
-            '',
-            'Do NOT use relative paths like "report.md" or "./report.md" — they will be saved to the wrong location.',
-          ].join('\n')
-          writeFileSync(hintsPath, hintsContent, 'utf-8')
-        } else {
-          body.working_dir = `artifacts/users/${userId}`
+        // goosed requires working_dir in the start request
+        if (!body.working_dir) {
+          body.working_dir = manager.getUserRootPath(agentId, userId)
         }
 
-        // Forward to goosed
-        const result = await postJsonToAgent(agentId, '/agent/start', body)
-
+        const result = await postJsonToTarget(target, '/agent/start', body, config.secretKey)
         if (!result.ok) {
           res.writeHead(result.status, { 'Content-Type': 'application/json' })
           res.end(result.raw || JSON.stringify({ error: 'Failed to create session' }))
@@ -314,54 +204,52 @@ async function main() {
 
         // Cache session ownership
         const sessionId = (result.json as JsonRecord)?.id as string
-        if (sessionId) {
-          ownerCache.set(sessionId, userId)
-        }
+        if (sessionId) ownerCache.set(sessionId, userId)
 
         res.writeHead(200, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify(result.json))
       } catch (err) {
-        console.error('Session creation interception error:', err)
+        console.error('Session creation error:', err)
         res.writeHead(500, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ error: 'Failed to create session' }))
+        res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'Failed to create session' }))
       }
       return
     }
 
-    // GET /sessions — aggregated sessions from all running agents (filtered by user)
+    // GET /sessions — aggregated from user's instances + sys instances
     if (pathname === '/sessions' && req.method === 'GET') {
-      const agentIds = runningAgentIds()
-      const settled = await Promise.all(agentIds.map(async agentId => {
-        const result = await fetchJsonFromAgent(agentId, `/sessions${urlObj.search}`)
-        if (!result.ok) {
-          return {
-            agentId,
-            sessions: [] as AgentSession[],
-            error: `HTTP ${result.status}`,
-          }
+      const allSessions: AgentSession[] = []
+      const partialFailures: Array<{ agentId: string; error: string | null }> = []
+
+      // For each agent, query user's instance (if running) + sys instance (if running)
+      await Promise.all(config.agents.map(async (agent) => {
+        const targets: Array<{ target: string; label: string }> = []
+
+        // User's instance
+        const userTarget = manager.getTarget(agent.id, userId)
+        if (userTarget) targets.push({ target: userTarget, label: `${agent.id}:${userId}` })
+
+        // Sys instance (shared sessions from schedules)
+        const defaultTarget = manager.getTarget(agent.id, SYSTEM_USER)
+        if (defaultTarget && defaultTarget !== userTarget) {
+          targets.push({ target: defaultTarget, label: `${agent.id}:${SYSTEM_USER}` })
         }
-        return {
-          agentId,
-          sessions: parseSessions(agentId, result.json),
-          error: null as string | null,
+
+        for (const { target, label } of targets) {
+          const result = await fetchJsonFromTarget(target, `/sessions${urlObj.search}`, config.secretKey)
+          if (!result.ok) {
+            partialFailures.push({ agentId: agent.id, error: `HTTP ${result.status} from ${label}` })
+          } else {
+            const sessions = parseSessions(agent.id, result.json)
+            allSessions.push(...sessions)
+          }
         }
       }))
 
-      // Collect all sessions (IDs are per-agent, so use agentId:sessionId as composite key)
-      const allSessions: AgentSession[] = []
-      for (const item of settled) {
-        allSessions.push(...item.sessions)
-      }
+      // Populate ownership cache
+      ownerCache.populateFromSessions(allSessions.map(s => ({ id: s.id, working_dir: s.working_dir })))
 
-      // Populate ownership cache from working_dir
-      ownerCache.populateFromSessions(allSessions.map(s => ({
-        id: s.id,
-        working_dir: s.working_dir,
-      })))
-
-      // Filter sessions by user ownership:
-      //   - /users/{userId}/ in working_dir → belongs to userId
-      //   - no /users/ → shared (sys), visible to all
+      // Filter: user sees own sessions + sys/shared sessions
       const sessions = allSessions
         .filter(session => {
           const owner = session.working_dir
@@ -375,127 +263,79 @@ async function main() {
           return bTs - aTs
         })
 
-      const partialFailures = settled
-        .filter(item => item.error)
-        .map(item => ({ agentId: item.agentId, error: item.error }))
-
       res.writeHead(200, { 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({
-        sessions,
-        partialFailures,
-      }))
+      res.end(JSON.stringify({ sessions, partialFailures }))
       return
     }
 
-    // GET /sessions/:id — resolve session from one/many agents (with ownership check)
+    // GET /sessions/:id
     const sessionReadMatch = pathname.match(/^\/sessions\/([^/]+)\/?$/)
     if (sessionReadMatch && req.method === 'GET') {
       const sessionId = decodeURIComponent(sessionReadMatch[1])
       const agentId = urlObj.searchParams.get('agentId') || undefined
-      const owners = await resolveSessionOwners(sessionId, agentId)
 
-      if (owners.length === 0) {
+      // Try to find session in user's instances and sys instances
+      const probes = await probeSessionAcrossInstances(sessionId, userId, agentId)
+      if (probes.length === 0) {
         res.writeHead(404, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ error: 'Session not found' }))
         return
       }
-
-      if (!agentId && owners.length > 1) {
+      if (!agentId && probes.length > 1) {
         res.writeHead(409, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({
-          error: 'Session exists in multiple agents. Please provide agentId.',
-          agentIds: owners.map(owner => owner.agentId),
-        }))
+        res.end(JSON.stringify({ error: 'Session exists in multiple agents. Please provide agentId.', agentIds: probes.map(p => p.agentId) }))
         return
       }
 
-      // Ownership check
-      const allowed = await checkSessionOwnership(sessionId, owners[0].session)
-      if (!allowed) {
-        sendForbidden()
-        return
-      }
-
-      const owner = owners[0]
+      const probe = probes[0]
       res.writeHead(200, { 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ ...owner.session, agentId: owner.agentId }))
+      res.end(JSON.stringify({ ...probe.session, agentId: probe.agentId }))
       return
     }
 
-    // DELETE /sessions/:id — delete from resolved owner (with ownership check + cache cleanup)
+    // DELETE /sessions/:id
     const sessionDeleteMatch = pathname.match(/^\/sessions\/([^/]+)\/?$/)
     if (sessionDeleteMatch && req.method === 'DELETE') {
       const sessionId = decodeURIComponent(sessionDeleteMatch[1])
       const agentId = urlObj.searchParams.get('agentId') || undefined
-      const owners = await resolveSessionOwners(sessionId, agentId)
 
-      if (owners.length === 0) {
+      const probes = await probeSessionAcrossInstances(sessionId, userId, agentId)
+      if (probes.length === 0) {
         res.writeHead(404, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ error: 'Session not found' }))
         return
       }
-
-      if (!agentId && owners.length > 1) {
+      if (!agentId && probes.length > 1) {
         res.writeHead(409, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({
-          error: 'Session exists in multiple agents. Please provide agentId.',
-          agentIds: owners.map(owner => owner.agentId),
-        }))
+        res.end(JSON.stringify({ error: 'Session exists in multiple agents. Please provide agentId.', agentIds: probes.map(p => p.agentId) }))
         return
       }
 
-      // Ownership check
-      const allowed = await checkSessionOwnership(sessionId, owners[0].session)
-      if (!allowed) {
-        sendForbidden()
-        return
-      }
-
-      const owner = owners[0]
-      const result = await fetchJsonFromAgent(owner.agentId, `/sessions/${encodeURIComponent(sessionId)}`, 'DELETE')
-
+      const probe = probes[0]
+      const result = await fetchJsonFromTarget(probe.target, `/sessions/${encodeURIComponent(sessionId)}`, config.secretKey, 'DELETE')
       if (!result.ok) {
         res.writeHead(result.status, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({
-          error: `Failed to delete session on agent '${owner.agentId}'`,
-        }))
+        res.end(JSON.stringify({ error: `Failed to delete session on agent '${probe.agentId}'` }))
         return
       }
 
-      // Clean up cache
       ownerCache.remove(sessionId)
-
       res.writeHead(200, { 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ success: true, agentId: owner.agentId }))
+      res.end(JSON.stringify({ success: true, agentId: probe.agentId }))
       return
     }
 
-    // ===== File Routes (scoped to user) =====
+    // ===== File Routes =====
 
-    // GET /agents/:id/files — list output files (per-user)
+    // GET /agents/:id/files — list user's files
     const fileListMatch = pathname.match(/^\/agents\/([^/]+)\/files\/?$/)
     if (fileListMatch && req.method === 'GET') {
       const agentId = fileListMatch[1]
-      const userArtifactsPath = manager.getUserArtifactsPath(agentId, userId)
-      if (!userArtifactsPath) {
-        res.writeHead(404, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ error: `Agent '${agentId}' not found` }))
-        return
-      }
-      // Ensure user directory exists
-      await mkdir(userArtifactsPath, { recursive: true })
+      const userRootPath = manager.getUserRootPath(agentId, userId)
+      await mkdir(userRootPath, { recursive: true })
       try {
-        const files = await listOutputFiles(userArtifactsPath)
-        // Also include files from the general artifacts root (excludes users/ subdir)
-        const generalArtifactsPath = manager.getArtifactsPathAbsolute(agentId)
-        if (generalArtifactsPath && generalArtifactsPath !== userArtifactsPath) {
-          const rootFiles = await listOutputFiles(generalArtifactsPath, ['users'])
-          const userPaths = new Set(files.map(f => f.name))
-          for (const f of rootFiles) {
-            if (!userPaths.has(f.name)) files.push(f)
-          }
-          files.sort((a, b) => new Date(b.modifiedAt).getTime() - new Date(a.modifiedAt).getTime())
-        }
+        // List files, skipping goose system directories
+        const files = await listOutputFiles(userRootPath, ['data', 'state', 'config'])
         res.writeHead(200, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ files }))
       } catch (err) {
@@ -506,146 +346,155 @@ async function main() {
       return
     }
 
-    // GET /agents/:id/files/* — serve/download a specific file (per-user)
+    // GET /agents/:id/files/* — serve a specific file
     const fileServeMatch = pathname.match(/^\/agents\/([^/]+)\/files\/(.+)$/)
     if (fileServeMatch && req.method === 'GET') {
       const agentId = fileServeMatch[1]
       const filePath = decodeURIComponent(fileServeMatch[2])
-      const userArtifactsPath = manager.getUserArtifactsPath(agentId, userId)
-      if (!userArtifactsPath) {
-        res.writeHead(404, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ error: `Agent '${agentId}' not found` }))
-        return
-      }
-      // Also pass the general artifacts dir as fallback (handles files created before per-user isolation)
-      const generalArtifactsPath = manager.getArtifactsPathAbsolute(agentId)
-      await serveFile(userArtifactsPath, filePath, req, res, generalArtifactsPath)
+      const userRootPath = manager.getUserRootPath(agentId, userId)
+      await serveFile(userRootPath, filePath, req, res)
       return
     }
 
-    // ===== Schedule Routes (agent-level, shared — no per-user ownership) =====
-    // Schedules are shared config like skills and MCP. All users can CRUD.
-    // Schedule runs produce sessions with the agent's default working_dir (no /users/),
-    // so they appear as "sys" sessions visible to all users.
-    // These routes pass through to goosed via the catch-all proxy below.
+    // ===== Session proxy routes (reply/resume/restart/stop) =====
 
-    // ===== Proxy routes that need session ownership check =====
-
-    // POST /agents/:id/agent/reply, /agent/resume, /agent/restart, /agent/stop
     const sessionProxyMatch = pathname.match(/^\/agents\/([^/]+)\/agent\/(reply|resume|restart|stop)\/?$/)
     if (sessionProxyMatch && req.method === 'POST') {
       const agentId = sessionProxyMatch[1]
       const action = sessionProxyMatch[2]
-      const target = getUpstreamTarget(agentId)
 
-      if (!target) {
-        res.writeHead(404, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ error: `Agent '${agentId}' not found or not running` }))
-        return
-      }
-
-      // Buffer body to extract session_id for ownership check
       const bodyStr = await readBody(req)
       let bodyJson: JsonRecord = {}
-      try {
-        bodyJson = bodyStr ? JSON.parse(bodyStr) : {}
-      } catch {
-        // If body isn't JSON, pass through
-      }
+      try { bodyJson = bodyStr ? JSON.parse(bodyStr) : {} } catch { /* pass through */ }
 
-      const sessionId = bodyJson.session_id as string
-      if (sessionId) {
-        const allowed = await checkSessionOwnership(sessionId)
-        if (!allowed) {
-          sendForbidden()
+      try {
+        const target = await manager.getOrSpawn(agentId, userId)
+
+        // For reply (SSE streaming), use fetch directly
+        if (action === 'reply') {
+          try {
+            const upstreamResponse = await fetch(`${target}/reply`, {
+              method: 'POST',
+              headers: upstreamHeaders(config.secretKey),
+              body: bodyStr,
+            })
+
+            res.writeHead(upstreamResponse.status, {
+              'Content-Type': upstreamResponse.headers.get('content-type') || 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              'Connection': 'keep-alive',
+            })
+
+            if (upstreamResponse.body) {
+              const reader = upstreamResponse.body.getReader()
+              try {
+                while (true) {
+                  const { done, value } = await reader.read()
+                  if (done) break
+                  res.write(value)
+                }
+              } catch {
+                // Stream interrupted
+              }
+              res.end()
+            } else {
+              res.end()
+            }
+          } catch (err) {
+            console.error('SSE proxy error:', err)
+            if (!res.headersSent) {
+              res.writeHead(502, { 'Content-Type': 'application/json' })
+            }
+            res.end(JSON.stringify({ error: 'Bad gateway' }))
+          }
           return
         }
+
+        // Non-streaming actions
+        const result = await postJsonToTarget(target, `/agent/${action}`, bodyJson, config.secretKey)
+        res.writeHead(result.ok ? 200 : result.status, { 'Content-Type': 'application/json' })
+        res.end(result.raw || JSON.stringify(result.json || { error: `Failed to ${action} session` }))
+      } catch (err) {
+        console.error(`Session ${action} error:`, err)
+        res.writeHead(500, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: err instanceof Error ? err.message : `Failed to ${action}` }))
       }
-
-      // For reply (SSE streaming), we need to use fetch directly since we've consumed the body
-      if (action === 'reply') {
-        try {
-          const upstreamResponse = await fetch(`${target}/reply`, {
-            method: 'POST',
-            headers: upstreamHeaders,
-            body: bodyStr,
-          })
-
-          // Stream the response back
-          res.writeHead(upstreamResponse.status, {
-            'Content-Type': upstreamResponse.headers.get('content-type') || 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-          })
-
-          if (upstreamResponse.body) {
-            const reader = upstreamResponse.body.getReader()
-            const pump = async () => {
-              while (true) {
-                const { done, value } = await reader.read()
-                if (done) { res.end(); break }
-                res.write(value)
-              }
-            }
-            pump().catch(() => res.end())
-          } else {
-            res.end()
-          }
-        } catch (err) {
-          console.error('SSE proxy error:', err)
-          if (!res.headersSent) {
-            res.writeHead(502, { 'Content-Type': 'application/json' })
-          }
-          res.end(JSON.stringify({ error: 'Bad gateway' }))
-        }
-        return
-      }
-
-      // For non-streaming routes, use fetch and return JSON
-      const result = await postJsonToAgent(agentId, `/agent/${action}`, bodyJson)
-      res.writeHead(result.ok ? 200 : result.status, { 'Content-Type': 'application/json' })
-      res.end(result.raw || JSON.stringify(result.json || { error: `Failed to ${action} session` }))
       return
     }
 
-    // ===== Non-user-scoped proxy routes =====
+    // ===== Agent-level routes =====
 
-    // GET/POST /agents/:id/mcp — proxy to goosed /config/extensions (hot reload MCP config)
+    // GET/POST /agents/:id/mcp — proxy to sys instance + fanout for POST
     const mcpMatch = pathname.match(/^\/agents\/([^/]+)\/mcp\/?$/)
     if (mcpMatch && (req.method === 'GET' || req.method === 'POST')) {
       const agentId = mcpMatch[1]
-      const target = manager.getTarget(agentId)
+      try {
+        const target = await manager.getSystemInstance(agentId)
 
-      if (!target) {
-        res.writeHead(404, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ error: `Agent '${agentId}' not found or not running` }))
-        return
+        if (req.method === 'GET') {
+          req.url = '/config/extensions'
+          proxy.web(req, res, { target })
+        } else {
+          // POST: forward to sys instance
+          const bodyStr = await readBody(req)
+          const result = await postJsonToTarget(target, '/config/extensions', bodyStr ? JSON.parse(bodyStr) : {}, config.secretKey)
+
+          // Fanout to all running user instances of this agent
+          const userInstances = manager.getRunningInstancesForAgent(agentId)
+            .filter(inst => inst.userId !== SYSTEM_USER)
+          if (userInstances.length > 0 && bodyStr) {
+            const body = JSON.parse(bodyStr)
+            await Promise.allSettled(userInstances.map(async inst => {
+              const instTarget = manager.getTarget(inst.agentId, inst.userId)
+              if (instTarget) {
+                await postJsonToTarget(instTarget, '/config/extensions', body, config.secretKey)
+              }
+            }))
+          }
+
+          res.writeHead(result.ok ? 200 : result.status, { 'Content-Type': 'application/json' })
+          res.end(result.raw || JSON.stringify(result.json))
+        }
+      } catch (err) {
+        console.error('MCP route error:', err)
+        res.writeHead(500, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'MCP operation failed' }))
       }
-
-      req.url = '/config/extensions'
-      proxy.web(req, res, { target })
       return
     }
 
-    // DELETE /agents/:id/mcp/:name — proxy to goosed /config/extensions/{name}
+    // DELETE /agents/:id/mcp/:name — proxy + fanout
     const mcpDeleteMatch = pathname.match(/^\/agents\/([^/]+)\/mcp\/(.+)$/)
     if (mcpDeleteMatch && req.method === 'DELETE') {
       const agentId = mcpDeleteMatch[1]
       const mcpName = mcpDeleteMatch[2]
-      const target = manager.getTarget(agentId)
+      try {
+        const target = await manager.getSystemInstance(agentId)
+        const result = await fetchJsonFromTarget(target, `/config/extensions/${mcpName}`, config.secretKey, 'DELETE')
 
-      if (!target) {
-        res.writeHead(404, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ error: `Agent '${agentId}' not found or not running` }))
-        return
+        // Fanout delete to all running user instances
+        const userInstances = manager.getRunningInstancesForAgent(agentId)
+          .filter(inst => inst.userId !== SYSTEM_USER)
+        if (userInstances.length > 0) {
+          await Promise.allSettled(userInstances.map(async inst => {
+            const instTarget = manager.getTarget(inst.agentId, inst.userId)
+            if (instTarget) {
+              await fetchJsonFromTarget(instTarget, `/config/extensions/${mcpName}`, config.secretKey, 'DELETE')
+            }
+          }))
+        }
+
+        res.writeHead(result.ok ? 200 : result.status, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify(result.json))
+      } catch (err) {
+        console.error('MCP delete error:', err)
+        res.writeHead(500, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'MCP delete failed' }))
       }
-
-      req.url = `/config/extensions/${mcpName}`
-      proxy.web(req, res, { target })
       return
     }
 
-    // GET/PUT /agents/:id/config — agent configuration (port, AGENTS.md)
+    // GET/PUT /agents/:id/config — reads/writes files directly, no instance needed
     const configMatch = pathname.match(/^\/agents\/([^/]+)\/config\/?$/)
     if (configMatch && (req.method === 'GET' || req.method === 'PUT')) {
       const agentId = configMatch[1]
@@ -667,13 +516,8 @@ async function main() {
         try {
           const updates = JSON.parse(body)
           const result = manager.updateAgentConfig(agentId, updates)
-          if (result.success) {
-            res.writeHead(200, { 'Content-Type': 'application/json' })
-            res.end(JSON.stringify(result))
-          } else {
-            res.writeHead(400, { 'Content-Type': 'application/json' })
-            res.end(JSON.stringify(result))
-          }
+          res.writeHead(result.success ? 200 : 400, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify(result))
         } catch {
           res.writeHead(400, { 'Content-Type': 'application/json' })
           res.end(JSON.stringify({ error: 'Invalid JSON body' }))
@@ -682,7 +526,7 @@ async function main() {
       }
     }
 
-    // GET /agents/:id/skills — detailed skills list
+    // GET /agents/:id/skills
     const skillsMatch = pathname.match(/^\/agents\/([^/]+)\/skills\/?$/)
     if (skillsMatch && req.method === 'GET') {
       const agentId = skillsMatch[1]
@@ -692,50 +536,196 @@ async function main() {
       return
     }
 
-    // POST /agents/:id/validate-port — validate port availability
-    const validatePortMatch = pathname.match(/^\/agents\/([^/]+)\/validate-port\/?$/)
-    if (validatePortMatch && req.method === 'POST') {
-      const agentId = validatePortMatch[1]
-      const body = await readBody(req)
-      try {
-        const { port } = JSON.parse(body)
-        if (typeof port !== 'number') {
-          res.writeHead(400, { 'Content-Type': 'application/json' })
-          res.end(JSON.stringify({ error: 'Port must be a number' }))
+    // ===== Agent-prefixed session routes (SDK calls use /agents/:id/sessions/...) =====
+
+    // GET /agents/:id/sessions — list sessions for this agent (user + sys)
+    const agentSessionsListMatch = pathname.match(/^\/agents\/([^/]+)\/sessions\/?$/)
+    if (agentSessionsListMatch && req.method === 'GET') {
+      const agentId = agentSessionsListMatch[1]
+      const allSessions: AgentSession[] = []
+
+      const listUids = userId === SYSTEM_USER ? [SYSTEM_USER] : [userId, SYSTEM_USER]
+      for (const uid of listUids) {
+        const target = manager.getTarget(agentId, uid)
+        if (!target) continue
+        const result = await fetchJsonFromTarget(target, `/sessions${urlObj.search}`, config.secretKey)
+        if (result.ok) {
+          allSessions.push(...parseSessions(agentId, result.json))
+        }
+      }
+
+      // Filter: user sees own + shared sessions
+      const sessions = allSessions
+        .filter(session => {
+          const owner = session.working_dir
+            ? extractUserFromWorkingDir(session.working_dir)
+            : DEFAULT_USER
+          return owner === userId || owner === DEFAULT_USER
+        })
+        .sort((a, b) => {
+          const aTs = typeof a.updated_at === 'string' ? Date.parse(a.updated_at) : 0
+          const bTs = typeof b.updated_at === 'string' ? Date.parse(b.updated_at) : 0
+          return bTs - aTs
+        })
+
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ sessions }))
+      return
+    }
+
+    // GET /agents/:id/sessions/:sessionId — get session from user's own instance
+    // Session IDs are per-instance (not globally unique), so we only check the user's instance.
+    // Schedule sessions (on sys instance) are discoverable via listing routes.
+    const agentSessionGetMatch = pathname.match(/^\/agents\/([^/]+)\/sessions\/([^/]+)\/?$/)
+    if (agentSessionGetMatch && req.method === 'GET') {
+      const agentId = agentSessionGetMatch[1]
+      const sessionId = decodeURIComponent(agentSessionGetMatch[2])
+
+      // Check user's running instance first
+      const target = manager.getTarget(agentId, userId)
+      if (target) {
+        const result = await fetchJsonFromTarget(target, `/sessions/${encodeURIComponent(sessionId)}`, config.secretKey)
+        if (result.ok && result.json) {
+          res.writeHead(200, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ ...result.json, agentId }))
           return
         }
-        const result = manager.validatePort(port, agentId)
-        res.writeHead(200, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify(result))
-      } catch {
-        res.writeHead(400, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ error: 'Invalid JSON body' }))
+      }
+
+      // Instance not running — spawn to check persistent sessions
+      if (!target) {
+        try {
+          const spawnedTarget = await manager.getOrSpawn(agentId, userId)
+          const result = await fetchJsonFromTarget(spawnedTarget, `/sessions/${encodeURIComponent(sessionId)}`, config.secretKey)
+          if (result.ok && result.json) {
+            res.writeHead(200, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ ...result.json, agentId }))
+            return
+          }
+        } catch { /* instance spawn failed */ }
+      }
+
+      res.writeHead(404, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: 'Session not found' }))
+      return
+    }
+
+    // DELETE /agents/:id/sessions/:sessionId — delete from user's own instance
+    const agentSessionDeleteMatch = pathname.match(/^\/agents\/([^/]+)\/sessions\/([^/]+)\/?$/)
+    if (agentSessionDeleteMatch && req.method === 'DELETE') {
+      const agentId = agentSessionDeleteMatch[1]
+      const sessionId = decodeURIComponent(agentSessionDeleteMatch[2])
+
+      const target = manager.getTarget(agentId, userId)
+      if (target) {
+        const result = await fetchJsonFromTarget(target, `/sessions/${encodeURIComponent(sessionId)}`, config.secretKey, 'DELETE')
+        if (result.ok) {
+          ownerCache.remove(sessionId)
+          res.writeHead(200, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ success: true, agentId }))
+          return
+        }
+      }
+
+      // Try spawning if instance not running
+      if (!target) {
+        try {
+          const spawnedTarget = await manager.getOrSpawn(agentId, userId)
+          const result = await fetchJsonFromTarget(spawnedTarget, `/sessions/${encodeURIComponent(sessionId)}`, config.secretKey, 'DELETE')
+          if (result.ok) {
+            ownerCache.remove(sessionId)
+            res.writeHead(200, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ success: true, agentId }))
+            return
+          }
+        } catch { /* spawn failed */ }
+      }
+
+      res.writeHead(404, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: 'Session not found' }))
+      return
+    }
+
+    // PUT /agents/:id/sessions/:sessionId/* — proxy to user's instance (rename etc.)
+    const agentSessionMutateMatch = pathname.match(/^\/agents\/([^/]+)\/sessions\/([^/]+)(\/.+)$/)
+    if (agentSessionMutateMatch && (req.method === 'PUT' || req.method === 'POST')) {
+      const agentId = agentSessionMutateMatch[1]
+      const sessionId = agentSessionMutateMatch[2]
+      const subPath = agentSessionMutateMatch[3]
+
+      try {
+        const target = await manager.getOrSpawn(agentId, userId)
+        req.url = `/sessions/${sessionId}${subPath}${urlObj.search}`
+        proxy.web(req, res, { target })
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'Agent not available' }))
       }
       return
     }
 
-    // /agents/:id/* — catch-all proxy to goosed instance
-    // This covers: schedule routes, tools, system_info, etc.
+    // /agents/:id/* — catch-all proxy to sys instance (schedules, etc.)
+    // Buffer the request body BEFORE async work (spawn) to prevent stream data loss.
+    // http-proxy pipes from the original req stream, but if the body data events
+    // fire during an await (e.g. instance spawn), the data is lost.
     const match = pathname.match(/^\/agents\/([^/]+)(\/.*)?$/)
     if (match) {
       const agentId = match[1]
       const path = match[2] || '/'
-      const target = manager.getTarget(agentId)
 
-      if (!target) {
-        res.writeHead(404, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ error: `Agent '${agentId}' not found or not running` }))
-        return
+      // Eagerly buffer request body so it survives async gaps
+      const chunks: Buffer[] = []
+      req.on('data', (chunk: Buffer) => chunks.push(chunk))
+      await new Promise<void>(resolve => req.on('end', resolve))
+
+      try {
+        const target = await manager.getSystemInstance(agentId)
+        req.url = path + urlObj.search
+        const buffer = new PassThrough()
+        buffer.end(Buffer.concat(chunks))
+        proxy.web(req, res, { target, buffer })
+      } catch (err) {
+        console.error('Catch-all proxy error:', err)
+        res.writeHead(500, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'Agent not available' }))
       }
-
-      req.url = path
-      proxy.web(req, res, { target })
       return
     }
 
     res.writeHead(404, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify({ error: 'Not found. Use /agents/:id/* to reach a goosed instance.' }))
   })
+
+  // ===== Helper: probe session across user + sys instances =====
+
+  async function probeSessionAcrossInstances(sessionId: string, forUserId: string, preferredAgentId?: string) {
+    const agentIds = preferredAgentId ? [preferredAgentId] : config.agents.map(a => a.id)
+    const probes: Array<{ agentId: string; target: string; session: JsonRecord }> = []
+
+    await Promise.all(agentIds.map(async (agentId) => {
+      // Check user's instance first, then sys
+      const uids = forUserId === SYSTEM_USER ? [SYSTEM_USER] : [forUserId, SYSTEM_USER]
+      for (const uid of uids) {
+        const target = manager.getTarget(agentId, uid)
+        if (!target) continue
+        const result = await fetchJsonFromTarget(target, `/sessions/${encodeURIComponent(sessionId)}`, config.secretKey)
+        if (result.ok && result.json) {
+          // When found on sys instance, verify session is accessible to this user
+          if (uid === SYSTEM_USER && forUserId !== SYSTEM_USER) {
+            const wd = (result.json as any).working_dir as string | undefined
+            const owner = wd ? extractUserFromWorkingDir(wd) : SYSTEM_USER
+            if (owner !== forUserId && owner !== SYSTEM_USER) continue
+          }
+          probes.push({ agentId, target, session: result.json })
+          return // Found in this agent, no need to check sys
+        }
+      }
+    }))
+
+    return probes
+  }
+
+  // ===== Shutdown =====
 
   const shutdown = async () => {
     console.log('\nGateway shutting down...')
@@ -749,71 +739,112 @@ async function main() {
 
   server.listen(config.port, config.host, () => {
     console.log(`Gateway listening on http://${config.host}:${config.port}`)
-    for (const a of manager.listAgents()) {
-      console.log(`  ${a.status === 'running' ? '✓' : '✗'} ${a.id} — ${a.status}`)
+    console.log(`  Idle timeout: ${config.idleTimeoutMs / 1000}s`)
+    for (const a of config.agents) {
+      console.log(`  Agent: ${a.id} (instances spawn on demand)`)
     }
   })
 }
 
 // ===== Migration Logic =====
 
-const MIGRATION_MARKER = '.multi-user-migrated'
+const MIGRATION_MARKER_V2 = '.per-user-v2-migrated'
 
-async function migrateExistingData(
-  manager: ProcessManager,
-  config: { projectRoot: string; agentsDir: string }
+async function migrateToPerUserLayout(
+  manager: InstanceManager,
+  config: { projectRoot: string; agentsDir: string; usersDir: string; agents: Array<{ id: string }> }
 ): Promise<void> {
-  const markerPath = join(config.projectRoot, 'gateway', 'data', MIGRATION_MARKER)
+  const markerPath = join(config.projectRoot, 'gateway', 'data', MIGRATION_MARKER_V2)
 
-  // Skip if migration already done
-  if (existsSync(markerPath)) {
-    return
-  }
+  if (existsSync(markerPath)) return
 
-  console.log(`First run detected — migrating existing artifact files to default user "${DEFAULT_USER}"...`)
+  console.log('Migrating to users/{userId}/agents/{agentId}/ layout...')
+  let totalMoved = 0
 
-  const agents = manager.listAgents()
-  let fileCount = 0
+  for (const agent of config.agents) {
+    const agentRoot = join(config.agentsDir, agent.id)
+    if (!existsSync(agentRoot)) continue
 
-  for (const agent of agents) {
-    const artifactsPath = manager.getArtifactsPathAbsolute(agent.id)
-    if (!artifactsPath || !existsSync(artifactsPath)) continue
-
-    const userDir = join(artifactsPath, 'users', DEFAULT_USER)
-    if (!existsSync(userDir)) {
-      mkdirSync(userDir, { recursive: true })
+    // Helper: move all non-hidden entries from src dir into dst dir
+    const moveContents = async (srcDir: string, dstDir: string) => {
+      try {
+        const entries = readdirSync(srcDir, { withFileTypes: true })
+        for (const entry of entries) {
+          if (entry.name.startsWith('.')) continue
+          const src = join(srcDir, entry.name)
+          const dst = join(dstDir, entry.name)
+          if (existsSync(dst)) continue // don't overwrite
+          try { await rename(src, dst); totalMoved++ }
+          catch (err) { console.warn(`  Migration: ${src} → ${dst}: ${(err as Error).message}`) }
+        }
+      } catch { /* src dir unreadable */ }
     }
 
-    try {
-      const entries = readdirSync(artifactsPath, { withFileTypes: true })
-      for (const entry of entries) {
-        // Skip the 'users' directory itself
-        if (entry.name === 'users') continue
-        // Skip hidden files like .DS_Store
-        if (entry.name.startsWith('.')) continue
+    // 1. Migrate from artifacts/users/{userId}/ (oldest format)
+    const oldArtifactsUsers = join(agentRoot, 'artifacts', 'users')
+    if (existsSync(oldArtifactsUsers)) {
+      for (const entry of readdirSync(oldArtifactsUsers, { withFileTypes: true })) {
+        if (!entry.isDirectory() || entry.name.startsWith('.')) continue
+        const newRoot = await manager.prepareUserRuntime(agent.id, entry.name)
+        await moveContents(join(oldArtifactsUsers, entry.name), newRoot)
+      }
+    }
 
-        const src = join(artifactsPath, entry.name)
-        const dst = join(userDir, entry.name)
-        try {
-          renameSync(src, dst)
-          fileCount++
-        } catch (err) {
-          console.warn(`  Migration: could not move ${src} → ${dst}:`, (err as Error).message)
+    // 2. Migrate from agents/{agentId}/users/{userId}/ (v1 format from previous migration)
+    const oldUsersDir = join(agentRoot, 'users')
+    if (existsSync(oldUsersDir)) {
+      for (const entry of readdirSync(oldUsersDir, { withFileTypes: true })) {
+        if (!entry.isDirectory() || entry.name.startsWith('.')) continue
+        const newRoot = await manager.prepareUserRuntime(agent.id, entry.name)
+        await moveContents(join(oldUsersDir, entry.name), newRoot)
+      }
+    }
+
+    // 3. Migrate old shared data/ and state/ to sys instance
+    const sysRoot = await manager.prepareUserRuntime(agent.id, SYSTEM_USER)
+
+    for (const dirName of ['data', 'state']) {
+      const oldDir = join(agentRoot, dirName)
+      const newDir = join(sysRoot, dirName)
+      if (existsSync(oldDir) && !existsSync(newDir)) {
+        try { await rename(oldDir, newDir); console.log(`  Migrated ${agent.id}/${dirName}/ → sys`) }
+        catch (err) { console.warn(`  Migration: ${dirName}/: ${(err as Error).message}`) }
+      }
+    }
+
+    // 3b. Migrate __default__ user data to sys (from previous version)
+    const oldDefaultRoot = join(config.usersDir, '__default__', 'agents', agent.id)
+    if (existsSync(oldDefaultRoot)) {
+      for (const dirName of ['data', 'state']) {
+        const oldDir = join(oldDefaultRoot, dirName)
+        const newDir = join(sysRoot, dirName)
+        if (existsSync(oldDir) && !existsSync(newDir)) {
+          try { await rename(oldDir, newDir); console.log(`  Migrated __default__/${agent.id}/${dirName}/ → sys`) }
+          catch (err) { console.warn(`  Migration: ${dirName}/: ${(err as Error).message}`) }
         }
       }
-    } catch (err) {
-      console.warn(`  Migration: could not list artifacts for ${agent.id}:`, (err as Error).message)
+      try { await rm(oldDefaultRoot, { recursive: true, force: true }) } catch { /* */ }
+    }
+
+    // 4. Clean up old directories
+    for (const oldDir of [join(agentRoot, 'artifacts'), join(agentRoot, 'users'), join(agentRoot, 'data'), join(agentRoot, 'state')]) {
+      if (existsSync(oldDir)) {
+        try { await rm(oldDir, { recursive: true, force: true }) } catch { /* */ }
+      }
+    }
+    // Also clean up __default__ user directory if empty
+    const oldDefaultUserDir = join(config.usersDir, '__default__')
+    if (existsSync(oldDefaultUserDir)) {
+      try { await rm(oldDefaultUserDir, { recursive: true, force: true }) } catch { /* */ }
     }
   }
 
-  // Write marker file
+  // Write migration marker
   const markerDir = join(config.projectRoot, 'gateway', 'data')
-  if (!existsSync(markerDir)) {
-    mkdirSync(markerDir, { recursive: true })
-  }
+  if (!existsSync(markerDir)) mkdirSync(markerDir, { recursive: true })
   writeFileSync(markerPath, new Date().toISOString(), 'utf-8')
 
-  console.log(`  Migration complete: ${fileCount} files moved to "${DEFAULT_USER}"`)
+  console.log(`  Migration complete (v2): ${totalMoved} files moved`)
 }
 
 main().catch(err => {

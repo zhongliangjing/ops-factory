@@ -13,12 +13,12 @@
  *   3. On-demand fetch  (cache miss → fetch session details → parse → cache)
  */
 
-const DEFAULT_USER = 'sys'
+import { SYSTEM_USER } from './instance-manager.js'
 
-/** Extract userId from a working_dir string, e.g. "agents/kb-agent/artifacts/users/alice/" → "alice" */
+/** Extract userId from a working_dir string, e.g. "users/alice/agents/kb-agent/" → "alice" */
 export function extractUserFromWorkingDir(workingDir: string): string {
   const match = workingDir.match(/\/users\/([^/]+)/)
-  return match ? match[1] : DEFAULT_USER
+  return match ? match[1] : SYSTEM_USER
 }
 
 export class SessionOwnerCache {

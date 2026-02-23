@@ -191,9 +191,13 @@ function formatToolName(name: string): string {
     return name.replace(/_/g, ' ')
 }
 
+const MAX_RESULT_LENGTH = 50_000 // 50KB cap to prevent browser freeze on large blobs
+
 function formatResult(result: unknown): string {
     if (typeof result === 'string') {
-        return result
+        return result.length > MAX_RESULT_LENGTH
+            ? result.slice(0, MAX_RESULT_LENGTH) + '\n... [truncated]'
+            : result
     }
     if (Array.isArray(result)) {
         // If it's an array of content items (like from tool response)
@@ -207,5 +211,8 @@ function formatResult(result: unknown): string {
             return JSON.stringify(item, null, 2)
         }).join('\n')
     }
-    return JSON.stringify(result, null, 2)
+    const serialized = JSON.stringify(result, null, 2)
+    return serialized.length > MAX_RESULT_LENGTH
+        ? serialized.slice(0, MAX_RESULT_LENGTH) + '\n... [truncated]'
+        : serialized
 }

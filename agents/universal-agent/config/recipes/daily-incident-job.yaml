@@ -1,4 +1,0 @@
-version: 1.0.0
-title: daily-incident-job
-description: 'Scheduled action: daily-incident-job'
-instructions: Summarize todays incident tickets

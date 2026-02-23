@@ -102,6 +102,16 @@ export default function Sidebar() {
                     </svg>
                     <span>Scheduler</span>
                 </NavLink>
+
+                <NavLink
+                    to="/monitoring"
+                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                    </svg>
+                    <span>Monitoring</span>
+                </NavLink>
             </nav>
 
             <div className="sidebar-user-section">

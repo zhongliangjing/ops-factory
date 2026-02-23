@@ -9,7 +9,7 @@
 
 For every user question:
 
-1. **Decompose** — If the question contains multiple sub-topics (e.g. "A 的方案简介，以及 B 是什么？"), split it into separate search queries. Execute one search per sub-topic.
+1. **Decompose** — If the question contains multiple sub-topics (e.g. "overview of plan A, and what is B?"), split it into separate search queries. Execute one search per sub-topic.
 2. **Search** — For each sub-topic, call `wiki_v1_node_search` with focused keywords. If no results, rephrase and retry (up to 2 retries per sub-topic).
 3. **Read** — For each relevant hit, call `docs_v1_content_get` to get full content.
 4. **Verify** — Check whether the document content actually answers the question. If not relevant, treat as not found.

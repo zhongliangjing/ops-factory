@@ -2,14 +2,10 @@ import {
     Activity,
     BookOpen,
     FileText,
-    ShieldAlert,
     Users,
     Server,
-    Zap,
     BarChart3,
     Search,
-    FileCheck,
-    AlertTriangle,
     ClipboardCheck,
     Cloud,
     Database,
@@ -76,64 +72,6 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
         prompt: 'Create an agenda for the weekly engineering team sync. Topics should include: sprint progress, blocker resolution, and design reviews.'
     },
 
-    // Report Agent
-    {
-        id: 'incident-quality',
-        title: 'Incident Quality Report',
-        description: 'Ops quality report with HTML and DOCX outputs.',
-        agentId: 'report-agent',
-        icon: FileCheck,
-        prompt: `Use the report agent skill "ops-incident-quality" to generate an "Incident Operations Quality Report". Requirements: 1. Generate one previewable HTML report and one DOCX report. 2. Include incident overview, timeliness, and improvement actions.`
-    },
-    {
-        id: 'weekly-ops',
-        title: 'Weekly Operations Summary',
-        description: 'Summarize incidents and alerts for leadership.',
-        agentId: 'report-agent',
-        icon: FileText,
-        prompt: 'Generate a weekly operations summary for leadership, including KPIs, trend changes, major incidents, risks, and next-week action items.'
-    },
-    {
-        id: 'sla-audit',
-        title: 'SLA Compliance Audit',
-        description: 'Monthly report on SLA breaches and compliance.',
-        agentId: 'report-agent',
-        icon: ClipboardCheck,
-        prompt: 'Generate a monthly report on SLA breaches and compliance trends. Highlight teams with highest breach rates and suggest process improvements.'
-    },
-    {
-        id: 'shift-handoff',
-        title: 'Shift Handoff Brief',
-        description: 'Summarize active alerts for next shift.',
-        agentId: 'report-agent',
-        icon: Zap,
-        prompt: 'Summarize key active alerts, pending tickets, and ongoing incidents for the next shift. Prioritize items requiring immediate attention.'
-    },
-    {
-        id: 'daily-standup',
-        title: 'Daily Standup',
-        description: 'Summarize yesterday\'s key achievements.',
-        agentId: 'report-agent',
-        icon: Activity,
-        prompt: 'Summarize yesterday\'s key achievements, today\'s planned tasks, and any blockers for the daily standup meeting.'
-    },
-    {
-        id: 'release-notes',
-        title: 'Release Notes',
-        description: 'Generate release notes for the latest deployment.',
-        agentId: 'report-agent',
-        icon: FileText,
-        prompt: 'Generate release notes for the latest deployment (v2.4.0). Include new features, bug fixes, and known issues based on the commit log.'
-    },
-    {
-        id: 'perf-review',
-        title: 'Performance Review',
-        description: 'Draft a performance review for an engineer.',
-        agentId: 'report-agent',
-        icon: Users,
-        prompt: 'Draft a performance review for a Senior DevOps Engineer. Highlight achievements in automation, incident response, and mentorship.'
-    },
-
     // KB Agent
     {
         id: 'kb-incident-qa',
@@ -191,62 +129,4 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
         icon: Lock,
         prompt: 'Find the company\'s password rotation policy and Multi-Factor Authentication (MFA) requirements for production access.'
     },
-
-    // Contract Agent
-    {
-        id: 'contract-risk',
-        title: 'Contract Risk Scan',
-        description: 'Detect delivery and breach risks in clauses.',
-        agentId: 'contract-agent',
-        icon: ShieldAlert,
-        prompt: 'Review the following service contract draft. Return a high/medium/low risk clause list, and for each clause include: risk point, impact, and suggested rewritten text.'
-    },
-    {
-        id: 'vendor-renewal',
-        title: 'Vendor Renewal Checklist',
-        description: 'Evaluate vendor performance before renewal.',
-        agentId: 'contract-agent',
-        icon: ClipboardCheck,
-        prompt: 'Create a checklist for evaluating vendor performance before contract renewal. Include criteria for service quality, support responsiveness, and cost effectiveness.'
-    },
-    {
-        id: 'compliance-term',
-        title: 'Compliance Term Review',
-        description: 'Highlight GDPR and data sovereignty terms.',
-        agentId: 'contract-agent',
-        icon: AlertTriangle,
-        prompt: 'Highlight terms related to GDPR, data sovereignty, and privacy compliance in this document. Flag any missing standard clauses.'
-    },
-    {
-        id: 'security-audit',
-        title: 'Security Clause Audit',
-        description: 'Verify SOC2 and audit right clauses.',
-        agentId: 'contract-agent',
-        icon: Lock,
-        prompt: 'Scan the contract for security requirements. Verify if SOC2, penetration testing, and right-to-audit clauses are present and meet our standard policy.'
-    },
-    {
-        id: 'nda-review',
-        title: 'NDA Review',
-        description: 'Review this NDA for non-compete clauses.',
-        agentId: 'contract-agent',
-        icon: FileText,
-        prompt: 'Review this Non-Disclosure Agreement (NDA). Specifically, check for any non-compete clauses or overly broad definition of "Confidential Information".'
-    },
-    {
-        id: 'sla-define',
-        title: 'SLA Definition',
-        description: 'Define standard SLA terms for new vendor.',
-        agentId: 'contract-agent',
-        icon: Zap,
-        prompt: 'Define standard Service Level Agreement (SLA) terms for a new SaaS vendor. Include uptime guarantees (99.9%), response times for P1 issues, and service credit penalties.'
-    },
-    {
-        id: 'payment-terms',
-        title: 'Payment Terms',
-        description: 'Check payment terms for Net-30 compliance.',
-        agentId: 'contract-agent',
-        icon: ClipboardCheck,
-        prompt: 'Check the payment terms in this contract draft. Ensure they align with our standard Net-30 payment policy and check for any late payment penalty clauses.'
-    }
 ]

@@ -34,21 +34,17 @@ export interface FileInfo {
 }
 
 const SKIP_DIRS = new Set(['node_modules', '.git', '__pycache__', '.venv', 'venv'])
-const SKIP_FILES = new Set(['.DS_Store', 'Thumbs.db', '.gitkeep'])
+const SKIP_FILES = new Set(['.DS_Store', 'Thumbs.db', '.gitkeep', 'AGENTS.md'])
 
 /**
- * If filePath is absolute and lives under one of the known directories,
+ * If filePath is absolute and lives under workingDir,
  * strip the prefix so we get a safe relative path.
  */
-function normaliseFilePath(filePath: string, workingDir: string, fallbackDir?: string | null): string {
+function normaliseFilePath(filePath: string, workingDir: string): string {
   if (!filePath.startsWith('/')) return filePath
   const abs = resolve(filePath)
-  // Try workingDir first, then fallbackDir
-  for (const dir of [workingDir, fallbackDir]) {
-    if (!dir) continue
-    const rel = relative(dir, abs)
-    if (!rel.startsWith('..') && !rel.includes(`${sep}..`)) return rel
-  }
+  const rel = relative(workingDir, abs)
+  if (!rel.startsWith('..') && !rel.includes(`${sep}..`)) return rel
   // Could not make it relative — return just the basename so findFileByName can search
   return basename(filePath)
 }
@@ -146,44 +142,25 @@ async function findFileByName(workingDir: string, fileName: string): Promise<str
 
 /**
  * Serve a file from workingDir with path traversal protection.
- * If fallbackDir is provided, also searches there when file is not found in workingDir.
  */
-export async function serveFile(workingDir: string, filePath: string, _req: IncomingMessage, res: ServerResponse, fallbackDir?: string | null): Promise<void> {
-  // Normalise: if filePath is absolute and lives under workingDir (or fallbackDir), make it relative
-  const normalised = normaliseFilePath(filePath, workingDir, fallbackDir)
+export async function serveFile(workingDir: string, filePath: string, _req: IncomingMessage, res: ServerResponse): Promise<void> {
+  // Normalise: if filePath is absolute and lives under workingDir, make it relative
+  const normalised = normaliseFilePath(filePath, workingDir)
 
-  // Path traversal check (against workingDir)
+  // Path traversal check
   let resolved = resolve(workingDir, normalised)
   const rel = relative(workingDir, resolved)
   const isSafe = !rel.startsWith('..') && !rel.includes(`${sep}..`)
 
   if (!isSafe) {
-    // If we have a fallback dir, check traversal against that instead
-    if (fallbackDir) {
-      const fallbackResolved = resolve(fallbackDir, normalised)
-      const fallbackRel = relative(fallbackDir, fallbackResolved)
-      if (!fallbackRel.startsWith('..') && !fallbackRel.includes(`${sep}..`)) {
-        resolved = fallbackResolved
-      } else {
-        res.writeHead(403, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ error: 'Forbidden: path traversal detected' }))
-        return
-      }
-    } else {
-      res.writeHead(403, { 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Forbidden: path traversal detected' }))
-      return
-    }
+    res.writeHead(403, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ error: 'Forbidden: path traversal detected' }))
+    return
   }
 
   // If file not found at exact path, search by filename
   if (!existsSync(resolved)) {
-    const fileName = basename(normalised)
-    let found = await findFileByName(workingDir, fileName)
-    // Fallback: also search in the general artifacts directory
-    if (!found && fallbackDir && fallbackDir !== workingDir) {
-      found = await findFileByName(fallbackDir, fileName)
-    }
+    const found = await findFileByName(workingDir, basename(normalised))
     if (found) {
       resolved = found
     } else {

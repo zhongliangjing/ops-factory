@@ -173,16 +173,10 @@ export default function ScheduledActions() {
                 ? (cleanedName === editingJobId ? cleanedName : ensureUniqueId(cleanedName, existingIds))
                 : ensureUniqueId(cleanedName, existingIds)
 
-            const saved = await selectedClient.saveRecipe({
+            const recipe = {
                 title: form.name.trim(),
                 description: `Scheduled action: ${form.name.trim()}`,
                 instructions: form.instruction.trim(),
-            })
-
-            const manifests = await selectedClient.listRecipes()
-            const manifest = manifests.find(item => item.id === saved.id)
-            if (!manifest) {
-                throw new Error('Saved recipe not found in recipe list')
             }
 
             if (editingJobId) {
@@ -191,17 +185,9 @@ export default function ScheduledActions() {
 
                 if (scheduleId === editingJobId) {
                     await selectedClient.deleteSchedule(editingJobId)
-                    await selectedClient.createSchedule({
-                        id: scheduleId,
-                        recipe_source: manifest.file_path,
-                        cron: form.cron.trim(),
-                    })
+                    await selectedClient.createSchedule({ id: scheduleId, recipe, cron: form.cron.trim() })
                 } else {
-                    await selectedClient.createSchedule({
-                        id: scheduleId,
-                        recipe_source: manifest.file_path,
-                        cron: form.cron.trim(),
-                    })
+                    await selectedClient.createSchedule({ id: scheduleId, recipe, cron: form.cron.trim() })
                     await selectedClient.deleteSchedule(editingJobId)
                 }
 
@@ -210,11 +196,7 @@ export default function ScheduledActions() {
                 }
                 showToast('success', 'Scheduled action updated')
             } else {
-                await selectedClient.createSchedule({
-                    id: scheduleId,
-                    recipe_source: manifest.file_path,
-                    cron: form.cron.trim(),
-                })
+                await selectedClient.createSchedule({ id: scheduleId, recipe, cron: form.cron.trim() })
                 showToast('success', 'Scheduled action created')
             }
 
