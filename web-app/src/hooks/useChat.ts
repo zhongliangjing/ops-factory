@@ -1,6 +1,6 @@
 import { useCallback, useReducer, useRef, useEffect } from 'react'
 import { GoosedClient } from '@goosed/sdk'
-import type { TokenState } from '@goosed/sdk'
+import type { TokenState, ImageData } from '@goosed/sdk'
 import { ChatMessage, MessageContent } from '../components/Message'
 
 // ── ChatState enum ──────────────────────────────────────────────
@@ -71,7 +71,7 @@ export interface UseChatReturn {
     isLoading: boolean
     error: string | null
     tokenState: TokenState | null
-    sendMessage: (text: string) => Promise<void>
+    sendMessage: (text: string, images?: ImageData[]) => Promise<void>
     stopMessage: () => Promise<boolean>
     clearMessages: () => void
     setInitialMessages: (msgs: ChatMessage[]) => void
@@ -167,8 +167,9 @@ export function useChat({ sessionId, client }: UseChatOptions): UseChatReturn {
         dispatch({ type: 'SET_MESSAGES', payload: msgs })
     }, [])
 
-    const sendMessage = useCallback(async (text: string) => {
-        if (!sessionId || !text.trim() || isStreamingRef.current) return
+    const sendMessage = useCallback(async (text: string, images?: ImageData[]) => {
+        if (!sessionId || isStreamingRef.current) return
+        if (!text.trim() && (!images || images.length === 0)) return
 
         dispatch({ type: 'START_STREAMING' })
         isStreamingRef.current = true
@@ -177,11 +178,22 @@ export function useChat({ sessionId, client }: UseChatOptions): UseChatReturn {
         const controller = new AbortController()
         abortControllerRef.current = controller
 
+        // Build user message content (text + images)
+        const userContent: MessageContent[] = []
+        if (text.trim()) {
+            userContent.push({ type: 'text', text })
+        }
+        if (images && images.length > 0) {
+            for (const img of images) {
+                userContent.push({ type: 'image', data: img.data, mimeType: img.mimeType } as MessageContent)
+            }
+        }
+
         // Add user message immediately
         const userMessage: ChatMessage = {
             id: `user-${Date.now()}`,
             role: 'user',
-            content: [{ type: 'text', text }],
+            content: userContent,
             created: Math.floor(Date.now() / 1000),
         }
 
@@ -189,7 +201,7 @@ export function useChat({ sessionId, client }: UseChatOptions): UseChatReturn {
         dispatch({ type: 'SET_MESSAGES', payload: currentMessages })
 
         try {
-            for await (const event of client.sendMessage(sessionId, text)) {
+            for await (const event of client.sendMessage(sessionId, text, images)) {
                 if (!isMountedRef.current || controller.signal.aborted) break
 
                 switch (event.type) {

@@ -24,6 +24,8 @@ export type {
     SystemInfo,
     ExtensionResult,
     GoosedClientOptions,
+    ImageData,
+    UploadResult,
     Recipe,
     RecipeManifest,
     ScheduledJob,

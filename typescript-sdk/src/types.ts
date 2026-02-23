@@ -104,6 +104,18 @@ export interface SSEEvent {
     conversation?: Record<string, unknown>[];
 }
 
+export interface ImageData {
+    data: string;       // base64 encoded image data (no data URL prefix)
+    mimeType: string;   // e.g. 'image/jpeg', 'image/png'
+}
+
+export interface UploadResult {
+    path: string;
+    name: string;
+    size: number;
+    type: string;
+}
+
 export interface GoosedClientOptions {
     baseUrl?: string;
     secretKey?: string;

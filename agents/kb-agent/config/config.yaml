@@ -4,6 +4,9 @@ LITELLM_HOST: https://openrouter.ai/api/
 GOOSE_MODE: auto
 GOOSE_DISABLE_KEYRING: '1'
 GOOSE_TELEMETRY_ENABLED: true
+# Vision configuration
+vision:
+  mode: "off"
 LANGFUSE_INIT_PROJECT_PUBLIC_KEY: pk-lf-opsfactory
 LANGFUSE_INIT_PROJECT_SECRET_KEY: sk-lf-opsfactory
 LANGFUSE_URL: http://localhost:3100

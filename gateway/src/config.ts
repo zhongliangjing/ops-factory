@@ -29,6 +29,22 @@ export interface OfficePreviewConfig {
   fileBaseUrl: string
 }
 
+export interface VisionGlobalConfig {
+  mode: string            // 'off' | 'passthrough' | 'preprocess'
+  provider: string
+  model: string
+  apiKey: string
+  baseUrl: string
+  maxTokens: number
+  prompt: string
+}
+
+export interface UploadConfig {
+  maxFileSizeMb: number
+  maxImageSizeMb: number
+  retentionHours: number
+}
+
 export interface GatewayConfig {
   host: string
   port: number
@@ -41,6 +57,8 @@ export interface GatewayConfig {
   officePreview: OfficePreviewConfig
   idleTimeoutMs: number
   idleCheckIntervalMs: number
+  upload: UploadConfig
+  vision: VisionGlobalConfig
 }
 
 const __filename = fileURLToPath(import.meta.url)
@@ -94,6 +112,32 @@ export function loadGatewayConfig(): GatewayConfig {
   const idleTimeoutMs = parseInt(process.env.IDLE_TIMEOUT_MS || String(idleTimeoutMinutes * 60 * 1000), 10)
   const idleCheckIntervalMs = parseInt(process.env.IDLE_CHECK_INTERVAL_MS || '60000', 10)
 
+  // File upload configuration
+  const upload: UploadConfig = {
+    maxFileSizeMb: parseInt(process.env.MAX_UPLOAD_FILE_SIZE_MB || '10', 10),
+    maxImageSizeMb: parseInt(process.env.MAX_UPLOAD_IMAGE_SIZE_MB || '5', 10),
+    retentionHours: parseInt(process.env.UPLOAD_RETENTION_HOURS || '24', 10),
+  }
+
+  // Vision global defaults (agent config.yaml can override per-agent)
+  const DEFAULT_VISION_PROMPT = `Analyze this image thoroughly. Describe:
+- Main content and subject matter
+- Any text, numbers, or data visible
+- Charts, tables, or diagrams if present
+- Layout and structural elements
+- Any relevant details that would help answer questions about this image
+Be precise and factual.`
+
+  const vision: VisionGlobalConfig = {
+    mode: process.env.VISION_MODE || 'off',
+    provider: process.env.VISION_PROVIDER || '',
+    model: process.env.VISION_MODEL || '',
+    apiKey: process.env.VISION_API_KEY || '',
+    baseUrl: process.env.VISION_BASE_URL || '',
+    maxTokens: parseInt(process.env.VISION_MAX_TOKENS || '1024', 10),
+    prompt: process.env.VISION_PROMPT || DEFAULT_VISION_PROMPT,
+  }
+
   return {
     host,
     port,
@@ -106,5 +150,7 @@ export function loadGatewayConfig(): GatewayConfig {
     officePreview,
     idleTimeoutMs,
     idleCheckIntervalMs,
+    upload,
+    vision,
   }
 }

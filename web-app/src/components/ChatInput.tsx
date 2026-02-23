@@ -1,9 +1,11 @@
-import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, DragEvent } from 'react'
-import type { TokenState } from '@goosed/sdk'
+import { useState, useRef, useEffect, useCallback, KeyboardEvent, ChangeEvent, DragEvent, ClipboardEvent } from 'react'
+import type { TokenState, ImageData } from '@goosed/sdk'
 import AgentSelector from './AgentSelector'
+import { compressImageDataUrl, isImageFile, parseDataUrl, readFileAsDataUrl } from '../utils/imageUtils'
 
 // File handling constants
-const MAX_FILES_PER_MESSAGE = 10
+const MAX_IMAGES_PER_MESSAGE = 3
+const MAX_FILES_PER_MESSAGE = 5
 const MAX_FILE_SIZE_MB = 10
 const MAX_IMAGE_SIZE_MB = 5
 const SUPPORTED_FILE_TYPES = [
@@ -16,8 +18,12 @@ const SUPPORTED_FILE_TYPES = [
     // Config files
     '.env', '.gitignore', '.dockerignore', '.editorconfig', '.prettierrc',
     '.eslintrc', '.babelrc', 'Dockerfile', 'Makefile',
+    // Document files
+    '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
     // Images
     '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg',
+    // Archives
+    '.zip', '.tar', '.gz',
 ]
 
 interface UploadedFile {
@@ -27,15 +33,16 @@ interface UploadedFile {
     type: string
     size: number
     isImage: boolean
-    preview?: string  // Data URL for image preview
-    content?: string  // Text content for text files
+    preview?: string       // Data URL for image preview (compressed)
+    uploadedPath?: string  // Server path for non-image files after upload
     isLoading: boolean
     error?: string
 }
 
 interface ChatInputProps {
-    onSubmit: (message: string) => void
+    onSubmit: (message: string, images?: ImageData[]) => void
     onStopGeneration?: () => void | Promise<void>
+    onUploadFile?: (file: File) => Promise<{ path: string }>
     disabled?: boolean
     isGenerating?: boolean
     placeholder?: string
@@ -47,11 +54,13 @@ interface ChatInputProps {
     tokenState?: TokenState | null
     presetMessage?: string
     presetToken?: number
+    visionMode?: string  // 'off' | 'passthrough' | 'preprocess'
 }
 
 export default function ChatInput({
     onSubmit,
     onStopGeneration,
+    onUploadFile,
     disabled = false,
     isGenerating = false,
     placeholder = "Type a message...",
@@ -62,7 +71,8 @@ export default function ChatInput({
     modelInfo,
     tokenState,
     presetMessage,
-    presetToken
+    presetToken,
+    visionMode = 'off',
 }: ChatInputProps) {
     const [value, setValue] = useState('')
     const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
@@ -103,119 +113,126 @@ export default function ChatInput({
         return () => window.clearTimeout(timer)
     }, [presetToken, presetMessage])
 
+    const imagesAllowed = visionMode !== 'off'
+
     const isFileTypeSupported = (file: File): boolean => {
         const extension = '.' + file.name.split('.').pop()?.toLowerCase()
         return SUPPORTED_FILE_TYPES.includes(extension) || file.name === 'Dockerfile' || file.name === 'Makefile'
     }
 
-    const processFile = async (file: File): Promise<UploadedFile> => {
-        const isImage = file.type.startsWith('image/')
-        const maxSize = isImage ? MAX_IMAGE_SIZE_MB : MAX_FILE_SIZE_MB
+    const currentImageCount = uploadedFiles.filter(f => f.isImage && !f.error).length
+    const currentFileCount = uploadedFiles.filter(f => !f.isImage && !f.error).length
 
-        const uploadedFile: UploadedFile = {
-            id: `file-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-            file,
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            isImage,
-            isLoading: true,
-        }
-
-        // Check file type
-        if (!isFileTypeSupported(file)) {
-            return {
-                ...uploadedFile,
-                isLoading: false,
-                error: `Unsupported file type. Supported: ${SUPPORTED_FILE_TYPES.slice(0, 10).join(', ')}...`
-            }
-        }
-
-        // Check file size
-        if (file.size > maxSize * 1024 * 1024) {
-            return {
-                ...uploadedFile,
-                isLoading: false,
-                error: `File too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Max: ${maxSize}MB`
-            }
-        }
-
+    const processImageFile = useCallback(async (file: File, fileId: string) => {
         try {
-            if (isImage) {
-                // Read image as data URL for preview
-                const dataUrl = await readFileAsDataURL(file)
-                return {
-                    ...uploadedFile,
-                    preview: dataUrl,
-                    isLoading: false,
-                }
-            } else {
-                // Read text file content
-                const content = await readFileAsText(file)
-                return {
-                    ...uploadedFile,
-                    content,
-                    isLoading: false,
-                }
-            }
+            const dataUrl = await readFileAsDataUrl(file)
+            const compressed = await compressImageDataUrl(dataUrl)
+            setUploadedFiles(prev =>
+                prev.map(f => f.id === fileId ? { ...f, preview: compressed, isLoading: false } : f)
+            )
         } catch (err) {
-            return {
-                ...uploadedFile,
-                isLoading: false,
-                error: `Failed to read file: ${err instanceof Error ? err.message : 'Unknown error'}`
-            }
+            setUploadedFiles(prev =>
+                prev.map(f => f.id === fileId ? {
+                    ...f, isLoading: false,
+                    error: `Failed to process image: ${err instanceof Error ? err.message : 'Unknown error'}`
+                } : f)
+            )
         }
-    }
+    }, [])
 
-    const readFileAsDataURL = (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader()
-            reader.onload = () => resolve(reader.result as string)
-            reader.onerror = () => reject(new Error('Failed to read file'))
-            reader.readAsDataURL(file)
-        })
-    }
-
-    const readFileAsText = (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader()
-            reader.onload = () => resolve(reader.result as string)
-            reader.onerror = () => reject(new Error('Failed to read file'))
-            reader.readAsText(file)
-        })
-    }
+    const processNonImageFile = useCallback(async (file: File, fileId: string) => {
+        if (!onUploadFile) {
+            setUploadedFiles(prev =>
+                prev.map(f => f.id === fileId ? { ...f, isLoading: false, error: 'File upload not available' } : f)
+            )
+            return
+        }
+        try {
+            const result = await onUploadFile(file)
+            setUploadedFiles(prev =>
+                prev.map(f => f.id === fileId ? { ...f, uploadedPath: result.path, isLoading: false } : f)
+            )
+        } catch (err) {
+            setUploadedFiles(prev =>
+                prev.map(f => f.id === fileId ? {
+                    ...f, isLoading: false,
+                    error: `Upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`
+                } : f)
+            )
+        }
+    }, [onUploadFile])
 
     const handleFileSelect = async (files: FileList | null) => {
         if (!files || files.length === 0) return
 
-        // Check max files limit
-        const remainingSlots = MAX_FILES_PER_MESSAGE - uploadedFiles.length
-        if (remainingSlots <= 0) {
-            alert(`Maximum ${MAX_FILES_PER_MESSAGE} files allowed per message.`)
-            return
+        const incoming = Array.from(files)
+
+        // Separate images and non-images
+        const imageFiles = incoming.filter(f => isImageFile(f))
+        const nonImageFiles = incoming.filter(f => !isImageFile(f))
+
+        // Check image limits
+        if (imageFiles.length > 0 && !imagesAllowed) {
+            alert('Image upload is not enabled for this agent.')
+            if (nonImageFiles.length === 0) return
         }
 
-        const filesToProcess = Array.from(files).slice(0, remainingSlots)
+        const allowedImages = imagesAllowed
+            ? imageFiles.slice(0, MAX_IMAGES_PER_MESSAGE - currentImageCount)
+            : []
+        const allowedFiles = nonImageFiles.slice(0, MAX_FILES_PER_MESSAGE - currentFileCount)
+
+        if (allowedImages.length < imageFiles.length && imagesAllowed) {
+            alert(`Maximum ${MAX_IMAGES_PER_MESSAGE} images allowed per message.`)
+        }
+        if (allowedFiles.length < nonImageFiles.length) {
+            alert(`Maximum ${MAX_FILES_PER_MESSAGE} files allowed per message.`)
+        }
+
+        const allFiles = [...allowedImages, ...allowedFiles]
+        if (allFiles.length === 0) return
 
         // Add files with loading state
-        const newFiles = filesToProcess.map(file => ({
-            id: `file-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-            file,
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            isImage: file.type.startsWith('image/'),
-            isLoading: true,
-        }))
+        const newEntries: UploadedFile[] = allFiles.map(file => {
+            const isImage = isImageFile(file)
+            const maxSize = isImage ? MAX_IMAGE_SIZE_MB : MAX_FILE_SIZE_MB
 
-        setUploadedFiles(prev => [...prev, ...newFiles])
+            const entry: UploadedFile = {
+                id: `file-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+                file,
+                name: file.name,
+                type: file.type,
+                size: file.size,
+                isImage,
+                isLoading: true,
+            }
+
+            // Check file type
+            if (!isImage && !isFileTypeSupported(file)) {
+                return { ...entry, isLoading: false, error: `Unsupported file type.` }
+            }
+
+            // Check file size
+            if (file.size > maxSize * 1024 * 1024) {
+                return {
+                    ...entry, isLoading: false,
+                    error: `File too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Max: ${maxSize}MB`
+                }
+            }
+
+            return entry
+        })
+
+        setUploadedFiles(prev => [...prev, ...newEntries])
 
         // Process files in parallel
-        for (const newFile of newFiles) {
-            const processed = await processFile(newFile.file)
-            setUploadedFiles(prev =>
-                prev.map(f => f.id === newFile.id ? processed : f)
-            )
+        for (const entry of newEntries) {
+            if (entry.error) continue
+            if (entry.isImage) {
+                processImageFile(entry.file, entry.id)
+            } else {
+                processNonImageFile(entry.file, entry.id)
+            }
         }
 
         // Reset file input
@@ -245,53 +262,75 @@ export default function ChatInput({
         handleFileSelect(files)
     }
 
+    const handlePaste = async (e: ClipboardEvent<HTMLTextAreaElement>) => {
+        const items = e.clipboardData?.files
+        if (!items || items.length === 0) return
+
+        const imageFiles = Array.from(items).filter(f => isImageFile(f))
+        if (imageFiles.length === 0) return
+
+        e.preventDefault()
+
+        if (!imagesAllowed) {
+            alert('Image upload is not enabled for this agent.')
+            return
+        }
+
+        const remaining = MAX_IMAGES_PER_MESSAGE - currentImageCount
+        if (remaining <= 0) {
+            alert(`Maximum ${MAX_IMAGES_PER_MESSAGE} images allowed per message.`)
+            return
+        }
+
+        const toProcess = imageFiles.slice(0, remaining)
+        const newEntries: UploadedFile[] = toProcess.map((file, i) => ({
+            id: `paste-${Date.now()}-${i}`,
+            file,
+            name: file.name || `pasted-image-${Date.now()}.png`,
+            type: file.type,
+            size: file.size,
+            isImage: true,
+            isLoading: true,
+        }))
+
+        setUploadedFiles(prev => [...prev, ...newEntries])
+
+        for (const entry of newEntries) {
+            processImageFile(entry.file, entry.id)
+        }
+    }
+
     const handleRemoveFile = (id: string) => {
         setUploadedFiles(prev => prev.filter(f => f.id !== id))
     }
 
-    const buildMessageWithFiles = (): string => {
-        let messageText = value.trim()
-
-        const validFiles = uploadedFiles.filter(f => !f.error && !f.isLoading)
-
-        if (validFiles.length === 0) {
-            return messageText
-        }
-
-        // Build file context
-        const fileContextParts: string[] = []
-
-        for (const file of validFiles) {
-            if (file.isImage && file.preview) {
-                // For images, include as inline reference (the model can see the preview)
-                fileContextParts.push(`[Image: ${file.name}]`)
-            } else if (file.content) {
-                // For text files, include the content
-                fileContextParts.push(`--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`)
-            }
-        }
-
-        if (fileContextParts.length > 0) {
-            const fileContext = fileContextParts.join('\n\n')
-            messageText = messageText
-                ? `${fileContext}\n\n${messageText}`
-                : fileContext
-        }
-
-        return messageText
-    }
-
     const handleSubmit = () => {
-        const messageText = buildMessageWithFiles()
+        if (disabled) return
 
-        if (messageText && !disabled) {
-            onSubmit(messageText)
-            setValue('')
-            setUploadedFiles([])
-            // Reset textarea height
-            if (textareaRef.current) {
-                textareaRef.current.style.height = 'auto'
-            }
+        // Extract images as ImageData[]
+        const images: ImageData[] = uploadedFiles
+            .filter(f => f.isImage && f.preview && !f.error && !f.isLoading)
+            .map(f => parseDataUrl(f.preview!))
+            .filter((parsed): parsed is { data: string; mimeType: string } => parsed !== null)
+
+        // Collect non-image file paths to append to text
+        const filePaths = uploadedFiles
+            .filter(f => !f.isImage && f.uploadedPath && !f.error && !f.isLoading)
+            .map(f => f.uploadedPath!)
+
+        let text = value.trim()
+        if (filePaths.length > 0) {
+            text = text ? `${text} ${filePaths.join(' ')}` : filePaths.join(' ')
+        }
+
+        if (!text && images.length === 0) return
+
+        onSubmit(text, images.length > 0 ? images : undefined)
+        setValue('')
+        setUploadedFiles([])
+        // Reset textarea height
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto'
         }
     }
 
@@ -316,6 +355,8 @@ export default function ChatInput({
     }
 
     const hasContent = value.trim() || uploadedFiles.some(f => !f.error && !f.isLoading)
+    const totalFileCount = uploadedFiles.length
+    const maxTotalFiles = MAX_IMAGES_PER_MESSAGE + MAX_FILES_PER_MESSAGE
     const isAnyFileLoading = uploadedFiles.some(f => f.isLoading)
 
     return (
@@ -398,6 +439,7 @@ export default function ChatInput({
                     value={value}
                     onChange={handleChange}
                     onKeyDown={handleKeyDown}
+                    onPaste={handlePaste}
                     placeholder={placeholder}
                     disabled={disabled}
                     rows={1}
@@ -410,14 +452,14 @@ export default function ChatInput({
                 <button
                     className="toolbar-btn"
                     onClick={handleFileInputClick}
-                    disabled={disabled || uploadedFiles.length >= MAX_FILES_PER_MESSAGE}
-                    title={`Attach files (${uploadedFiles.length}/${MAX_FILES_PER_MESSAGE})`}
+                    disabled={disabled || totalFileCount >= maxTotalFiles}
+                    title={`Attach files (${totalFileCount}/${maxTotalFiles})`}
                 >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" width="17" height="17">
                         <path d="M12 5v14M5 12h14" />
                     </svg>
-                    {uploadedFiles.length > 0 && (
-                        <span className="toolbar-badge">{uploadedFiles.length}</span>
+                    {totalFileCount > 0 && (
+                        <span className="toolbar-badge">{totalFileCount}</span>
                     )}
                 </button>
 

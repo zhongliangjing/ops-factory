@@ -10,7 +10,7 @@
 import http from 'node:http'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { startGateway, type GatewayHandle } from './helpers.js'
-import { writeFileSync, existsSync, mkdirSync, unlinkSync, rmdirSync } from 'node:fs'
+import { writeFileSync, readFileSync, existsSync, mkdirSync, unlinkSync, rmdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
 const AGENT_ID = 'universal-agent'
@@ -31,6 +31,43 @@ function makeUserMessage(text: string) {
     content: [{ type: 'text', text }],
     metadata: { userVisible: true, agentVisible: true },
   }
+}
+
+/** Build a user message with an inline image */
+function makeImageMessage(text: string, imageBase64: string, mimeType = 'image/png') {
+  return {
+    role: 'user',
+    created: Math.floor(Date.now() / 1000),
+    content: [
+      { type: 'text', text },
+      { type: 'image', data: imageBase64, mimeType },
+    ],
+    metadata: { userVisible: true, agentVisible: true },
+  }
+}
+
+const AGENT_CONFIG_PATH = join(PROJECT_ROOT, 'agents', AGENT_ID, 'config', 'config.yaml')
+
+/** Update vision.mode in agent config.yaml. Returns the original file content for restore. */
+function setVisionMode(mode: string): string {
+  const original = readFileSync(AGENT_CONFIG_PATH, 'utf-8')
+  // Match the indented mode line under the vision: section (2-space indent)
+  // Handles both quoted (`mode: "off"`) and unquoted (`mode: off`) formats
+  const updated = original.replace(/(  mode: )"?[a-z]+"?/, `$1"${mode}"`)
+  if (updated === original && !original.includes(`mode: "${mode}"`) && !original.includes(`mode: ${mode}`)) {
+    throw new Error(`setVisionMode: failed to change mode to "${mode}" — regex did not match in:\n${original.substring(0, 500)}`)
+  }
+  writeFileSync(AGENT_CONFIG_PATH, updated, 'utf-8')
+  return original
+}
+
+/** Create a minimal valid PNG image (1x1 red pixel) */
+function createTestPng(): Buffer {
+  // Minimal 1x1 red PNG (68 bytes)
+  return Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
+    'base64'
+  )
 }
 
 /**
@@ -178,7 +215,7 @@ describe('Agent listing & config', () => {
     const ids = agents.map((a: any) => a.id)
     expect(ids).toContain('universal-agent')
     expect(ids).toContain('kb-agent')
-    expect(ids).not.toContain('report-agent')
+    expect(ids).toContain('report-agent')
     expect(ids).not.toContain('contract-agent')
   })
 
@@ -192,13 +229,15 @@ describe('Agent listing & config', () => {
     expect(ua).not.toHaveProperty('port')
   })
 
-  it('GET /agents/:id/config returns full config', async () => {
+  it('GET /agents/:id/config returns full config including visionMode', async () => {
     const res = await gw.fetch(`/agents/${AGENT_ID}/config`)
     const data = await res.json()
     expect(data.id).toBe(AGENT_ID)
     expect(data).toHaveProperty('agentsMd')
     expect(data).toHaveProperty('workingDir')
     expect(data).not.toHaveProperty('port')
+    // visionMode should be present (from config.yaml vision.mode)
+    expect(data).toHaveProperty('visionMode')
   })
 
   it('PUT /agents/:id/config updates and restores agentsMd', async () => {
@@ -680,4 +719,298 @@ describe('Catch-all proxy & error handling', () => {
     const { res } = await getSession(gw, USER_ALICE, AGENT_ID, 'nonexistent')
     expect(res.status).toBe(404)
   })
+})
+
+// =====================================================
+// 12. Vision Pipeline — mode=off (default)
+// =====================================================
+describe('Vision pipeline — mode=off', () => {
+  let sessionId: string
+  let originalConfig: string
+
+  beforeAll(() => {
+    originalConfig = setVisionMode('off')
+  })
+
+  afterAll(() => {
+    writeFileSync(AGENT_CONFIG_PATH, originalConfig, 'utf-8')
+  })
+
+  it('rejects image messages with 400', async () => {
+    const startRes = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/agent/start`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    })
+    const { id } = await startRes.json()
+    sessionId = id
+
+    await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/agent/resume`, {
+      method: 'POST',
+      body: JSON.stringify({ session_id: sessionId, load_model_and_extensions: true }),
+    })
+
+    const png = createTestPng()
+    const imageB64 = png.toString('base64')
+
+    const res = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/agent/reply`, {
+      method: 'POST',
+      body: JSON.stringify({
+        session_id: sessionId,
+        user_message: makeImageMessage('What is this?', imageB64),
+      }),
+    })
+    expect(res.status).toBe(400)
+    const data = await res.json()
+    expect(data.error).toContain('not enabled')
+  }, 60_000)
+
+  it('text-only messages still work', async () => {
+    const body = await sendReplyAndWait(gw, USER_ALICE, AGENT_ID, sessionId, 'Reply with only "ok". Do not use any tools.')
+    expect(body).toContain('data:')
+    expect(body.length).toBeGreaterThan(0)
+  }, 60_000)
+})
+
+// =====================================================
+// 13. Vision Pipeline — mode=passthrough
+// =====================================================
+describe('Vision pipeline — mode=passthrough', () => {
+  let originalConfig: string
+
+  beforeAll(() => {
+    originalConfig = setVisionMode('passthrough')
+  })
+
+  afterAll(() => {
+    writeFileSync(AGENT_CONFIG_PATH, originalConfig, 'utf-8')
+  })
+
+  it('forwards images to LLM and gets vision-aware response', async () => {
+    // Verify config is set correctly
+    const configContent = readFileSync(AGENT_CONFIG_PATH, 'utf-8')
+    expect(configContent).toContain('mode: "passthrough"')
+
+    const startRes = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/agent/start`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    })
+    expect(startRes.ok).toBe(true)
+    const { id: sessionId } = await startRes.json()
+
+    const resumeRes = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/agent/resume`, {
+      method: 'POST',
+      body: JSON.stringify({ session_id: sessionId, load_model_and_extensions: true }),
+    })
+    expect(resumeRes.ok).toBe(true)
+
+    const png = createTestPng()
+    const imageB64 = png.toString('base64')
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 60_000)
+    try {
+      const res = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/agent/reply`, {
+        method: 'POST',
+        body: JSON.stringify({
+          session_id: sessionId,
+          user_message: makeImageMessage('Describe this image in 10 words or less. Do not use any tools.', imageB64),
+        }),
+        signal: controller.signal,
+      })
+      if (!res.ok) {
+        const errBody = await res.text()
+        throw new Error(`Reply failed (${res.status}): ${errBody}`)
+      }
+
+      const body = await res.text()
+      // Should contain an SSE Message event with actual content
+      const messageLines = body.split('\n').filter(l => l.startsWith('data:') && l.includes('"Message"'))
+      expect(messageLines.length).toBeGreaterThan(0)
+
+      // Parse the message to verify it contains text (the LLM's description)
+      const msgData = JSON.parse(messageLines[0].replace('data: ', ''))
+      const textContent = msgData.message.content.find((c: any) => c.type === 'text')
+      expect(textContent?.text).toBeDefined()
+      expect(textContent.text.length).toBeGreaterThan(0)
+    } finally {
+      clearTimeout(timer)
+    }
+  }, 90_000)
+})
+
+// =====================================================
+// 14. Vision Pipeline — mode=preprocess
+// =====================================================
+describe('Vision pipeline — mode=preprocess', () => {
+  let originalConfig: string
+
+  beforeAll(() => {
+    originalConfig = setVisionMode('preprocess')
+  })
+
+  afterAll(() => {
+    writeFileSync(AGENT_CONFIG_PATH, originalConfig, 'utf-8')
+  })
+
+  it('preprocesses images via vision API and forwards text description', async () => {
+    // Verify config is set correctly
+    const configContent = readFileSync(AGENT_CONFIG_PATH, 'utf-8')
+    expect(configContent).toContain('mode: "preprocess"')
+
+    const startRes = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/agent/start`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    })
+    expect(startRes.ok).toBe(true)
+    const { id: sessionId } = await startRes.json()
+
+    const resumeRes = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/agent/resume`, {
+      method: 'POST',
+      body: JSON.stringify({ session_id: sessionId, load_model_and_extensions: true }),
+    })
+    expect(resumeRes.ok).toBe(true)
+
+    const png = createTestPng()
+    const imageB64 = png.toString('base64')
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 90_000)
+    try {
+      const res = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/agent/reply`, {
+        method: 'POST',
+        body: JSON.stringify({
+          session_id: sessionId,
+          user_message: makeImageMessage('What was in the image analysis? Reply in 10 words. Do not use any tools.', imageB64),
+        }),
+        signal: controller.signal,
+      })
+      if (!res.ok) {
+        const errBody = await res.text()
+        throw new Error(`Reply failed (${res.status}): ${errBody}`)
+      }
+
+      const body = await res.text()
+      // Should contain a Message event (the LLM's response based on preprocessed text)
+      const messageLines = body.split('\n').filter(l => l.startsWith('data:') && l.includes('"Message"'))
+      expect(messageLines.length).toBeGreaterThan(0)
+
+      const msgData = JSON.parse(messageLines[0].replace('data: ', ''))
+      const textContent = msgData.message.content.find((c: any) => c.type === 'text')
+      expect(textContent?.text).toBeDefined()
+      expect(textContent.text.length).toBeGreaterThan(0)
+    } finally {
+      clearTimeout(timer)
+    }
+  }, 120_000)
+})
+
+// =====================================================
+// 15. File Upload
+// =====================================================
+describe('File upload', () => {
+  let sessionId: string
+  let uploadedPath: string
+
+  it('creates a session for upload tests', async () => {
+    const startRes = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/agent/start`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    })
+    const data = await startRes.json()
+    sessionId = data.id
+    expect(sessionId).toBeDefined()
+  })
+
+  it('uploads a text file via multipart', async () => {
+    const boundary = '----TestBoundary' + Date.now()
+    const fileContent = 'Hello, this is a test file for upload.'
+    const fileName = 'test-upload.txt'
+
+    const bodyParts = [
+      `--${boundary}\r\n`,
+      `Content-Disposition: form-data; name="sessionId"\r\n\r\n`,
+      `${sessionId}\r\n`,
+      `--${boundary}\r\n`,
+      `Content-Disposition: form-data; name="file"; filename="${fileName}"\r\n`,
+      `Content-Type: text/plain\r\n\r\n`,
+      `${fileContent}\r\n`,
+      `--${boundary}--\r\n`,
+    ].join('')
+
+    const res = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/files/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+      body: bodyParts,
+    })
+    expect(res.ok).toBe(true)
+    const data = await res.json()
+    expect(data.path).toBeDefined()
+    expect(data.name).toBe(fileName)
+    expect(data.size).toBe(fileContent.length)
+    expect(data.type).toBe('text/plain')
+
+    uploadedPath = data.path
+    // Verify file exists on disk
+    expect(existsSync(uploadedPath)).toBe(true)
+  })
+
+  it('rejects upload without file', async () => {
+    const boundary = '----TestBoundary' + Date.now()
+    const bodyParts = [
+      `--${boundary}\r\n`,
+      `Content-Disposition: form-data; name="sessionId"\r\n\r\n`,
+      `${sessionId}\r\n`,
+      `--${boundary}--\r\n`,
+    ].join('')
+
+    const res = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/files/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+      body: bodyParts,
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it('rejects disallowed file types', async () => {
+    const boundary = '----TestBoundary' + Date.now()
+    const bodyParts = [
+      `--${boundary}\r\n`,
+      `Content-Disposition: form-data; name="sessionId"\r\n\r\n`,
+      `${sessionId}\r\n`,
+      `--${boundary}\r\n`,
+      `Content-Disposition: form-data; name="file"; filename="evil.exe"\r\n`,
+      `Content-Type: application/octet-stream\r\n\r\n`,
+      `MZevil\r\n`,
+      `--${boundary}--\r\n`,
+    ].join('')
+
+    const res = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/files/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+      body: bodyParts,
+    })
+    expect(res.status).toBe(400)
+    const data = await res.json()
+    expect(data.error).toContain('not allowed')
+  })
+
+  it('cleans up uploaded files when session is deleted', async () => {
+    // Verify file still exists
+    expect(existsSync(uploadedPath)).toBe(true)
+
+    // Get the uploads directory for this session
+    const uploadsDir = join(
+      PROJECT_ROOT, 'users', USER_ALICE, 'agents', AGENT_ID, 'uploads', sessionId
+    )
+    expect(existsSync(uploadsDir)).toBe(true)
+
+    // Delete the session
+    const delRes = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/sessions/${sessionId}`, {
+      method: 'DELETE',
+    })
+    expect(delRes.ok).toBe(true)
+
+    // Uploads directory should be gone
+    expect(existsSync(uploadsDir)).toBe(false)
+  }, 60_000)
 })

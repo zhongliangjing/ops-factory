@@ -6,7 +6,8 @@ import { useChat, convertBackendMessage } from '../hooks/useChat'
 import MessageList from '../components/MessageList'
 import ChatInput from '../components/ChatInput'
 import { getAgentWorkingDir } from '../components/AgentSelector'
-import type { Session } from '@goosed/sdk'
+import type { Session, ImageData } from '@goosed/sdk'
+import { useAgentConfig } from '../hooks/useAgentConfig'
 
 interface LocationState {
     initialMessage?: string
@@ -42,10 +43,12 @@ export default function Chat() {
     const [initError, setInitError] = useState<string | null>(null)
     const [isCreatingSession, setIsCreatingSession] = useState(false)
     const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null)
+    const [visionMode, setVisionMode] = useState<string>('off')
     const [showStopHint, setShowStopHint] = useState(false)
     const stopHintTimerRef = useRef<number | null>(null)
 
     const client = selectedAgent ? getClient(selectedAgent) : null
+    const { config: agentConfig, fetchConfig: fetchAgentConfig } = useAgentConfig()
 
     const { messages, chatState, isLoading, error, tokenState, sendMessage, stopMessage, clearMessages, setInitialMessages } = useChat({
         sessionId,
@@ -77,6 +80,22 @@ export default function Chat() {
         }
         fetchModelInfo()
     }, [client, isConnected])
+
+    // Fetch agent config (for visionMode) when agent changes
+    useEffect(() => {
+        if (selectedAgent && isConnected) {
+            fetchAgentConfig(selectedAgent)
+        }
+    }, [selectedAgent, isConnected, fetchAgentConfig])
+
+    // Sync visionMode from agent config
+    useEffect(() => {
+        if (agentConfig?.visionMode) {
+            setVisionMode(agentConfig.visionMode)
+        } else {
+            setVisionMode('off')
+        }
+    }, [agentConfig])
 
     const createSessionWithAgent = useCallback(async (agentId: string) => {
         setIsCreatingSession(true)
@@ -174,14 +193,22 @@ export default function Chat() {
         }
     }, [])
 
-    const handleSendMessage = useCallback((text: string) => {
+    const handleSendMessage = useCallback((text: string, images?: ImageData[]) => {
         if (stopHintTimerRef.current !== null) {
             window.clearTimeout(stopHintTimerRef.current)
             stopHintTimerRef.current = null
         }
         setShowStopHint(false)
-        sendMessage(text)
+        sendMessage(text, images)
     }, [sendMessage])
+
+    const handleUploadFile = useCallback(async (file: File): Promise<{ path: string }> => {
+        if (!client || !sessionId) {
+            throw new Error('No active session for file upload')
+        }
+        const result = await client.uploadFile(file, sessionId)
+        return { path: result.path }
+    }, [client, sessionId])
 
     const handleRetry = useCallback(() => {
         for (let i = messages.length - 1; i >= 0; i--) {
@@ -274,6 +301,7 @@ export default function Chat() {
                     </div>
                     <ChatInput
                         onSubmit={handleSendMessage}
+                        onUploadFile={handleUploadFile}
                         disabled={isLoading || !isConnected || isCreatingSession}
                         isGenerating={isLoading}
                         onStopGeneration={handleStopMessage}
@@ -284,6 +312,7 @@ export default function Chat() {
                         showAgentSelector={true}
                         modelInfo={modelInfo}
                         tokenState={tokenState}
+                        visionMode={visionMode}
                     />
                 </div>
             </div>

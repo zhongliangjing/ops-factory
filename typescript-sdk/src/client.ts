@@ -10,6 +10,8 @@ import type {
     SystemInfo,
     ExtensionResult,
     GoosedClientOptions,
+    ImageData,
+    UploadResult,
     Recipe,
     RecipeManifest,
     ScheduledJob,
@@ -273,11 +275,20 @@ export class GoosedClient {
 
     // === Chat APIs ===
 
-    async *sendMessage(sessionId: string, text: string): AsyncGenerator<SSEEvent> {
+    async *sendMessage(sessionId: string, text: string, images?: ImageData[]): AsyncGenerator<SSEEvent> {
+        const content: Array<Record<string, unknown>> = [];
+        if (text.trim()) {
+            content.push({ type: 'text', text });
+        }
+        if (images && images.length > 0) {
+            for (const img of images) {
+                content.push({ type: 'image', data: img.data, mimeType: img.mimeType });
+            }
+        }
         const message = {
             role: 'user',
             created: Math.floor(Date.now() / 1000),
-            content: [{ type: 'text', text }],
+            content,
             metadata: { userVisible: true, agentVisible: true },
         };
 
@@ -360,6 +371,40 @@ export class GoosedClient {
             }
         }
         return responseText;
+    }
+
+    // === File Upload APIs ===
+
+    async uploadFile(file: File, sessionId: string): Promise<UploadResult> {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('sessionId', sessionId);
+
+        // Don't set Content-Type header — browser sets it automatically with boundary
+        const headers: Record<string, string> = {
+            'x-secret-key': this.secretKey,
+        };
+        if (this.userId) {
+            headers['x-user-id'] = this.userId;
+        }
+
+        try {
+            const response = await fetch(`${this.baseUrl}/files/upload`, {
+                method: 'POST',
+                headers,
+                body: formData,
+                signal: AbortSignal.timeout(this.timeout),
+            });
+            return this.handleResponse<UploadResult>(response);
+        } catch (error) {
+            if (error instanceof TypeError) {
+                throw new GoosedConnectionError(error.message);
+            }
+            if (error instanceof DOMException && error.name === 'AbortError') {
+                throw new GoosedConnectionError('Request timed out');
+            }
+            throw error;
+        }
     }
 
     // === Session APIs ===

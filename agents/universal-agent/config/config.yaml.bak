@@ -4,12 +4,17 @@ LITELLM_HOST: https://openrouter.ai/api/
 GOOSE_MODE: auto
 GOOSE_DISABLE_KEYRING: '1'
 GOOSE_TELEMETRY_ENABLED: true
+vision:
+  mode: off
+  provider: litellm
+  model: google/gemini-3-flash-preview
+  maxTokens: 1024
 LANGFUSE_INIT_PROJECT_PUBLIC_KEY: pk-lf-opsfactory
 LANGFUSE_INIT_PROJECT_SECRET_KEY: sk-lf-opsfactory
 LANGFUSE_URL: http://localhost:3100
 extensions:
   extensionmanager:
-    enabled: false
+    enabled: true
     type: platform
     name: Extension Manager
     description: Enable extension management tools for discovering, enabling, and disabling extensions

@@ -2,12 +2,17 @@ import http from 'node:http'
 import { PassThrough } from 'node:stream'
 import { join } from 'node:path'
 import { mkdir, rename, readdir, rm } from 'node:fs/promises'
-import { existsSync, mkdirSync, writeFileSync, readdirSync } from 'node:fs'
+import { existsSync, mkdirSync, writeFileSync, readdirSync, rmSync } from 'node:fs'
 import httpProxy from 'http-proxy'
 import { loadGatewayConfig } from './config.js'
 import { InstanceManager, SYSTEM_USER } from './instance-manager.js'
 import { listOutputFiles, serveFile } from './file-server.js'
 import { SessionOwnerCache, extractUserFromWorkingDir } from './user-registry.js'
+import { ReplyPipeline, type HookContext } from './hooks.js'
+import { readBodyAsBuffer, extractBoundary, parseMultipart } from './multipart.js'
+import { createBodyLimitHook } from './hooks/body-limit.js'
+import { createFileAttachmentHook } from './hooks/file-attachment.js'
+import { createVisionPreprocessHook } from './hooks/vision-preprocess.js'
 
 type JsonRecord = Record<string, unknown>
 
@@ -59,6 +64,12 @@ async function main() {
       res.end(JSON.stringify({ error: 'Bad gateway' }))
     }
   })
+
+  // ===== Reply pipeline (hooks for /reply route) =====
+  const pipeline = new ReplyPipeline()
+  pipeline.onRequest('body-limit', createBodyLimitHook(config))
+  pipeline.onRequest('file-attachment', createFileAttachmentHook(config))
+  pipeline.onRequest('vision-preprocess', createVisionPreprocessHook(config))
 
   // ===== Helper: fetch JSON from a specific target URL =====
 
@@ -320,6 +331,8 @@ async function main() {
       }
 
       ownerCache.remove(sessionId)
+      // Clean up uploaded files for this session
+      cleanupSessionUploads(probe.agentId, userId, sessionId, manager)
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ success: true, agentId: probe.agentId }))
       return
@@ -356,6 +369,87 @@ async function main() {
       return
     }
 
+    // POST /agents/:id/files/upload — upload a file (multipart/form-data)
+    const fileUploadMatch = pathname.match(/^\/agents\/([^/]+)\/files\/upload\/?$/)
+    if (fileUploadMatch && req.method === 'POST') {
+      const agentId = fileUploadMatch[1]
+      const contentType = req.headers['content-type'] || ''
+
+      if (!contentType.includes('multipart/form-data')) {
+        res.writeHead(400, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: 'Content-Type must be multipart/form-data' }))
+        return
+      }
+
+      const boundary = extractBoundary(contentType)
+      if (!boundary) {
+        res.writeHead(400, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: 'Missing multipart boundary' }))
+        return
+      }
+
+      try {
+        const maxBytes = config.upload.maxFileSizeMb * 1024 * 1024
+        const body = await readBodyAsBuffer(req, maxBytes)
+        const fields = parseMultipart(body, boundary)
+
+        const fileField = fields.find(f => f.name === 'file' && f.filename)
+        if (!fileField) {
+          res.writeHead(400, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ error: 'No file field found in upload' }))
+          return
+        }
+
+        const sessionIdField = fields.find(f => f.name === 'sessionId')
+        const sessionId = sessionIdField ? sessionIdField.data.toString('utf-8').trim() : 'default'
+
+        // Sanitize filename: remove path separators and special chars, add timestamp prefix
+        const rawName = fileField.filename!
+        const safeName = rawName.replace(/[/\\:*?"<>|]/g, '_').replace(/^\.+/, '')
+        const timestamp = Date.now()
+        const storedName = `${timestamp}_${safeName}`
+
+        // File type whitelist (extension check)
+        const ALLOWED_EXTENSIONS = new Set([
+          '.txt', '.md', '.csv', '.json', '.xml', '.yaml', '.yml', '.toml',
+          '.py', '.js', '.ts', '.tsx', '.jsx', '.java', '.c', '.cpp', '.h', '.go', '.rs', '.rb', '.sh',
+          '.html', '.css', '.sql', '.log', '.conf', '.cfg', '.ini', '.env',
+          '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+          '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp',
+          '.zip', '.tar', '.gz',
+        ])
+        const ext = safeName.includes('.') ? '.' + safeName.split('.').pop()!.toLowerCase() : ''
+        if (ext && !ALLOWED_EXTENSIONS.has(ext)) {
+          res.writeHead(400, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ error: `File type '${ext}' is not allowed` }))
+          return
+        }
+
+        // Store to uploads directory
+        const uploadsDir = join(manager.getUserRootPath(agentId, userId), 'uploads', sessionId)
+        await mkdir(uploadsDir, { recursive: true })
+        const filePath = join(uploadsDir, storedName)
+        writeFileSync(filePath, fileField.data)
+
+        console.log(`[upload] ${agentId}:${userId} uploaded ${safeName} (${fileField.data.length} bytes) → ${filePath}`)
+
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({
+          path: filePath,
+          name: safeName,
+          size: fileField.data.length,
+          type: fileField.contentType || 'application/octet-stream',
+        }))
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Upload failed'
+        const status = message.includes('exceeds maximum size') ? 413 : 500
+        console.error('[upload] error:', err)
+        res.writeHead(status, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: message }))
+      }
+      return
+    }
+
     // ===== Session proxy routes (reply/resume/restart/stop) =====
 
     const sessionProxyMatch = pathname.match(/^\/agents\/([^/]+)\/agent\/(reply|resume|restart|stop)\/?$/)
@@ -370,13 +464,26 @@ async function main() {
       try {
         const target = await manager.getOrSpawn(agentId, userId)
 
-        // For reply (SSE streaming), use fetch directly
+        // For reply (SSE streaming), run pipeline hooks then proxy
         if (action === 'reply') {
+          // Build hook context and run request hooks
+          const agentFullConfig = manager.getAgentFullConfig(agentId)
+          const hookCtx: HookContext = {
+            req, res, agentId, userId,
+            agentConfig: agentFullConfig,
+            body: bodyJson,
+            bodyStr,
+            state: new Map(),
+          }
+
+          const proceed = await pipeline.runRequestHooks(hookCtx)
+          if (!proceed) return  // A hook already responded (e.g. 400, 413)
+
           try {
             const upstreamResponse = await fetch(`${target}/reply`, {
               method: 'POST',
               headers: upstreamHeaders(config.secretKey),
-              body: bodyStr,
+              body: hookCtx.bodyStr,
             })
 
             res.writeHead(upstreamResponse.status, {
@@ -621,6 +728,7 @@ async function main() {
         const result = await fetchJsonFromTarget(target, `/sessions/${encodeURIComponent(sessionId)}`, config.secretKey, 'DELETE')
         if (result.ok) {
           ownerCache.remove(sessionId)
+          cleanupSessionUploads(agentId, userId, sessionId, manager)
           res.writeHead(200, { 'Content-Type': 'application/json' })
           res.end(JSON.stringify({ success: true, agentId }))
           return
@@ -634,6 +742,7 @@ async function main() {
           const result = await fetchJsonFromTarget(spawnedTarget, `/sessions/${encodeURIComponent(sessionId)}`, config.secretKey, 'DELETE')
           if (result.ok) {
             ownerCache.remove(sessionId)
+            cleanupSessionUploads(agentId, userId, sessionId, manager)
             res.writeHead(200, { 'Content-Type': 'application/json' })
             res.end(JSON.stringify({ success: true, agentId }))
             return
@@ -744,6 +853,18 @@ async function main() {
       console.log(`  Agent: ${a.id} (instances spawn on demand)`)
     }
   })
+}
+
+// ===== Upload cleanup =====
+
+function cleanupSessionUploads(agentId: string, userId: string, sessionId: string, manager: InstanceManager): void {
+  const uploadsDir = join(manager.getUserRootPath(agentId, userId), 'uploads', sessionId)
+  if (!existsSync(uploadsDir)) return
+  try {
+    rmSync(uploadsDir, { recursive: true, force: true })
+  } catch (err) {
+    console.warn(`[cleanup] Failed to remove uploads for session ${sessionId}:`, err)
+  }
 }
 
 // ===== Migration Logic =====

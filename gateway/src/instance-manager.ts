@@ -465,6 +465,7 @@ export class InstanceManager {
     workingDir: string
     provider?: string
     model?: string
+    visionMode?: string
   } | null {
     const agentConfig = this.findAgentConfig(agentId)
     if (!agentConfig) return null
@@ -476,6 +477,8 @@ export class InstanceManager {
     }
 
     const gooseConfig = this.getAgentGooseConfig(agentId)
+    const fullConfig = this.getAgentFullConfig(agentId)
+    const visionSection = fullConfig.vision as Record<string, unknown> | undefined
     return {
       id: agentConfig.id,
       name: agentConfig.name,
@@ -483,6 +486,7 @@ export class InstanceManager {
       workingDir: relative(this.config.projectRoot, this.config.usersDir) || 'users',
       provider: gooseConfig?.GOOSE_PROVIDER,
       model: gooseConfig?.GOOSE_MODEL,
+      visionMode: (visionSection?.mode as string) || undefined,
     }
   }
 
@@ -534,5 +538,26 @@ export class InstanceManager {
     } catch {
       return null
     }
+  }
+
+  /**
+   * Read full config.yaml as a parsed object (including nested sections like vision, extensions).
+   * Used by pipeline hooks that need access to agent-level configuration.
+   */
+  getAgentFullConfig(agentId: string): Record<string, unknown> {
+    const configDir = join(this.getAgentRootPath(agentId), 'config')
+    const result: Record<string, unknown> = {}
+
+    for (const filename of ['config.yaml', 'secrets.yaml']) {
+      const filePath = join(configDir, filename)
+      if (!existsSync(filePath)) continue
+      try {
+        const parsed = parseYaml(readFileSync(filePath, 'utf-8'))
+        if (parsed && typeof parsed === 'object') {
+          Object.assign(result, parsed as Record<string, unknown>)
+        }
+      } catch { /* ignore parse errors */ }
+    }
+    return result
   }
 }
