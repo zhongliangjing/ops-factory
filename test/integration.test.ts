@@ -1014,3 +1014,454 @@ describe('File upload', () => {
     expect(existsSync(uploadsDir)).toBe(false)
   }, 60_000)
 })
+
+// =====================================================
+// 16. CORS Preflight
+// =====================================================
+describe('CORS preflight', () => {
+  it('OPTIONS request returns 204 with CORS headers', async () => {
+    const res = await gw.fetch('/status', { method: 'OPTIONS' })
+    expect(res.status).toBe(204)
+    expect(res.headers.get('access-control-allow-origin')).toBe('*')
+    expect(res.headers.get('access-control-allow-methods')).toContain('GET')
+    expect(res.headers.get('access-control-allow-methods')).toContain('POST')
+    expect(res.headers.get('access-control-allow-methods')).toContain('PUT')
+    expect(res.headers.get('access-control-allow-methods')).toContain('DELETE')
+    expect(res.headers.get('access-control-allow-headers')).toContain('x-secret-key')
+    expect(res.headers.get('access-control-allow-headers')).toContain('x-user-id')
+  })
+
+  it('regular responses include CORS Allow-Origin header', async () => {
+    const res = await gw.fetch('/status')
+    expect(res.headers.get('access-control-allow-origin')).toBe('*')
+  })
+})
+
+// =====================================================
+// 17. Query-string Auth for File Routes
+// =====================================================
+describe('Query-string auth for file routes', () => {
+  it('file listing accepts ?key= query param for auth', async () => {
+    // Without any auth header, use ?key= param
+    const res = await fetch(
+      `${gw.baseUrl}/agents/${AGENT_ID}/files?key=${gw.secretKey}`,
+      { headers: { 'x-user-id': USER_ALICE } }
+    )
+    expect(res.ok).toBe(true)
+    const data = await res.json()
+    expect(data).toHaveProperty('files')
+  })
+
+  it('file serving accepts ?key= query param for auth', async () => {
+    const dir = userDir(USER_ALICE)
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+    const fileName = `qsauth-${Date.now()}.txt`
+    writeFileSync(join(dir, fileName), 'qs-auth-content')
+
+    const res = await fetch(
+      `${gw.baseUrl}/agents/${AGENT_ID}/files/${fileName}?key=${gw.secretKey}`,
+      { headers: { 'x-user-id': USER_ALICE } }
+    )
+    expect(res.ok).toBe(true)
+    expect(await res.text()).toBe('qs-auth-content')
+
+    unlinkSync(join(dir, fileName))
+  })
+
+  it('rejects file request with wrong query key', async () => {
+    const res = await fetch(
+      `${gw.baseUrl}/agents/${AGENT_ID}/files?key=wrong-key`,
+      { headers: { 'x-user-id': USER_ALICE } }
+    )
+    expect(res.status).toBe(401)
+  })
+})
+
+// =====================================================
+// 18. File Upload Edge Cases
+// =====================================================
+describe('File upload edge cases', () => {
+  let sessionId: string
+
+  beforeAll(async () => {
+    const startRes = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/agent/start`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    })
+    const data = await startRes.json()
+    sessionId = data.id
+  }, 60_000)
+
+  it('rejects non-multipart content-type', async () => {
+    const res = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/files/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file: 'not-a-file' }),
+    })
+    expect(res.status).toBe(400)
+    const data = await res.json()
+    expect(data.error).toContain('multipart/form-data')
+  })
+
+  it('uploads allowed file types: .json', async () => {
+    const boundary = '----TestBoundary' + Date.now()
+    const fileContent = '{"key": "value"}'
+    const fileName = 'test-upload.json'
+
+    const bodyParts = [
+      `--${boundary}\r\n`,
+      `Content-Disposition: form-data; name="sessionId"\r\n\r\n`,
+      `${sessionId}\r\n`,
+      `--${boundary}\r\n`,
+      `Content-Disposition: form-data; name="file"; filename="${fileName}"\r\n`,
+      `Content-Type: application/json\r\n\r\n`,
+      `${fileContent}\r\n`,
+      `--${boundary}--\r\n`,
+    ].join('')
+
+    const res = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/files/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+      body: bodyParts,
+    })
+    expect(res.ok).toBe(true)
+    const data = await res.json()
+    expect(data.name).toBe(fileName)
+    expect(data.type).toBe('application/json')
+  })
+
+  it('uploads allowed file types: .png', async () => {
+    const boundary = '----TestBoundary' + Date.now()
+    const pngData = createTestPng()
+    const fileName = 'test-upload.png'
+
+    // Build multipart body with binary PNG data
+    const header = Buffer.from(
+      `--${boundary}\r\n` +
+      `Content-Disposition: form-data; name="sessionId"\r\n\r\n` +
+      `${sessionId}\r\n` +
+      `--${boundary}\r\n` +
+      `Content-Disposition: form-data; name="file"; filename="${fileName}"\r\n` +
+      `Content-Type: image/png\r\n\r\n`
+    )
+    const footer = Buffer.from(`\r\n--${boundary}--\r\n`)
+    const bodyBuffer = Buffer.concat([header, pngData, footer])
+
+    const res = await fetch(`${gw.baseUrl}/agents/${AGENT_ID}/files/upload`, {
+      method: 'POST',
+      headers: {
+        'x-secret-key': gw.secretKey,
+        'x-user-id': USER_ALICE,
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+      },
+      body: bodyBuffer,
+    })
+    expect(res.ok).toBe(true)
+    const data = await res.json()
+    expect(data.name).toBe(fileName)
+  })
+
+  it('rejects disallowed file type: .bat', async () => {
+    const boundary = '----TestBoundary' + Date.now()
+    const bodyParts = [
+      `--${boundary}\r\n`,
+      `Content-Disposition: form-data; name="sessionId"\r\n\r\n`,
+      `${sessionId}\r\n`,
+      `--${boundary}\r\n`,
+      `Content-Disposition: form-data; name="file"; filename="script.bat"\r\n`,
+      `Content-Type: application/x-msdos-program\r\n\r\n`,
+      `@echo off\r\n`,
+      `--${boundary}--\r\n`,
+    ].join('')
+
+    const res = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/files/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+      body: bodyParts,
+    })
+    expect(res.status).toBe(400)
+    const data = await res.json()
+    expect(data.error).toContain('not allowed')
+  })
+
+  it('sanitizes dangerous characters in filenames', async () => {
+    const boundary = '----TestBoundary' + Date.now()
+    const dangerousName = '../../../etc/passwd.txt'
+    const fileContent = 'safe content'
+
+    const bodyParts = [
+      `--${boundary}\r\n`,
+      `Content-Disposition: form-data; name="sessionId"\r\n\r\n`,
+      `${sessionId}\r\n`,
+      `--${boundary}\r\n`,
+      `Content-Disposition: form-data; name="file"; filename="${dangerousName}"\r\n`,
+      `Content-Type: text/plain\r\n\r\n`,
+      `${fileContent}\r\n`,
+      `--${boundary}--\r\n`,
+    ].join('')
+
+    const res = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/files/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+      body: bodyParts,
+    })
+    expect(res.ok).toBe(true)
+    const data = await res.json()
+    // Filename should be sanitized: path separators replaced, no leading dots
+    expect(data.name).not.toContain('/')
+    expect(data.name).not.toContain('..')
+    expect(data.name).toContain('passwd.txt')
+  })
+})
+
+// =====================================================
+// 19. File Serving — Additional MIME Types & Edge Cases
+// =====================================================
+describe('File serving — MIME types & edge cases', () => {
+  it('returns 404 for nonexistent file', async () => {
+    const res = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/files/nonexistent-${Date.now()}.txt`)
+    expect(res.status).toBe(404)
+    const data = await res.json()
+    expect(data.error).toContain('not found')
+  })
+
+  it('serves PDF files inline with correct content-type', async () => {
+    const dir = userDir(USER_ALICE)
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+    const fileName = `test-${Date.now()}.pdf`
+    writeFileSync(join(dir, fileName), 'fake-pdf-content')
+
+    const res = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/files/${fileName}`)
+    expect(res.ok).toBe(true)
+    expect(res.headers.get('content-type')).toContain('application/pdf')
+    expect(res.headers.get('content-disposition')).toContain('inline')
+
+    unlinkSync(join(dir, fileName))
+  })
+
+  it('serves PNG files inline with correct content-type', async () => {
+    const dir = userDir(USER_ALICE)
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+    const fileName = `test-${Date.now()}.png`
+    writeFileSync(join(dir, fileName), createTestPng())
+
+    const res = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/files/${fileName}`)
+    expect(res.ok).toBe(true)
+    expect(res.headers.get('content-type')).toContain('image/png')
+    expect(res.headers.get('content-disposition')).toContain('inline')
+
+    unlinkSync(join(dir, fileName))
+  })
+
+  it('serves CSV files with correct content-type', async () => {
+    const dir = userDir(USER_ALICE)
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+    const fileName = `test-${Date.now()}.csv`
+    writeFileSync(join(dir, fileName), 'name,value\nalice,100')
+
+    const res = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/files/${fileName}`)
+    expect(res.ok).toBe(true)
+    expect(res.headers.get('content-type')).toContain('text/csv')
+
+    unlinkSync(join(dir, fileName))
+  })
+
+  it('serves unknown extensions as application/octet-stream with attachment', async () => {
+    const dir = userDir(USER_ALICE)
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+    const fileName = `test-${Date.now()}.xyz`
+    writeFileSync(join(dir, fileName), 'unknown-content')
+
+    const res = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/files/${fileName}`)
+    expect(res.ok).toBe(true)
+    expect(res.headers.get('content-type')).toContain('application/octet-stream')
+    expect(res.headers.get('content-disposition')).toContain('attachment')
+
+    unlinkSync(join(dir, fileName))
+  })
+
+  it('serves XLSX files as attachment', async () => {
+    const dir = userDir(USER_ALICE)
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+    const fileName = `test-${Date.now()}.xlsx`
+    writeFileSync(join(dir, fileName), 'fake-xlsx')
+
+    const res = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/files/${fileName}`)
+    expect(res.ok).toBe(true)
+    expect(res.headers.get('content-type')).toContain('spreadsheetml')
+    expect(res.headers.get('content-disposition')).toContain('attachment')
+
+    unlinkSync(join(dir, fileName))
+  })
+})
+
+// =====================================================
+// 20. File Listing Edge Cases
+// =====================================================
+describe('File listing edge cases', () => {
+  it('returns empty array for a fresh user directory', async () => {
+    const freshUser = `test-fresh-${Date.now()}`
+    const res = await gw.fetchAs(freshUser, `/agents/${AGENT_ID}/files`)
+    expect(res.ok).toBe(true)
+    const data = await res.json()
+    expect(data.files).toBeInstanceOf(Array)
+    // Fresh user may have 0 files (directory just created by the listing route)
+    // or config symlinks; either way it shouldn't error
+  })
+
+  it('skips .DS_Store and AGENTS.md files', async () => {
+    const dir = userDir(USER_ALICE)
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+
+    // Create files that should be skipped
+    writeFileSync(join(dir, '.DS_Store'), '')
+    writeFileSync(join(dir, 'AGENTS.md'), '# skip me')
+    // Create a visible file
+    const visibleFile = `visible-${Date.now()}.txt`
+    writeFileSync(join(dir, visibleFile), 'i am visible')
+
+    const res = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/files`)
+    const files = (await res.json()).files
+    const names = files.map((f: any) => f.name)
+
+    expect(names).toContain(visibleFile)
+    expect(names).not.toContain('.DS_Store')
+    expect(names).not.toContain('AGENTS.md')
+
+    // Cleanup
+    unlinkSync(join(dir, '.DS_Store'))
+    unlinkSync(join(dir, 'AGENTS.md'))
+    unlinkSync(join(dir, visibleFile))
+  })
+
+  it('skips node_modules directory', async () => {
+    const dir = userDir(USER_ALICE)
+    const nmDir = join(dir, 'node_modules')
+    if (!existsSync(nmDir)) mkdirSync(nmDir, { recursive: true })
+    writeFileSync(join(nmDir, 'package.json'), '{}')
+
+    const res = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/files`)
+    const files = (await res.json()).files
+    const paths = files.map((f: any) => f.path)
+
+    for (const p of paths) {
+      expect(p).not.toContain('node_modules')
+    }
+
+    // Cleanup
+    unlinkSync(join(nmDir, 'package.json'))
+    rmdirSync(nmDir)
+  })
+})
+
+// =====================================================
+// 21. Agent Config PUT Edge Cases
+// =====================================================
+describe('Agent config PUT edge cases', () => {
+  it('returns 400 for invalid JSON body', async () => {
+    const res = await gw.fetch(`/agents/${AGENT_ID}/config`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: 'not-valid-json{{{',
+    })
+    expect(res.status).toBe(400)
+    const data = await res.json()
+    expect(data.error).toContain('Invalid JSON')
+  })
+
+  it('returns 404 for PUT on nonexistent agent', async () => {
+    const res = await gw.fetch('/agents/nonexistent-agent/config', {
+      method: 'PUT',
+      body: JSON.stringify({ agentsMd: 'test' }),
+    })
+    // The gateway reads the agent config first, which returns null for unknown agents
+    // The updateAgentConfig should handle this — check the actual behavior
+    expect([400, 404]).toContain(res.status)
+  })
+
+  it('GET /agents/:id/skills returns empty or array for unknown agent', async () => {
+    const res = await gw.fetch('/agents/nonexistent-agent/skills')
+    expect(res.ok).toBe(true)
+    const data = await res.json()
+    expect(data.skills).toBeInstanceOf(Array)
+  })
+})
+
+// =====================================================
+// 22. Cross-User Session Security
+// =====================================================
+describe('Cross-user session security', () => {
+  let aliceSessionId: string
+
+  beforeAll(async () => {
+    const startRes = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/agent/start`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    })
+    const data = await startRes.json()
+    aliceSessionId = data.id
+  }, 60_000)
+
+  it('bob cannot access alice session via agent-prefixed route', async () => {
+    // Bob's instance won't have alice's session
+    const { res } = await getSession(gw, USER_BOB, AGENT_ID, aliceSessionId)
+    expect(res.status).toBe(404)
+  }, 60_000)
+
+  it('bob cannot delete alice session via agent-prefixed route', async () => {
+    const res = await gw.fetchAs(USER_BOB, `/agents/${AGENT_ID}/sessions/${aliceSessionId}`, {
+      method: 'DELETE',
+    })
+    // Bob's instance doesn't have this session
+    expect(res.status).toBe(404)
+  }, 60_000)
+
+  afterAll(async () => {
+    // Cleanup alice's session
+    await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/sessions/${aliceSessionId}`, {
+      method: 'DELETE',
+    })
+  })
+})
+
+// =====================================================
+// 23. Path Traversal — Additional Vectors
+// =====================================================
+describe('Path traversal — additional vectors', () => {
+  it('blocks encoded path traversal in file route', async () => {
+    const status = await new Promise<number>((resolve, reject) => {
+      const req = http.request({
+        hostname: '127.0.0.1',
+        port: gw.port,
+        path: `/agents/${AGENT_ID}/files/..%2F..%2Fetc%2Fpasswd`,
+        method: 'GET',
+        headers: { 'x-secret-key': gw.secretKey, 'x-user-id': USER_ALICE },
+      }, (res) => {
+        res.resume()
+        resolve(res.statusCode || 500)
+      })
+      req.on('error', reject)
+      req.end()
+    })
+    // Should be blocked — either by URL decoding or by the resolve/relative check
+    expect([403, 404]).toContain(status)
+  })
+
+  it('blocks double-dot in nested file path', async () => {
+    const status = await new Promise<number>((resolve, reject) => {
+      const req = http.request({
+        hostname: '127.0.0.1',
+        port: gw.port,
+        path: `/agents/${AGENT_ID}/files/subdir/../../etc/passwd`,
+        method: 'GET',
+        headers: { 'x-secret-key': gw.secretKey, 'x-user-id': USER_ALICE },
+      }, (res) => {
+        res.resume()
+        resolve(res.statusCode || 500)
+      })
+      req.on('error', reject)
+      req.end()
+    })
+    expect(status).toBe(403)
+  })
+})

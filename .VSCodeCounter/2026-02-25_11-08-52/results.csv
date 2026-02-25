@@ -1,0 +1,119 @@
+"filename", "language", "TypeScript", "JSON", "YAML", "Markdown", "JSON with Comments", "Shell Script", "Skill", "TypeScript JSX", "PostCSS", "HTML", "comment", "blank", "total"
+"/Users/buyangnie/Documents/GitHub/ops-factory/.claude/settings.local.json", "JSON", 0, 19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 20
+"/Users/buyangnie/Documents/GitHub/ops-factory/CLAUDE.md", "Markdown", 0, 0, 0, 84, 0, 0, 0, 0, 0, 0, 0, 28, 112
+"/Users/buyangnie/Documents/GitHub/ops-factory/README.md", "Markdown", 0, 0, 0, 122, 0, 0, 0, 0, 0, 0, 0, 44, 166
+"/Users/buyangnie/Documents/GitHub/ops-factory/agents/kb-agent/AGENTS.md", "Markdown", 0, 0, 0, 25, 0, 0, 0, 0, 0, 0, 0, 11, 36
+"/Users/buyangnie/Documents/GitHub/ops-factory/agents/kb-agent/config/config.yaml", "YAML", 0, 0, 132, 0, 0, 0, 0, 0, 0, 0, 1, 1, 134
+"/Users/buyangnie/Documents/GitHub/ops-factory/agents/kb-agent/config/mcp/feishu-doc/README.md", "Markdown", 0, 0, 0, 39, 0, 0, 0, 0, 0, 0, 0, 20, 59
+"/Users/buyangnie/Documents/GitHub/ops-factory/agents/kb-agent/config/prompts/system.md", "Markdown", 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0, 26, 76
+"/Users/buyangnie/Documents/GitHub/ops-factory/agents/report-agent/AGENTS.md", "Markdown", 0, 0, 0, 17, 0, 0, 0, 0, 0, 0, 0, 8, 25
+"/Users/buyangnie/Documents/GitHub/ops-factory/agents/report-agent/config/config.yaml", "YAML", 0, 0, 107, 0, 0, 0, 0, 0, 0, 0, 1, 1, 109
+"/Users/buyangnie/Documents/GitHub/ops-factory/agents/universal-agent/AGENTS.md", "Markdown", 0, 0, 0, 17, 0, 0, 0, 0, 0, 0, 0, 8, 25
+"/Users/buyangnie/Documents/GitHub/ops-factory/agents/universal-agent/config/config.yaml", "YAML", 0, 0, 107, 0, 0, 0, 0, 0, 0, 0, 0, 1, 108
+"/Users/buyangnie/Documents/GitHub/ops-factory/agents/universal-agent/config/skills/brainstorming/SKILL.md", "Skill", 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 0, 14, 55
+"/Users/buyangnie/Documents/GitHub/ops-factory/docs/architecture.md", "Markdown", 0, 0, 0, 1144, 0, 0, 0, 0, 0, 0, 0, 227, 1371
+"/Users/buyangnie/Documents/GitHub/ops-factory/docs/dependencies.md", "Markdown", 0, 0, 0, 113, 0, 0, 0, 0, 0, 0, 0, 45, 158
+"/Users/buyangnie/Documents/GitHub/ops-factory/gateway/config/agents.yaml", "YAML", 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 8, 6, 26
+"/Users/buyangnie/Documents/GitHub/ops-factory/gateway/config/onlyoffice.local.json", "JSON", 0, 19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 20
+"/Users/buyangnie/Documents/GitHub/ops-factory/gateway/package-lock.json", "JSON", 0, 1618, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1619
+"/Users/buyangnie/Documents/GitHub/ops-factory/gateway/package.json", "JSON", 0, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 25
+"/Users/buyangnie/Documents/GitHub/ops-factory/gateway/src/config.ts", "TypeScript", 131, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 19, 157
+"/Users/buyangnie/Documents/GitHub/ops-factory/gateway/src/file-server.ts", "TypeScript", 142, 0, 0, 0, 0, 0, 0, 0, 0, 0, 25, 26, 193
+"/Users/buyangnie/Documents/GitHub/ops-factory/gateway/src/hooks.ts", "TypeScript", 54, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 12, 71
+"/Users/buyangnie/Documents/GitHub/ops-factory/gateway/src/hooks/body-limit.ts", "TypeScript", 13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 2, 19
+"/Users/buyangnie/Documents/GitHub/ops-factory/gateway/src/hooks/file-attachment.ts", "TypeScript", 34, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 8, 50
+"/Users/buyangnie/Documents/GitHub/ops-factory/gateway/src/hooks/vision-preprocess.ts", "TypeScript", 169, 0, 0, 0, 0, 0, 0, 0, 0, 0, 25, 28, 222
+"/Users/buyangnie/Documents/GitHub/ops-factory/gateway/src/index.ts", "TypeScript", 760, 0, 0, 0, 0, 0, 0, 0, 0, 0, 81, 134, 975
+"/Users/buyangnie/Documents/GitHub/ops-factory/gateway/src/instance-manager.ts", "TypeScript", 431, 0, 0, 0, 0, 0, 0, 0, 0, 0, 62, 71, 564
+"/Users/buyangnie/Documents/GitHub/ops-factory/gateway/src/multipart.ts", "TypeScript", 91, 0, 0, 0, 0, 0, 0, 0, 0, 0, 21, 20, 132
+"/Users/buyangnie/Documents/GitHub/ops-factory/gateway/src/user-registry.ts", "TypeScript", 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 19, 8, 51
+"/Users/buyangnie/Documents/GitHub/ops-factory/gateway/tsconfig.json", "JSON with Comments", 0, 0, 0, 0, 14, 0, 0, 0, 0, 0, 0, 1, 15
+"/Users/buyangnie/Documents/GitHub/ops-factory/langfuse/docker-compose.yml", "YAML", 0, 0, 49, 0, 0, 0, 0, 0, 0, 0, 1, 3, 53
+"/Users/buyangnie/Documents/GitHub/ops-factory/scripts/ctl.sh", "Shell Script", 0, 0, 0, 0, 0, 497, 0, 0, 0, 0, 67, 74, 638
+"/Users/buyangnie/Documents/GitHub/ops-factory/test/e2e/app.spec.ts", "TypeScript", 149, 0, 0, 0, 0, 0, 0, 0, 0, 0, 74, 38, 261
+"/Users/buyangnie/Documents/GitHub/ops-factory/test/helpers.ts", "TypeScript", 110, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 12, 138
+"/Users/buyangnie/Documents/GitHub/ops-factory/test/integration.test.ts", "TypeScript", 771, 0, 0, 0, 0, 0, 0, 0, 0, 0, 105, 141, 1017
+"/Users/buyangnie/Documents/GitHub/ops-factory/test/package-lock.json", "JSON", 0, 1588, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1589
+"/Users/buyangnie/Documents/GitHub/ops-factory/test/package.json", "JSON", 0, 18, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 19
+"/Users/buyangnie/Documents/GitHub/ops-factory/test/playwright.config.ts", "TypeScript", 11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 15
+"/Users/buyangnie/Documents/GitHub/ops-factory/test/tsconfig.json", "JSON with Comments", 0, 0, 0, 0, 13, 0, 0, 0, 0, 0, 0, 1, 14
+"/Users/buyangnie/Documents/GitHub/ops-factory/test/vitest.config.ts", "TypeScript", 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 12
+"/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/README.md", "Markdown", 0, 0, 0, 131, 0, 0, 0, 0, 0, 0, 0, 42, 173
+"/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/package-lock.json", "JSON", 0, 594, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 595
+"/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/package.json", "JSON", 0, 34, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 34
+"/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/src/client.ts", "TypeScript", 424, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 66, 501
+"/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/src/index.ts", "TypeScript", 31, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 2, 36
+"/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/src/types.ts", "TypeScript", 154, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 24, 181
+"/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/test-simple.ts", "TypeScript", 79, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14, 16, 109
+"/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts", "TypeScript", 125, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 28, 156
+"/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tsconfig.json", "JSON with Comments", 0, 0, 0, 0, 27, 0, 0, 0, 0, 0, 0, 0, 27
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/index.html", "HTML", 0, 0, 0, 0, 0, 0, 0, 0, 0, 17, 0, 1, 18
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/package-lock.json", "JSON", 0, 5804, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 5805
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/package.json", "JSON", 0, 39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 40
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/App.css", "PostCSS", 0, 0, 0, 0, 0, 0, 0, 0, 4392, 0, 198, 752, 5342
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/App.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 71, 0, 0, 0, 5, 76
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/__tests__/App.test.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 19, 0, 0, 1, 2, 22
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/__tests__/ErrorBoundary.test.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 27, 0, 0, 2, 7, 36
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/components/AgentSelector.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 95, 0, 0, 0, 8, 103
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/components/ChatInput.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 438, 0, 0, 28, 64, 530
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/components/CitationMark.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 83, 0, 0, 0, 9, 92
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/components/ErrorBoundary.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 93, 0, 0, 0, 10, 103
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/components/FilePreview.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 332, 0, 0, 11, 24, 367
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/components/Message.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 418, 0, 0, 36, 38, 492
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/components/MessageList.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 189, 0, 0, 8, 27, 224
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/components/NewSessionModal.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 95, 0, 0, 1, 11, 107
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/components/OnlyOfficePreview.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 129, 0, 0, 4, 19, 152
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/components/ReferenceList.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 44, 0, 0, 0, 4, 48
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/components/SessionItem.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 84, 0, 0, 0, 7, 91
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/components/SessionList.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 90, 0, 0, 0, 7, 97
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/components/Sidebar.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 161, 0, 0, 0, 14, 175
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/components/ToolCallDisplay.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 182, 0, 0, 15, 22, 219
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/components/UIResourceRenderer.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 219, 0, 0, 34, 22, 275
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/components/mcp/AddMcpModal.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 326, 0, 0, 3, 36, 365
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/components/mcp/McpCard.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 60, 0, 0, 0, 7, 67
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/components/mcp/McpSection.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 149, 0, 0, 1, 18, 168
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/components/mcp/index.ts", "TypeScript", 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 4
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/components/skill/SkillCard.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 21, 0, 0, 0, 3, 24
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/components/skill/SkillSection.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 8, 49
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/components/skill/index.ts", "TypeScript", 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/config/prompts.ts", "TypeScript", 128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 133
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/contexts/GoosedContext.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 79, 0, 0, 1, 12, 92
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/contexts/InboxContext.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 151, 0, 0, 3, 24, 178
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/contexts/PreviewContext.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 132, 0, 0, 1, 23, 156
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/contexts/SidebarContext.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 38, 0, 0, 0, 9, 47
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/contexts/ToastContext.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 68, 0, 0, 1, 15, 84
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/contexts/UserContext.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 43, 0, 0, 1, 12, 56
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/hooks/useAgentConfig.ts", "TypeScript", 68, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14, 82
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/hooks/useChat.ts", "TypeScript", 239, 0, 0, 0, 0, 0, 0, 0, 0, 0, 33, 41, 313
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/hooks/useMcp.ts", "TypeScript", 140, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 28, 175
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/hooks/useSkills.ts", "TypeScript", 40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 49
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/i18n/en.json", "JSON", 0, 290, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 291
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/i18n/index.ts", "TypeScript", 23, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 26
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/i18n/zh.json", "JSON", 0, 290, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 291
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/main.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 22, 0, 0, 0, 3, 25
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/pages/AgentConfigure.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 105, 0, 0, 4, 15, 124
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/pages/Agents.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 99, 0, 0, 1, 13, 113
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/pages/Chat.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 280, 0, 0, 8, 36, 324
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/pages/Files.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 369, 0, 0, 2, 33, 404
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/pages/History.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 283, 0, 0, 5, 26, 314
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/pages/Home.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 177, 0, 0, 1, 22, 200
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/pages/Inbox.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 92, 0, 0, 0, 7, 99
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/pages/Login.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 47, 0, 0, 1, 5, 53
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/pages/Monitoring.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 293, 0, 0, 12, 29, 334
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/pages/ScheduledActions.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 423, 0, 0, 1, 45, 469
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/pages/Settings.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 0, 0, 66, 0, 0, 0, 12, 78
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/test/setup.ts", "TypeScript", 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/types/agentConfig.ts", "TypeScript", 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 4, 21
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/types/mcp.ts", "TypeScript", 63, 0, 0, 0, 0, 0, 0, 0, 0, 0, 17, 14, 94
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/types/prompt.ts", "TypeScript", 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 11
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/types/skill.ts", "TypeScript", 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 12
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/utils/citationParser.ts", "TypeScript", 155, 0, 0, 0, 0, 0, 0, 0, 0, 0, 52, 27, 234
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/utils/filePreview.ts", "TypeScript", 59, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 71
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/utils/imageUtils.ts", "TypeScript", 40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 17, 8, 65
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/utils/officePreview.ts", "TypeScript", 52, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 64
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/vite-env.d.ts", "TypeScript", 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 10
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/tsconfig.json", "JSON with Comments", 0, 0, 0, 0, 34, 0, 0, 0, 0, 0, 2, 0, 36
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/tsconfig.node.json", "JSON", 0, 13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/vite.config.ts", "TypeScript", 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 30
+"/Users/buyangnie/Documents/GitHub/ops-factory/web-app/vitest.config.ts", "TypeScript", 11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 14
+"Total", "-", 4802, 10350, 407, 1742, 88, 497, 41, 6133, 4392, 17, 1084, 2889, 32442

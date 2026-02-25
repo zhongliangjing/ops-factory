@@ -144,49 +144,60 @@ async function findFileByName(workingDir: string, fileName: string): Promise<str
  * Serve a file from workingDir with path traversal protection.
  */
 export async function serveFile(workingDir: string, filePath: string, _req: IncomingMessage, res: ServerResponse): Promise<void> {
-  // Normalise: if filePath is absolute and lives under workingDir, make it relative
-  const normalised = normaliseFilePath(filePath, workingDir)
+  try {
+    // Normalise: if filePath is absolute and lives under workingDir, make it relative
+    const normalised = normaliseFilePath(filePath, workingDir)
 
-  // Path traversal check
-  let resolved = resolve(workingDir, normalised)
-  const rel = relative(workingDir, resolved)
-  const isSafe = !rel.startsWith('..') && !rel.includes(`${sep}..`)
+    // Path traversal check
+    let resolved = resolve(workingDir, normalised)
+    const rel = relative(workingDir, resolved)
+    const isSafe = !rel.startsWith('..') && !rel.includes(`${sep}..`)
 
-  if (!isSafe) {
-    res.writeHead(403, { 'Content-Type': 'application/json' })
-    res.end(JSON.stringify({ error: 'Forbidden: path traversal detected' }))
-    return
-  }
-
-  // If file not found at exact path, search by filename
-  if (!existsSync(resolved)) {
-    const found = await findFileByName(workingDir, basename(normalised))
-    if (found) {
-      resolved = found
-    } else {
-      res.writeHead(404, { 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'File not found' }))
+    if (!isSafe) {
+      res.writeHead(403, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: 'Forbidden: path traversal detected' }))
       return
     }
-  }
 
-  const ext = extname(resolved).toLowerCase()
-  const mimeType = MIME_TYPES[ext] || 'application/octet-stream'
-  const fileName = basename(resolved)
-  const disposition = INLINE_TYPES.has(ext) ? 'inline' : `attachment; filename="${fileName}"`
+    // If file not found at exact path, search by filename
+    if (!existsSync(resolved)) {
+      const found = await findFileByName(workingDir, basename(normalised))
+      if (found) {
+        resolved = found
+      } else {
+        res.writeHead(404, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: 'File not found' }))
+        return
+      }
+    }
 
-  res.writeHead(200, {
-    'Content-Type': mimeType,
-    'Content-Disposition': disposition,
-  })
+    const ext = extname(resolved).toLowerCase()
+    const mimeType = MIME_TYPES[ext] || 'application/octet-stream'
+    const fileName = basename(resolved)
+    const encoded = encodeURIComponent(fileName)
+    const disposition = INLINE_TYPES.has(ext) ? 'inline' : `attachment; filename*=UTF-8''${encoded}`
 
-  const stream = createReadStream(resolved)
-  stream.pipe(res)
-  stream.on('error', (err) => {
-    console.error('File stream error:', err.message)
+    res.writeHead(200, {
+      'Content-Type': mimeType,
+      'Content-Disposition': disposition,
+    })
+
+    const stream = createReadStream(resolved)
+    stream.pipe(res)
+    stream.on('error', (err) => {
+      console.error('File stream error:', err.message)
+      if (!res.headersSent) {
+        res.writeHead(500, { 'Content-Type': 'application/json' })
+      }
+      res.end(JSON.stringify({ error: 'Failed to read file' }))
+    })
+  } catch (err) {
+    console.error('serveFile error:', err)
     if (!res.headersSent) {
       res.writeHead(500, { 'Content-Type': 'application/json' })
     }
-    res.end(JSON.stringify({ error: 'Failed to read file' }))
-  })
+    if (!res.writableEnded) {
+      res.end(JSON.stringify({ error: 'Internal server error' }))
+    }
+  }
 }
