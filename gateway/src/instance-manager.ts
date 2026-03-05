@@ -2,7 +2,7 @@ import net from 'node:net'
 import { ChildProcess, spawn } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, writeFileSync, symlinkSync, mkdirSync, rmSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
-import { join, resolve, dirname, relative } from 'node:path'
+import { join, resolve, dirname } from 'node:path'
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
 import { fileURLToPath } from 'node:url'
 import type { AgentConfig, GatewayConfig, GatewayYamlConfig } from './config.js'
@@ -413,7 +413,6 @@ export class InstanceManager {
     id: string
     name: string
     status: string
-    working_dir: string
     provider?: string
     model?: string
     skills: string[]
@@ -425,7 +424,6 @@ export class InstanceManager {
         id: a.id,
         name: a.name,
         status: this.hasRunningInstance(a.id) ? 'running' : 'stopped',
-        working_dir: relative(this.config.projectRoot, this.config.usersDir) || 'users',
         provider: gooseConfig?.GOOSE_PROVIDER,
         model: gooseConfig?.GOOSE_MODEL,
         skills: this.getAgentSkills(a.id),
@@ -494,7 +492,6 @@ export class InstanceManager {
     id: string
     name: string
     agentsMd: string
-    workingDir: string
     provider?: string
     model?: string
     visionMode?: string
@@ -515,7 +512,6 @@ export class InstanceManager {
       id: agentConfig.id,
       name: agentConfig.name,
       agentsMd,
-      workingDir: relative(this.config.projectRoot, this.config.usersDir) || 'users',
       provider: gooseConfig?.GOOSE_PROVIDER,
       model: gooseConfig?.GOOSE_MODEL,
       visionMode: (visionSection?.mode as string) || undefined,

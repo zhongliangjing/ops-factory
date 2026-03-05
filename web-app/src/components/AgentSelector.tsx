@@ -7,11 +7,6 @@ interface AgentSelectorProps {
     disabled?: boolean
 }
 
-export function getAgentWorkingDir(agentId: string, agents: Array<{ id: string; working_dir: string }>): string {
-    const agent = agents.find(a => a.id === agentId)
-    return agent?.working_dir || `agents/${agentId}`
-}
-
 export default function AgentSelector({
     selectedAgent,
     onAgentChange,

@@ -6,7 +6,6 @@ import { useInbox } from '../contexts/InboxContext'
 import { useChat, convertBackendMessage } from '../hooks/useChat'
 import MessageList from '../components/MessageList'
 import ChatInput from '../components/ChatInput'
-import { getAgentWorkingDir } from '../components/AgentSelector'
 import type { Session, ImageData } from '@goosed/sdk'
 import type { AttachedFile } from '../components/Message'
 import { useAgentConfig } from '../hooks/useAgentConfig'
@@ -104,8 +103,7 @@ export default function Chat() {
         setIsCreatingSession(true)
         try {
             const agentClient = getClient(agentId)
-            const workingDir = getAgentWorkingDir(agentId, agents)
-            const newSession = await agentClient.startSession(workingDir)
+            const newSession = await agentClient.startSession()
             await agentClient.resumeSession(newSession.id)
             setSession(newSession)
             setSelectedAgent(agentId)

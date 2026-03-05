@@ -9,7 +9,6 @@ export interface AgentInfo {
     id: string
     name: string
     status: string
-    working_dir: string
     provider?: string
     model?: string
     skills: string[]

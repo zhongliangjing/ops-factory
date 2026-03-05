@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useGoosed } from '../contexts/GoosedContext'
 import ChatInput from '../components/ChatInput'
-import { getAgentWorkingDir } from '../components/AgentSelector'
 import { PROMPT_TEMPLATES } from '../config/prompts'
 import { PromptTemplate } from '../types/prompt'
 
@@ -54,8 +53,7 @@ export default function Home() {
         setIsCreatingSession(true)
         try {
             const client = getClient(selectedAgent)
-            const workingDir = getAgentWorkingDir(selectedAgent, agents)
-            const session = await client.startSession(workingDir)
+            const session = await client.startSession()
             await client.resumeSession(session.id)
 
             navigate(`/chat?sessionId=${session.id}&agent=${selectedAgent}`, {

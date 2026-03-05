@@ -7,7 +7,6 @@ interface AgentInfo {
   id: string
   name: string
   status: string
-  working_dir: string
   provider: string
   model: string
   skills: string[]
@@ -330,7 +329,6 @@ function agentInfo(agentId: string, userId: string): AgentInfo | null {
     id: agent.id,
     name: agent.name,
     status: 'running',
-    working_dir: workingDirFor(agent.id, userId),
     provider: agent.provider,
     model: agent.model,
     skills: clone(agent.skills),
@@ -553,8 +551,9 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && tail === 'agent/start') {
-    const body = parseJson<{ working_dir?: string }>(await parseBody(req)) || {}
-    const session = createSession(agentId, userId, body.working_dir)
+    // Gateway is the authority for working_dir — ignore client-supplied value
+    await parseBody(req)
+    const session = createSession(agentId, userId)
     return json(res, 200, serializeSession(session))
   }
 

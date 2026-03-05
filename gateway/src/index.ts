@@ -428,10 +428,9 @@ async function main() {
         const bodyStr = await readBody(req)
         const body = bodyStr ? JSON.parse(bodyStr) : {}
 
-        // goosed requires working_dir in the start request
-        if (!body.working_dir) {
-          body.working_dir = manager.getUserRootPath(agentId, userId)
-        }
+        // Always set working_dir to the user's runtime root — the gateway
+        // is the authority for per-user paths, not the client.
+        body.working_dir = manager.getUserRootPath(agentId, userId)
 
         const result = await postJsonToTarget(target, '/agent/start', body, config.secretKey)
         if (!result.ok) {
@@ -679,7 +678,7 @@ async function main() {
 
     // ===== Session proxy routes (reply/resume/restart/stop) =====
 
-    const sessionProxyMatch = pathname.match(/^\/agents\/([^/]+)\/agent\/(reply|resume|restart|stop)\/?$/)
+    const sessionProxyMatch = pathname.match(/^\/agents\/([^/]+)\/(?:agent\/)?(reply|resume|restart|stop)\/?$/)
     if (sessionProxyMatch && req.method === 'POST') {
       const agentId = sessionProxyMatch[1]
       const action = sessionProxyMatch[2]
@@ -996,6 +995,21 @@ async function main() {
       try {
         const target = await manager.getOrSpawn(agentId, userId)
         req.url = `/sessions/${sessionId}${subPath}${urlObj.search}`
+        proxy.web(req, res, { target })
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'Agent not available' }))
+      }
+      return
+    }
+
+    // GET /agents/:id/system_info — proxy to user's own instance (no admin required)
+    const systemInfoMatch = pathname.match(/^\/agents\/([^/]+)\/system_info\/?$/)
+    if (systemInfoMatch && req.method === 'GET') {
+      const agentId = systemInfoMatch[1]
+      try {
+        const target = await manager.getOrSpawn(agentId, userId)
+        req.url = '/system_info' + urlObj.search
         proxy.web(req, res, { target })
       } catch (err) {
         res.writeHead(500, { 'Content-Type': 'application/json' })

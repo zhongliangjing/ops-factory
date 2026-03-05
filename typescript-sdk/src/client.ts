@@ -226,8 +226,10 @@ export class GoosedClient {
 
     // === Agent APIs ===
 
-    async startSession(workingDir: string): Promise<Session> {
-        return this.post<Session>('/agent/start', { working_dir: workingDir });
+    async startSession(workingDir?: string): Promise<Session> {
+        const body: Record<string, unknown> = {};
+        if (workingDir) body.working_dir = workingDir;
+        return this.post<Session>('/agent/start', body);
     }
 
     async resumeSession(

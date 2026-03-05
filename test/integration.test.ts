@@ -1624,4 +1624,156 @@ describe('Role-based access control', () => {
     const res = await gw.fetchAs(USER_ALICE, '/config')
     expect(res.status).toBe(200)
   })
+
+  it('regular user can GET /agents/:id/system_info', async () => {
+    const res = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/system_info`)
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    // goosed returns SystemInfo with these fields
+    expect(data).toHaveProperty('app_version')
+    expect(data).toHaveProperty('provider')
+    expect(data).toHaveProperty('model')
+  })
+
+  it('admin can also GET /agents/:id/system_info', async () => {
+    const res = await gw.fetchAs(USER_SYS, `/agents/${AGENT_ID}/system_info`)
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data).toHaveProperty('app_version')
+  })
+
+  it('agents listing does not contain working_dir', async () => {
+    const res = await gw.fetchAs(USER_ALICE, '/agents')
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    for (const agent of data.agents) {
+      expect(agent).not.toHaveProperty('working_dir')
+    }
+  })
+})
+
+// =====================================================
+// 25. Session working_dir — gateway authority
+// =====================================================
+describe('Session working_dir is set by gateway', () => {
+  it('alice session gets correct working_dir without client sending it', async () => {
+    const res = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/agent/start`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    })
+    expect(res.ok).toBe(true)
+    const data = await res.json()
+    expect(data.working_dir).toContain(USER_ALICE)
+    expect(data.working_dir).toContain(AGENT_ID)
+    expect(data.working_dir).not.toContain(USER_BOB)
+  }, 60_000)
+
+  it('bob session gets correct working_dir without client sending it', async () => {
+    const res = await gw.fetchAs(USER_BOB, `/agents/${AGENT_ID}/agent/start`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    })
+    expect(res.ok).toBe(true)
+    const data = await res.json()
+    expect(data.working_dir).toContain(USER_BOB)
+    expect(data.working_dir).toContain(AGENT_ID)
+    expect(data.working_dir).not.toContain(USER_ALICE)
+  }, 60_000)
+
+  it('gateway overrides client-supplied working_dir with correct path', async () => {
+    const res = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/agent/start`, {
+      method: 'POST',
+      body: JSON.stringify({ working_dir: '/tmp/evil/wrong-path' }),
+    })
+    expect(res.ok).toBe(true)
+    const data = await res.json()
+    // Must NOT use the client-supplied path
+    expect(data.working_dir).not.toContain('/tmp/evil')
+    // Must use the correct per-user path
+    expect(data.working_dir).toContain(USER_ALICE)
+    expect(data.working_dir).toContain(AGENT_ID)
+  }, 60_000)
+
+  it('reply works via /reply path (without /agent/ prefix)', async () => {
+    // Create and resume a session for bob
+    const startRes = await gw.fetchAs(USER_BOB, `/agents/${AGENT_ID}/agent/start`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    })
+    const session = await startRes.json()
+
+    const resumeRes = await gw.fetchAs(USER_BOB, `/agents/${AGENT_ID}/agent/resume`, {
+      method: 'POST',
+      body: JSON.stringify({ session_id: session.id, load_model_and_extensions: true }),
+    })
+    expect(resumeRes.ok).toBe(true)
+
+    // Send reply via /reply (no /agent/ prefix) — the path the SDK actually uses
+    const replyRes = await gw.fetchAs(USER_BOB, `/agents/${AGENT_ID}/reply`, {
+      method: 'POST',
+      body: JSON.stringify({
+        session_id: session.id,
+        user_message: makeUserMessage('Reply with only "ok".'),
+      }),
+    })
+    expect(replyRes.status).toBe(200)
+    expect(replyRes.headers.get('content-type')).toContain('text/event-stream')
+  }, 60_000)
+
+  it('agent-created file lands in correct user directory and is isolated per user', async () => {
+    const USER_C = 'test-charlie'
+    const uniqueName = `test-output-${Date.now()}.md`
+
+    // Create session for charlie, ask agent to create a file
+    const startRes = await gw.fetchAs(USER_C, `/agents/${AGENT_ID}/agent/start`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    })
+    expect(startRes.ok).toBe(true)
+    const session = await startRes.json()
+
+    // Verify working_dir is charlie's directory
+    expect(session.working_dir).toContain(USER_C)
+    expect(session.working_dir).toContain(AGENT_ID)
+
+    const resumeRes = await gw.fetchAs(USER_C, `/agents/${AGENT_ID}/agent/resume`, {
+      method: 'POST',
+      body: JSON.stringify({ session_id: session.id, load_model_and_extensions: true }),
+    })
+    expect(resumeRes.ok).toBe(true)
+
+    // Ask agent to create a specific file
+    await sendReplyAndWait(
+      gw, USER_C, AGENT_ID, session.id,
+      `Create a file named "${uniqueName}" with the content "hello from charlie". Only create the file, do not say anything else.`,
+      60_000,
+    )
+
+    // Verify file appears in charlie's file listing
+    const charlieFiles = await gw.fetchAs(USER_C, `/agents/${AGENT_ID}/files`)
+    expect(charlieFiles.ok).toBe(true)
+    const charlieData = await charlieFiles.json()
+    const charlieNames = charlieData.files.map((f: { name: string }) => f.name)
+    expect(charlieNames).toContain(uniqueName)
+
+    // Verify file does NOT appear in alice's file listing
+    const aliceFiles = await gw.fetchAs(USER_ALICE, `/agents/${AGENT_ID}/files`)
+    expect(aliceFiles.ok).toBe(true)
+    const aliceData = await aliceFiles.json()
+    const aliceNames = aliceData.files.map((f: { name: string }) => f.name)
+    expect(aliceNames).not.toContain(uniqueName)
+
+    // Verify file does NOT appear in bob's file listing
+    const bobFiles = await gw.fetchAs(USER_BOB, `/agents/${AGENT_ID}/files`)
+    expect(bobFiles.ok).toBe(true)
+    const bobData = await bobFiles.json()
+    const bobNames = bobData.files.map((f: { name: string }) => f.name)
+    expect(bobNames).not.toContain(uniqueName)
+
+    // Verify file content is correct via file serving endpoint
+    const fileRes = await gw.fetchAs(USER_C, `/agents/${AGENT_ID}/files/${uniqueName}`)
+    expect(fileRes.ok).toBe(true)
+    const content = await fileRes.text()
+    expect(content).toContain('hello from charlie')
+  }, 120_000)
 })

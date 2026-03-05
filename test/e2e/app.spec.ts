@@ -302,7 +302,70 @@ test.describe('Chat page', () => {
 })
 
 // =====================================================
-// 10. Settings Page
+// 10. Chat — session working_dir & multi-user
+// =====================================================
+test.describe('Chat — session working_dir isolation', () => {
+  const USER_A = 'e2e-alice'
+  const USER_B = 'e2e-bob'
+
+  test('regular user creates session and working_dir points to correct user directory', async ({ page }) => {
+    await loginAs(page, USER_A)
+    // Intercept the /agent/start response to verify working_dir
+    const startResponsePromise = page.waitForResponse(
+      resp => resp.url().includes('/agent/start') && resp.status() === 200
+    )
+    await page.goto('/chat')
+    const chatInput = page.locator('textarea').or(page.locator('[contenteditable]')).or(page.locator('input[type="text"]'))
+    await expect(chatInput.first()).toBeVisible({ timeout: 15_000 })
+    await chatInput.first().fill('Reply with only "ok"')
+    await chatInput.first().press('Enter')
+
+    const startResponse = await startResponsePromise
+    const sessionData = await startResponse.json()
+    // working_dir must contain the user ID and agent ID
+    expect(sessionData.working_dir).toContain(USER_A)
+    expect(sessionData.working_dir).toContain('universal-agent')
+    // Must NOT point to another user's directory
+    expect(sessionData.working_dir).not.toContain(USER_B)
+  }, 120_000)
+
+  test('different user gets different working_dir', async ({ page }) => {
+    await loginAs(page, USER_B)
+    const startResponsePromise = page.waitForResponse(
+      resp => resp.url().includes('/agent/start') && resp.status() === 200
+    )
+    await page.goto('/chat')
+    const chatInput = page.locator('textarea').or(page.locator('[contenteditable]')).or(page.locator('input[type="text"]'))
+    await expect(chatInput.first()).toBeVisible({ timeout: 15_000 })
+    await chatInput.first().fill('Reply with only "ok"')
+    await chatInput.first().press('Enter')
+
+    const startResponse = await startResponsePromise
+    const sessionData = await startResponse.json()
+    expect(sessionData.working_dir).toContain(USER_B)
+    expect(sessionData.working_dir).toContain('universal-agent')
+    expect(sessionData.working_dir).not.toContain(USER_A)
+  }, 120_000)
+
+  test('no system_info 403 errors in console for regular user', async ({ page }) => {
+    const errors: string[] = []
+    page.on('response', resp => {
+      if (resp.status() === 403) {
+        errors.push(`403 on ${resp.url()}`)
+      }
+    })
+
+    await loginAs(page, USER_A)
+    await page.goto('/chat')
+    await page.waitForTimeout(3000) // Wait for system_info and other requests
+
+    // No 403 errors should occur
+    expect(errors).toEqual([])
+  }, 30_000)
+})
+
+// =====================================================
+// 11. Settings Page
 // =====================================================
 test.describe('Settings page', () => {
   test.beforeEach(async ({ page }) => {

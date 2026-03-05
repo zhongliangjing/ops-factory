@@ -37,13 +37,13 @@ describe('Mock gateway contract', () => {
     expect(await me.json()).toEqual({ userId: USER_ID, role: 'user' })
 
     const agents = await gateway.fetchAs(USER_ID, '/agents')
-    const payload = await agents.json() as { agents: Array<{ id: string; working_dir: string }> }
+    const payload = await agents.json() as { agents: Array<{ id: string }> }
     expect(payload.agents.map(agent => agent.id)).toEqual([
       'universal-agent',
       'kb-agent',
       'report-agent',
     ])
-    expect(payload.agents[0]?.working_dir).toContain(`/mock/users/${USER_ID}/agents/`)
+    // working_dir is no longer in agent listing — it's set by gateway on session creation
 
     const config = await gateway.fetch('/config')
     const configPayload = await config.json() as { officePreview: { enabled: boolean } }
@@ -62,8 +62,10 @@ describe('Mock gateway contract', () => {
     expect(info.provider).toBe('mock-openai')
     expect(info.model).toBe('gpt-4.1-mini')
 
-    const session = await client.startSession('/tmp/mock-workdir')
-    expect(session.working_dir).toBe('/tmp/mock-workdir')
+    const session = await client.startSession()
+    // working_dir is set by gateway, not client — verify it uses the correct per-user path
+    expect(session.working_dir).toContain(USER_ID)
+    expect(session.working_dir).toContain(AGENT_ID)
 
     const resumed = await client.resumeSession(session.id)
     expect(resumed.session.id).toBe(session.id)
