@@ -12,7 +12,7 @@
  */
 import { execFile } from 'node:child_process'
 import { resolve, join } from 'node:path'
-import { access, readlink, constants } from 'node:fs/promises'
+import { access, constants } from 'node:fs/promises'
 import { describe, it, expect } from 'vitest'
 
 const PROJECT_ROOT = resolve(import.meta.dirname, '..')
@@ -255,27 +255,7 @@ describe('service toggles', () => {
   })
 })
 
-// =============================================================================
-// 10. gateway/goosed symlink
-// =============================================================================
-describe('gateway/goosed symlink', () => {
-  const goosedPath = join(PROJECT_ROOT, 'gateway', 'goosed')
-
-  it('symlink exists', async () => {
-    await expect(access(goosedPath, constants.F_OK)).resolves.toBeUndefined()
-  })
-
-  it('symlink is a symbolic link', async () => {
-    const target = await readlink(goosedPath)
-    expect(target).toContain('goosed')
-  })
-
-  it('symlink target is executable', async () => {
-    await expect(
-      access(goosedPath, constants.X_OK),
-    ).resolves.toBeUndefined()
-  })
-})
+// (gateway/goosed symlink tests removed — gateway is now Java/Spring Boot)
 
 // =============================================================================
 // 11. Sub-script --background flag parsing
@@ -295,16 +275,4 @@ describe('--background flag parsing', () => {
   }
 })
 
-// =============================================================================
-// 12. gateway .gitignore includes goosed
-// =============================================================================
-describe('gateway .gitignore', () => {
-  it('contains goosed entry', async () => {
-    const { readFile } = await import('node:fs/promises')
-    const content = await readFile(
-      join(PROJECT_ROOT, 'gateway', '.gitignore'),
-      'utf-8',
-    )
-    expect(content).toContain('goosed')
-  })
-})
+// (gateway .gitignore test removed — gateway is now Java/Spring Boot)

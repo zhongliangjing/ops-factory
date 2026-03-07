@@ -368,20 +368,30 @@ test.describe('Chat — session working_dir isolation', () => {
 // =====================================================
 // 11. Settings Page
 // =====================================================
-test.describe('Settings page', () => {
+test.describe('Settings modal', () => {
   test.beforeEach(async ({ page }) => {
     await login(page)
   })
 
   test('shows user info and logout button', async ({ page }) => {
-    await page.goto('/settings')
+    // Settings is a modal opened via the gear icon in the sidebar
+    const settingsBtn = page.locator('.sidebar-user-btn').first()
+    await settingsBtn.click()
+    await expect(page.locator('.settings-modal')).toBeVisible({ timeout: 5000 })
+    // Switch to user tab
+    const userTab = page.locator('.settings-nav-item:has-text("User")')
+    await userTab.click()
     await expect(page.locator(`.settings-username:has-text("${REGULAR_USER}")`)).toBeVisible({ timeout: 5000 })
-    await expect(page.locator('button:has-text("Log out")')).toBeVisible()
+    await expect(page.locator('.settings-logout-btn')).toBeVisible()
   })
 
   test('logout redirects to login page', async ({ page }) => {
-    await page.goto('/settings')
-    await page.click('button:has-text("Log out")')
+    const settingsBtn = page.locator('.sidebar-user-btn').first()
+    await settingsBtn.click()
+    await expect(page.locator('.settings-modal')).toBeVisible({ timeout: 5000 })
+    const userTab = page.locator('.settings-nav-item:has-text("User")')
+    await userTab.click()
+    await page.click('.settings-logout-btn')
     await page.waitForURL('/login')
     await expect(page.locator('.login-title')).toHaveText('Ops Factory')
   })

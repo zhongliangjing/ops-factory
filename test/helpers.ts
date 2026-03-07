@@ -10,7 +10,6 @@ import net from 'node:net'
 
 const PROJECT_ROOT = resolve(import.meta.dirname, '..')
 const GATEWAY_DIR = join(PROJECT_ROOT, 'gateway')
-const MOCK_GATEWAY_DIR = join(PROJECT_ROOT, 'gateway-mock')
 const SECRET_KEY = 'test-secret'
 
 export interface GatewayHandle {
@@ -151,61 +150,74 @@ export async function startGateway(): Promise<GatewayHandle> {
 }
 
 /**
- * Start the lightweight mock gateway used by webapp-only testing.
+ * Start a Java gateway process and wait until it responds on /status.
+ * Uses the maven-built JAR from gateway/gateway-service/target/.
  */
-export async function startMockGateway(): Promise<GatewayHandle> {
+export async function startJavaGateway(): Promise<GatewayHandle> {
   const port = await freePort()
   const baseUrl = `http://127.0.0.1:${port}`
 
-  const child = spawn('npx', ['tsx', 'src/index.ts'], {
-    cwd: MOCK_GATEWAY_DIR,
-    env: {
-      ...process.env,
-      GATEWAY_HOST: '127.0.0.1',
-      GATEWAY_PORT: String(port),
-      GATEWAY_SECRET_KEY: SECRET_KEY,
-    },
+  const jarPath = join(PROJECT_ROOT, 'gateway', 'gateway-service', 'target', 'gateway-service.jar')
+  const libDir = join(PROJECT_ROOT, 'gateway', 'gateway-service', 'target', 'lib')
+
+  const log4jConfig = join(PROJECT_ROOT, 'gateway', 'gateway-service', 'target', 'resources', 'log4j2.xml')
+  const javaArgs = [
+    `-Dloader.path=${libDir}`,
+    `-Dserver.port=${port}`,
+    '-Dserver.address=127.0.0.1',
+    `-Dgateway.secret-key=${SECRET_KEY}`,
+    `-Dgateway.goosed-bin=${process.env.GOOSED_BIN || 'goosed'}`,
+    `-Dgateway.paths.project-root=${PROJECT_ROOT}`,
+    '-Dgateway.cors-origin=*',
+    `-Dlogging.config=file:${log4jConfig}`,
+    '-jar', jarPath,
+  ]
+
+  const child = spawn('java', javaArgs, {
+    cwd: join(PROJECT_ROOT, 'gateway'),
     stdio: ['ignore', 'pipe', 'pipe'],
   })
 
   const logs: string[] = []
   child.stdout?.on('data', (d: Buffer) => {
     const line = d.toString().trim()
-    if (line) logs.push(`[mock:out] ${line}`)
+    if (line) logs.push(`[gw:out] ${line}`)
   })
   child.stderr?.on('data', (d: Buffer) => {
     const line = d.toString().trim()
-    if (line) logs.push(`[mock:err] ${line}`)
+    if (line) logs.push(`[gw:err] ${line}`)
   })
 
-  const maxWait = 15_000
+  // Wait for gateway to respond
+  const maxWait = 30_000
   const start = Date.now()
   while (Date.now() - start < maxWait) {
     try {
       const res = await fetch(`${baseUrl}/status`, {
         headers: { 'x-secret-key': SECRET_KEY },
-        signal: AbortSignal.timeout(1500),
+        signal: AbortSignal.timeout(2000),
       })
       if (res.ok) break
     } catch {
       // not ready yet
     }
-    await sleep(250)
+    await sleep(500)
   }
 
+  // Verify it's up
   try {
     const res = await fetch(`${baseUrl}/status`, {
       headers: { 'x-secret-key': SECRET_KEY },
       signal: AbortSignal.timeout(3000),
     })
     if (!res.ok) {
-      console.error('Mock gateway logs:', logs.join('\n'))
-      throw new Error(`Mock gateway failed to start (HTTP ${res.status})`)
+      console.error('Java gateway logs:', logs.join('\n'))
+      throw new Error(`Java gateway failed to start (HTTP ${res.status})`)
     }
   } catch (err) {
-    console.error('Mock gateway logs:', logs.join('\n'))
+    console.error('Java gateway logs:', logs.join('\n'))
     child.kill('SIGKILL')
-    throw new Error(`Mock gateway failed to start: ${err}`)
+    throw new Error(`Java gateway failed to start: ${err}`)
   }
 
   const headers = (userId?: string) => {
@@ -229,9 +241,9 @@ export async function startMockGateway(): Promise<GatewayHandle> {
       fetch(`${baseUrl}${path}`, { ...init, headers: { ...headers(userId), ...init?.headers } }),
     stop: async () => {
       child.kill('SIGTERM')
-      await sleep(1000)
+      await sleep(3000)
       if (!child.killed) child.kill('SIGKILL')
-      await sleep(250)
+      await sleep(500)
     },
   }
 }

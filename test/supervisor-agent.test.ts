@@ -11,7 +11,7 @@
  * Run: cd test && npx vitest run supervisor-agent.test.ts --config vitest.config.ts
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { startGateway, sleep, type GatewayHandle } from './helpers.js'
+import { startJavaGateway, sleep, type GatewayHandle } from './helpers.js'
 
 const AGENT_ID = 'supervisor-agent'
 const USER_SYS = 'sys'
@@ -137,7 +137,7 @@ async function createSessionAndChat(
 // ===== Setup / Teardown =====
 
 beforeAll(async () => {
-  gw = await startGateway()
+  gw = await startJavaGateway()
   // Give schedule registration a moment to complete
   await sleep(3000)
 }, 90_000)

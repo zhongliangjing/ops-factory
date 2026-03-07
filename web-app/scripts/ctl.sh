@@ -18,8 +18,8 @@ yaml_val() {
     node -e "const y=require('yaml');const f=require('fs').readFileSync('${file}','utf-8');const c=y.parse(f);const keys='${key}'.split('.');let v=c;for(const k of keys){v=v?.[k]};if(v!=null)process.stdout.write(String(v))" 2>/dev/null || true
 }
 
-GATEWAY_HOST="$(yaml_val gatewayUrl)"
-GATEWAY_HOST="${GATEWAY_HOST:-0.0.0.0}"
+VITE_HOST="$(yaml_val host)"
+VITE_HOST="${VITE_HOST:-0.0.0.0}"
 VITE_PORT="$(yaml_val port)"
 VITE_PORT="${VITE_PORT:-5173}"
 
@@ -60,10 +60,10 @@ do_startup() {
     local mode="${1:-foreground}"
     stop_port "${VITE_PORT}" "webapp"
 
-    log_info "Starting webapp at http://${GATEWAY_HOST}:${VITE_PORT}"
+    log_info "Starting webapp at http://${VITE_HOST}:${VITE_PORT}"
     cd "${SERVICE_DIR}"
 
-    npm run dev -- --host "${GATEWAY_HOST}" &
+    npm run dev -- --host "${VITE_HOST}" &
     WEBAPP_PID=$!
 
     if ! kill -0 "${WEBAPP_PID}" 2>/dev/null; then

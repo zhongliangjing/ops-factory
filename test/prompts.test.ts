@@ -8,7 +8,7 @@
  * Run: cd test && npx vitest run --config vitest.config.ts prompts.test.ts
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { startGateway, type GatewayHandle } from './helpers.js'
+import { startJavaGateway, type GatewayHandle } from './helpers.js'
 
 const AGENT_ID = 'universal-agent'
 
@@ -17,7 +17,7 @@ let gw: GatewayHandle
 // ===== Setup / Teardown =====
 
 beforeAll(async () => {
-    gw = await startGateway()
+    gw = await startJavaGateway()
 }, 60_000)
 
 afterAll(async () => {

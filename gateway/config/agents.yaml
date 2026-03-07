@@ -1,10 +1,10 @@
 agents:
-  - id: universal-agent
-    name: Universal Agent
-  - id: kb-agent
-    name: KB Agent
-  - id: report-agent
-    name: Report Agent
-  - id: supervisor-agent
-    name: Supervisor Agent
-    sysOnly: true
+- {id: universal-agent, name: Universal Agent}
+- {id: kb-agent, name: KB Agent}
+- {id: report-agent, name: Report Agent}
+- {id: supervisor-agent, name: Supervisor Agent, sysOnly: true}
+- {name: Lifecycle Agent 1772792922007, id: test-lifecycle-1772792922007}
+- {name: Recreate Agent V2 1772792922010, id: test-recreate-1772792922010}
+- {name: Lifecycle Agent 1772792932878, id: test-lifecycle-1772792932878}
+- {name: Recreate Agent V2 1772792932881, id: test-recreate-1772792932881}
+- {name: Leading Hyphen, id: -leading}

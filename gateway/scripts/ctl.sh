@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ==============================================================================
-# Gateway service control (includes goosed agent management)
+# Java Gateway service control (includes goosed agent management)
 #
 # Usage: ./ctl.sh <action> [--background]
 #   action: startup | shutdown | status | restart
@@ -10,20 +10,26 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVICE_DIR="$(dirname "${SCRIPT_DIR}")"
+ROOT_DIR="$(dirname "${SERVICE_DIR}")"
 
-# --- Configuration (read from config.yaml) ---
-yaml_val() {
-    local key="$1" file="${SERVICE_DIR}/config.yaml"
-    [ -f "${file}" ] || return 0
-    node -e "const y=require('yaml');const f=require('fs').readFileSync('${file}','utf-8');const c=y.parse(f);const keys='${key}'.split('.');let v=c;for(const k of keys){v=v?.[k]};if(v!=null)process.stdout.write(String(v))" 2>/dev/null || true
-}
-
-GATEWAY_HOST="$(yaml_val server.host)"
+# --- Configuration (env vars with defaults matching application.yml) ---
 GATEWAY_HOST="${GATEWAY_HOST:-0.0.0.0}"
-GATEWAY_PORT="$(yaml_val server.port)"
 GATEWAY_PORT="${GATEWAY_PORT:-3000}"
-GATEWAY_SECRET_KEY="$(yaml_val server.secretKey)"
 GATEWAY_SECRET_KEY="${GATEWAY_SECRET_KEY:-test}"
+GOOSED_BIN="${GOOSED_BIN:-goosed}"
+PROJECT_ROOT="${PROJECT_ROOT:-${ROOT_DIR}}"
+
+# Maven path (auto-detect or use env)
+MVN="${MVN:-mvn}"
+if ! command -v "${MVN}" &>/dev/null; then
+    # Try common fallback locations
+    for candidate in /tmp/apache-maven-3.9.6/bin/mvn /usr/local/bin/mvn; do
+        if [ -x "${candidate}" ]; then
+            MVN="${candidate}"
+            break
+        fi
+    done
+fi
 
 # --- Logging ---
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; NC='\033[0m'
@@ -46,7 +52,7 @@ stop_port() {
 }
 
 wait_http_ok() {
-    local name="$1" url="$2" headers="${3:-}" attempts="${4:-30}" delay="${5:-1}"
+    local name="$1" url="$2" headers="${3:-}" attempts="${4:-40}" delay="${5:-1}"
     for ((i=1; i<=attempts; i++)); do
         if [ -n "${headers}" ]; then
             curl -fsS "${url}" -H "${headers}" >/dev/null 2>&1 && return 0
@@ -74,16 +80,29 @@ gateway_url() {
     return 1
 }
 
-parse_agents_json() {
-    node -e '
-let d=""; process.stdin.on("data",c=>d+=c); process.stdin.on("end",()=>{
-  try {
-    const p=JSON.parse(d), a=Array.isArray(p.agents)?p.agents:[];
-    const r=a.filter(x=>x&&x.status==="running");
-    const b=a.filter(x=>x&&x.status!=="running");
-    console.log(a.length+" "+r.length+" "+b.map(x=>x.id+":"+x.status).join(","));
-  } catch { process.exit(2); }
-});'
+# --- Build ---
+build_gateway() {
+    local jar="${SERVICE_DIR}/gateway-service/target/gateway-service.jar"
+
+    # Skip build if JAR exists and no source changes
+    if [ -f "${jar}" ]; then
+        local jar_time
+        jar_time="$(stat -f "%m" "${jar}" 2>/dev/null || stat -c "%Y" "${jar}" 2>/dev/null)"
+        local newest_src
+        newest_src="$(find "${SERVICE_DIR}" -name "*.java" -newer "${jar}" 2>/dev/null | head -1)"
+        if [ -z "${newest_src}" ]; then
+            log_info "JAR is up-to-date, skipping build"
+            return 0
+        fi
+    fi
+
+    log_info "Building Java gateway..."
+    cd "${SERVICE_DIR}"
+    "${MVN}" package -DskipTests -q || {
+        log_error "Maven build failed"
+        return 1
+    }
+    log_info "Build complete"
 }
 
 # --- Agents (goosed) helpers ---
@@ -101,19 +120,16 @@ check_agents_configured() {
         -H "x-secret-key: ${GATEWAY_SECRET_KEY}" 2>/dev/null || true)"
     [ -z "${agents_json}" ] && { log_error "Failed to query agents"; return 1; }
 
-    local summary
-    summary="$(echo "${agents_json}" | parse_agents_json 2>/dev/null)" || true
-    [ -z "${summary}" ] && { log_error "Failed to parse agents status"; return 1; }
+    # Parse with lightweight approach (no node dependency)
+    local count
+    count="$(echo "${agents_json}" | python3 -c "import sys,json;d=json.load(sys.stdin);print(len(d.get('agents',d) if isinstance(d,dict) else d))" 2>/dev/null || echo "0")"
 
-    local total running bad
-    read -r total running bad <<< "${summary}"
-
-    if [ "${total}" -eq 0 ]; then
+    if [ "${count}" -eq 0 ]; then
         log_error "No agents configured in gateway"
         return 1
     fi
 
-    log_info "Agents configured (${total} total, instances spawn on demand)"
+    log_info "Agents configured (${count} total, instances spawn on demand)"
 }
 
 status_agents() {
@@ -124,27 +140,20 @@ status_agents() {
         local agents_json
         agents_json="$(curl -fsS "${base_url}/agents" -H "x-secret-key: ${GATEWAY_SECRET_KEY}" 2>/dev/null || true)"
         if [ -n "${agents_json}" ]; then
-            local summary
-            summary="$(echo "${agents_json}" | parse_agents_json 2>/dev/null)" || true
-            if [ -n "${summary}" ]; then
-                local total running bad
-                read -r total running bad <<< "${summary}"
-                if [ "${total}" -eq 0 ]; then
-                    log_fail "No agents configured in gateway"
-                    return 1
-                else
-                    log_ok "Agents configured (${total} total, ${running} with active instances)"
-                fi
-            else
-                log_fail "Failed to parse /agents response"
+            local count
+            count="$(echo "${agents_json}" | python3 -c "import sys,json;d=json.load(sys.stdin);print(len(d.get('agents',d) if isinstance(d,dict) else d))" 2>/dev/null || echo "0")"
+            if [ "${count}" -eq 0 ]; then
+                log_fail "No agents configured in gateway"
                 return 1
+            else
+                log_ok "Agents configured (${count} total)"
             fi
         else
             log_fail "Failed to query /agents"
             return 1
         fi
     else
-        log_warn "Gateway unreachable — cannot check agents"
+        log_warn "Gateway unreachable - cannot check agents"
         return 1
     fi
 }
@@ -157,11 +166,39 @@ do_startup() {
     shutdown_agents
     stop_port "${GATEWAY_PORT}" "gateway"
 
+    build_gateway
+
+    local jar="${SERVICE_DIR}/gateway-service/target/gateway-service.jar"
+    local lib_dir="${SERVICE_DIR}/gateway-service/target/lib"
+    local log4j_config="${SERVICE_DIR}/gateway-service/target/resources/log4j2.xml"
+
+    if [ ! -f "${jar}" ]; then
+        log_error "JAR not found: ${jar}"
+        return 1
+    fi
+
     log_info "Starting gateway at http://${GATEWAY_HOST}:${GATEWAY_PORT}"
-    cd "${SERVICE_DIR}"
+
+    # Build Java command
+    local java_cmd="java"
+    local java_opts=(
+        "-Dloader.path=${lib_dir}"
+        "-Dserver.port=${GATEWAY_PORT}"
+        "-Dserver.address=${GATEWAY_HOST}"
+        "-Dgateway.secret-key=${GATEWAY_SECRET_KEY}"
+        "-Dgateway.goosed-bin=${GOOSED_BIN}"
+        "-Dgateway.paths.project-root=${PROJECT_ROOT}"
+    )
+
+    # Use external log4j2.xml if available
+    if [ -f "${log4j_config}" ]; then
+        java_opts+=("-Dlogging.config=file:${log4j_config}")
+    fi
+
+    java_opts+=("-jar" "${jar}")
 
     if [ "${mode}" = "background" ]; then
-        npx tsx src/index.ts &
+        ${java_cmd} "${java_opts[@]}" &
         GATEWAY_PID=$!
         if ! kill -0 "${GATEWAY_PID}" 2>/dev/null; then
             log_error "Failed to start gateway"
@@ -169,11 +206,14 @@ do_startup() {
         fi
         if ! wait_http_ok "Gateway" "http://127.0.0.1:${GATEWAY_PORT}/status" \
                 "x-secret-key: ${GATEWAY_SECRET_KEY}" 40 1; then
+            log_error "Gateway failed to become healthy. Check logs."
+            kill "${GATEWAY_PID}" 2>/dev/null || true
             return 1
         fi
         log_info "Gateway started (PID: ${GATEWAY_PID})"
+        check_agents_configured || true
     else
-        npx tsx src/index.ts
+        ${java_cmd} "${java_opts[@]}"
     fi
 }
 
@@ -210,7 +250,7 @@ usage() {
 Usage: $(basename "$0") <action> [--background]
 
 Actions:
-  startup     Start gateway (and goosed agents on demand)
+  startup     Build and start Java gateway (goosed agents spawn on demand)
   shutdown    Stop gateway and all goosed processes
   status      Check gateway and agent status
   restart     Restart gateway

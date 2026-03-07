@@ -9,7 +9,7 @@
  */
 import http from 'node:http'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { startGateway, type GatewayHandle } from './helpers.js'
+import { startJavaGateway, type GatewayHandle } from './helpers.js'
 import { writeFileSync, readFileSync, existsSync, mkdirSync, unlinkSync, rmdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -75,7 +75,7 @@ function collectAssistantTextFromSse(events: Array<Record<string, any>>): string
     .join('')
 }
 
-const AGENT_CONFIG_PATH = join(PROJECT_ROOT, 'agents', AGENT_ID, 'config', 'config.yaml')
+const AGENT_CONFIG_PATH = join(PROJECT_ROOT, 'gateway', 'agents', AGENT_ID, 'config', 'config.yaml')
 
 /** Update vision.mode in agent config.yaml. Returns the original file content for restore. */
 function setVisionMode(mode: string): string {
@@ -185,13 +185,13 @@ async function listAllSessions(handle: GatewayHandle, userId: string) {
 }
 
 function userDir(userId: string) {
-  return join(PROJECT_ROOT, 'users', userId, 'agents', AGENT_ID)
+  return join(PROJECT_ROOT, 'gateway', 'users', userId, 'agents', AGENT_ID)
 }
 
 // ===== Setup / Teardown =====
 
 beforeAll(async () => {
-  gw = await startGateway()
+  gw = await startJavaGateway()
 }, 60_000)
 
 afterAll(async () => {
@@ -1027,7 +1027,7 @@ describe('File upload', () => {
 
     // Get the uploads directory for this session
     const uploadsDir = join(
-      PROJECT_ROOT, 'users', USER_ALICE, 'agents', AGENT_ID, 'uploads', sessionId
+      PROJECT_ROOT, 'gateway', 'users', USER_ALICE, 'agents', AGENT_ID, 'uploads', sessionId
     )
     expect(existsSync(uploadsDir)).toBe(true)
 
@@ -1588,8 +1588,8 @@ describe('Role-based access control', () => {
     expect(res.status).toBe(403)
   })
 
-  it('regular user cannot GET /monitoring/overview', async () => {
-    const res = await gw.fetchAs(USER_ALICE, '/monitoring/overview')
+  it('regular user cannot GET /monitoring/system', async () => {
+    const res = await gw.fetchAs(USER_ALICE, '/monitoring/system')
     expect(res.status).toBe(403)
   })
 

@@ -5,7 +5,7 @@
  * cleans up after itself to avoid polluting the shared agents.yaml.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { startGateway, type GatewayHandle } from './helpers.js'
+import { startJavaGateway, type GatewayHandle } from './helpers.js'
 
 const USER_SYS = 'sys'       // admin
 const USER_ALICE = 'test-alice' // non-admin
@@ -13,7 +13,7 @@ const USER_ALICE = 'test-alice' // non-admin
 let gw: GatewayHandle
 
 beforeAll(async () => {
-  gw = await startGateway()
+  gw = await startJavaGateway()
 }, 60_000)
 
 afterAll(async () => {

@@ -1,0 +1,5 @@
+gateway:
+  secret-key: test
+  goosed-bin: goosed
+  paths:
+    project-root: /tmp/test-gateway

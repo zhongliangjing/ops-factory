@@ -1,0 +1,50 @@
+server:
+  port: ${GATEWAY_PORT:3000}
+  address: ${GATEWAY_HOST:0.0.0.0}
+
+gateway:
+  secret-key: ${GATEWAY_SECRET_KEY:test}
+  cors-origin: ${CORS_ORIGIN:http://127.0.0.1:5173}
+  goosed-bin: ${GOOSED_BIN:goosed}
+
+  paths:
+    project-root: ${PROJECT_ROOT:..}
+    agents-dir: ${AGENTS_DIR:agents}
+    users-dir: ${USERS_DIR:users}
+
+  idle:
+    timeout-minutes: ${IDLE_TIMEOUT_MINUTES:15}
+    check-interval-ms: ${IDLE_CHECK_INTERVAL:60000}
+
+  upload:
+    max-file-size-mb: ${MAX_FILE_SIZE_MB:50}
+    max-image-size-mb: ${MAX_IMAGE_SIZE_MB:20}
+
+  vision:
+    mode: ${VISION_MODE:off}
+    provider: ${VISION_PROVIDER:}
+    model: ${VISION_MODEL:}
+    api-key: ${VISION_API_KEY:}
+    base-url: ${VISION_BASE_URL:}
+    max-tokens: ${VISION_MAX_TOKENS:1024}
+
+  langfuse:
+    host: ${LANGFUSE_HOST:}
+    public-key: ${LANGFUSE_PUBLIC_KEY:}
+    secret-key: ${LANGFUSE_SECRET_KEY:}
+
+  office-preview:
+    enabled: ${OFFICE_PREVIEW_ENABLED:false}
+    onlyoffice-url: ${ONLYOFFICE_URL:}
+    file-base-url: ${FILE_BASE_URL:}
+
+spring:
+  codec:
+    max-in-memory-size: 50MB
+  webflux:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 100MB
+
+logging:
+  config: classpath:log4j2.xml
