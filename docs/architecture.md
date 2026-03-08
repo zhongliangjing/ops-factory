@@ -57,10 +57,10 @@ Ops Factory 是一个基于 [Goose](https://github.com/block/goose)（Block 开�
                                     |
                                     v
 +------------------+     +---------------------------+     +-------------------+
-|   OnlyOffice     |<----|    Gateway (Node.js)      |---->|    Langfuse       |
-|   Document       |     |   http://localhost:3000    |     |   Observability   |
-|   Server :8080   |     +---------------------------+     |   :3100           |
-+------------------+       |          |          |         +-------------------+
+|   OnlyOffice     |<----|  Gateway (Spring Boot     |---->|    Langfuse       |
+|   Document       |     |    WebFlux)               |     |   Observability   |
+|   Server :8080   |     |   http://localhost:3000    |     |   :3100           |
++------------------+     +---------------------------+     +-------------------+
                            |          |          |                  |
                   spawn    |          |          |   spawn          |
                            v          v          v                  |
@@ -85,8 +85,8 @@ Ops Factory 是一个基于 [Goose](https://github.com/block/goose)（Block 开�
 +----------------+        +----------------+        +----------------+
 |                |  HTTP   |                | spawn  |                |
 |    Web App     |-------->|    Gateway     |------->|    goosed      |
-|   (React SPA)  |  SSE    |  (Node.js)    |  子进程  |  (Agent 进程)  |
-|                |<--------|                |<-------|                |
+|   (React SPA)  |  SSE    | (Spring Boot  |  子进程  |  (Agent 进程)  |
+|                |<--------|  WebFlux)     |<-------|                |
 +----------------+        +----------------+        +----------------+
        |                        |     |                    |
        |   fetch 文件预览        |     |                    | LLM API
@@ -142,97 +142,87 @@ Gateway 启动时:
   +-- goosed agent (alice:report-agent)    port=随机   <-- 后台预热
 ```
 
-每个 goosed 实例的环境变量由 Gateway 在 spawn 时注入：
+每个 goosed 实例的环境变量由 Gateway 的 `InstanceManager.buildEnvironment()` 在 spawn 时注入：
 
-```typescript
-// gateway/src/instance-manager.ts:212-220
-const env: Record<string, string> = {
-  ...(process.env as Record<string, string>),
-  ...agentConfigEnv,                          // 从 config.yaml 读取
-  GOOSE_PORT: String(port),                   // OS 分配的随机端口
-  GOOSE_HOST: agentConfig.host,               // 0.0.0.0
-  GOOSE_SERVER__SECRET_KEY: agentConfig.secret_key,
-  GOOSE_PATH_ROOT: userRoot,                  // users/{userId}/agents/{agentId}/
-  GOOSE_DISABLE_KEYRING: '1',
-}
-```
+- 从 Agent 的 `config.yaml` 和 `secrets.yaml` 合并键值对（secrets 优先级更高，非标量值跳过）
+- 注入核心变量：`GOOSE_PORT`（随机端口）、`GOOSE_HOST`、`GOOSE_SERVER__SECRET_KEY`、`GOOSE_PATH_ROOT`（用户运行时目录）、`GOOSE_DISABLE_KEYRING=1`
 
 ---
 
 ### 3.2 Gateway（网关层）
 
-Gateway 是整个平台的核心枢纽，使用原生 Node.js `http` 模块实现（无 Express），负责请求路由、用户隔离、进程管理。
+Gateway 是整个平台的核心枢纽，基于 Spring Boot WebFlux 响应式框架实现，负责请求路由、用户隔离、进程管理。
 
-**技术栈：** Node.js + TypeScript + http-proxy
+**技术栈：** Java 21 + Spring Boot 2.7.18 + WebFlux (Reactor) + Maven 多模块
 
-**源码结构：**
+> 详细架构文档参见 [Gateway 模块架构文档](gateway-architecture.md)
+
+**源码结构（Maven 多模块）：**
+
 ```
-gateway/src/
-  index.ts              # HTTP 服务器、路由定义（含文件上传路由）
-  instance-manager.ts   # 多用户实例生命周期管理
-  config.ts             # 配置加载（YAML + 环境变量，含 upload/vision 配置）
-  file-server.ts        # 文件服务（列表 + 下载 + MIME）
-  user-registry.ts      # 会话归属缓存
-  hooks.ts              # ReplyPipeline —— /reply 路由的 Hook 链机制
-  multipart.ts          # multipart/form-data 解析器（文件上传用）
-  hooks/                # 内置 Request Hooks
-    body-limit.ts       # 请求体大小限制
-    file-attachment.ts  # 上传文件路径安全校验
-    vision-preprocess.ts # 图片预处理（off/passthrough/preprocess 三种模式）
+gateway/
+├── pom.xml                          # 父 POM (ops-gateway-parent)
+├── gateway-common/                  # 共享模块：常量、模型、工具类
+│   └── src/main/java/.../common/
+│       ├── constants/GatewayConstants.java
+│       ├── model/{ManagedInstance, AgentRegistryEntry, UserRole}.java
+│       └── util/{PathSanitizer, ProcessUtil, YamlLoader}.java
+│
+└── gateway-service/                 # 主应用模块
+    └── src/main/java/.../gateway/
+        ├── GatewayApplication.java  # Spring Boot 启动类
+        ├── config/                  # GatewayProperties, CorsFilter, GlobalExceptionHandler
+        ├── controller/              # 8 个控制器（Agent, Session, Reply, File, Status, Monitoring, Mcp, CatchAllProxy）
+        ├── filter/                  # AuthWebFilter (@Order=1), UserContextFilter (@Order=2)
+        ├── hook/                    # HookPipeline + BodyLimitHook, FileAttachmentHook, VisionPreprocessHook
+        ├── service/                 # AgentConfigService, SessionService, FileService, LangfuseService
+        ├── process/                 # InstanceManager, IdleReaper, PrewarmService, PortAllocator, RuntimePreparer
+        └── proxy/                   # GoosedProxy (HTTP 代理), SseRelayService (SSE 中继)
 ```
 
 **路由架构：**
 
 ```
-Gateway HTTP 路由表
-|
-|-- GET  /status                      -> 健康检查
-|-- GET  /me                          -> 当前用户信息
-|-- GET  /config                      -> 网关配置（OnlyOffice 等）
-|-- GET  /agents                      -> Agent 列表
-|
-|-- POST /agents/:id/agent/start      -> 创建会话（按需 spawn 用户实例）
-|-- POST /agents/:id/agent/reply      -> SSE 流式对话（fetch 代理）
-|-- POST /agents/:id/agent/resume     -> 恢复会话
-|-- POST /agents/:id/agent/stop       -> 停止会话
-|
-|-- GET  /sessions                    -> 聚合会话列表（多实例查询）
-|-- GET  /sessions/:id                -> 获取会话详情
-|-- DELETE /sessions/:id              -> 删除会话
-|
-|-- GET  /agents/:id/files            -> 列出用户文件
-|-- GET  /agents/:id/files/*          -> 下载文件（带路径穿越防护）
-|-- POST /agents/:id/files/upload     -> 文件上传（multipart/form-data）
-|
-|-- GET  /agents/:id/config           -> 读取 Agent 配置 [admin]
-|-- PUT  /agents/:id/config           -> 更新 Agent Prompt [admin]
-|-- GET  /agents/:id/skills           -> 列出 Agent 技能 [admin]
-|
-|-- GET/POST /agents/:id/mcp          -> MCP 扩展管理（带 fanout）[admin]
-|-- DELETE   /agents/:id/mcp/:name    -> 删除 MCP 扩展（带 fanout）[admin]
-|
-|-- GET  /monitoring/*                -> Langfuse 监控代理 [admin]
-|
-|-- ANY  /agents/:id/*                -> 兜底代理到 sys 实例 [admin]
+Gateway HTTP 路由表（Spring WebFlux Controllers）
+│
+├── GET  /status                          → 健康检查 (StatusController)
+├── GET  /me                              → 当前用户信息
+├── GET  /config                          → 网关配置
+│
+├── GET  /agents                          → Agent 列表 (AgentController)
+├── POST /agents                          → 创建 Agent [admin]
+├── DELETE /agents/{id}                   → 删除 Agent [admin]
+│
+├── POST /agents/{id}/reply               → SSE 流式对话 (ReplyController)
+├── POST /agents/{id}/agent/start         → 创建会话 (SessionController)
+├── POST /agents/{id}/resume              → 恢复会话
+├── POST /agents/{id}/stop                → 停止会话
+│
+├── GET  /sessions                        → 聚合会话列表
+├── GET  /sessions/{id}?agentId=X         → 全局会话详情
+├── DELETE /sessions/{id}?agentId=X       → 全局会话删除
+│
+├── GET  /agents/{id}/files               → 文件列表 (FileController)
+├── GET  /agents/{id}/files/**            → 下载文件（PathSanitizer 防穿越）
+├── POST /agents/{id}/files/upload        → 文件上传（multipart）
+│
+├── GET  /agents/{id}/config              → Agent 配置 [admin]
+├── GET/POST /agents/{id}/mcp             → MCP 扩展 [admin] (McpController)
+├── GET  /monitoring/*                    → Langfuse 监控 [admin] (MonitoringController)
+│
+└── ANY  /agents/{id}/**                  → 兜底代理 (CatchAllProxyController @Order=999)
 ```
 
-**认证与鉴权机制：**
+**认证与过滤器链：**
 
-```typescript
-// gateway/src/index.ts — 认证
-const headerKey = req.headers['x-secret-key']              // Header 认证
-const queryKey = urlObj.searchParams.get('key')             // Query 参数（仅文件路由）
-const isFileRoute = urlObj.pathname.match(/^\/agents\/[^/]+\/files(\/|$)/)
-const isAuthed = headerKey === config.secretKey
-               || (isFileRoute && queryKey === config.secretKey)
+请求通过两层 Spring WebFlux `WebFilter` 过滤器进行认证和上下文设置：
 
-const userId = (req.headers['x-user-id'] as string) || DEFAULT_USER  // 'sys'
-const role = getUserRole(userId)  // 'sys' -> 'admin', 其他 -> 'user'
-```
+1. **AuthWebFilter** (`@Order(1)`)：验证 `x-secret-key` 请求头或 `key` 查询参数，失败返回 401
+2. **UserContextFilter** (`@Order(2)`)：从 `x-user-id` header 提取用户 ID（默认 `sys`），通过 `UserRole.fromUserId()` 判断角色（`sys` → ADMIN，其他 → USER），设置 exchange 属性，触发 `PrewarmService.onUserActivity()`
+
+控制器通过 `exchange.getAttribute("userId")` / `exchange.getAttribute("userRole")` 获取用户信息，管理类接口手动检查 `userRole == ADMIN`，非管理员返回 403。
 
 **角色权限控制（RBAC）：**
-
-系统定义两种角色：`admin`（`sys` 用户）和 `user`（其他所有用户）。管理类路由在进入业务逻辑前通过 `requireAdmin()` 守卫拦截，非管理员返回 `403 Forbidden`。
 
 | 路由 | admin | user | 说明 |
 | ------ | :-----: | :----: | ------ |
@@ -240,64 +230,23 @@ const role = getUserRole(userId)  // 'sys' -> 'admin', 其他 -> 'user'
 | 会话 CRUD (sessions) | ✅ | ✅ | 按用户隔离 |
 | 文件上传/下载 (files) | ✅ | ✅ | 按用户目录隔离 |
 | Agent 列表 GET /agents | ✅ | ✅ | 只读列表 |
-| Agent 配置 GET/PUT /agents/:id/config | ✅ | ❌ | 管理功能 |
-| Agent Skills GET /agents/:id/skills | ✅ | ❌ | 管理功能 |
-| MCP 扩展 GET/POST/DELETE /agents/:id/mcp | ✅ | ❌ | 管理功能 |
+| Agent 配置/技能/创建/删除 | ✅ | ❌ | 管理功能 |
+| MCP 扩展 GET/POST/DELETE | ✅ | ❌ | 管理功能 |
 | 监控 GET /monitoring/* | ✅ | ❌ | 管理功能 |
-| 调度任务 catch-all /agents/:id/* | ✅ | ❌ | 代理到 sys 实例 |
+| 兜底代理（schedule 等） | ✅ | ❌ | 代理到 sys 实例 |
+| 兜底代理（system_info/status） | ✅ | ✅ | 用户可查 |
 | GET /me | ✅ | ✅ | 返回 `{ userId, role }` |
 
-**SSE 流式代理与 Reply Pipeline：**
+**SSE 流式代理与 Hook Pipeline：**
 
-Gateway 对 `/reply` 路由使用 `fetch` 直接代理（而非 http-proxy），以便精确控制 SSE 流。在转发到 goosed 之前，请求会经过 **ReplyPipeline** 的 Hook 链进行预处理：
+`ReplyController` 处理 `/reply` 路由时：
 
-```typescript
-// gateway/src/index.ts — /reply 路由（简化）
-if (action === 'reply') {
-  // 1. 构建 Hook 上下文，读取完整 agent 配置（含 secrets.yaml）
-  const agentFullConfig = manager.getAgentFullConfig(agentId)
-  const hookCtx: HookContext = {
-    req, res, agentId, userId,
-    agentConfig: agentFullConfig,
-    body: bodyJson, bodyStr,
-    state: new Map(),
-  }
+1. 调用 `InstanceManager.getOrSpawn()` 获取 goosed 实例端口
+2. 通过 `HookPipeline.process(HookContext)` 执行 Hook 链预处理（`BodyLimitHook` → `FileAttachmentHook` → `VisionPreprocessHook`），任何 Hook 返回 error Mono 即短路
+3. 调用 `SseRelayService.relay(port, path, body)` 向 goosed POST 请求
+4. 返回 `Flux<DataBuffer>` 零拷贝 SSE 流式响应，Content-Type 为 `text/event-stream`
 
-  // 2. 运行 Request Hooks（body-limit → file-attachment → vision-preprocess）
-  const proceed = await pipeline.runRequestHooks(hookCtx)
-  if (!proceed) return  // Hook 已响应（如 400、413），短路终止
-
-  // 3. 转发到 goosed（使用 hooks 可能修改后的 body）
-  const upstreamResponse = await fetch(`${target}/reply`, {
-    method: 'POST',
-    headers: upstreamHeaders(config.secretKey),
-    body: hookCtx.bodyStr,
-  })
-
-  // 4. SSE 流式转发
-  res.writeHead(upstreamResponse.status, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-  })
-  if (upstreamResponse.body) {
-    const reader = upstreamResponse.body.getReader()
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      res.write(value)
-    }
-    res.end()
-  }
-}
-```
-
-**ReplyPipeline 机制** (`gateway/src/hooks.ts`)：
-
-- Hooks 按注册顺序依次执行
-- 任何 hook 可通过写 response 短路终止（通过 `ctx.res.writableEnded` 检测）
-- 所有 request hooks 完成后，自动 `ctx.bodyStr = JSON.stringify(ctx.body)` 同步修改
-- 当前注册的 hooks：`body-limit` → `file-attachment` → `vision-preprocess`（详见 [第 6 节](#6-文件上传与-vision-pipeline)）
+Hook 通过 `@Order` 注解控制执行顺序，通过 `RequestHook` 函数式接口（`Mono<HookContext> process(HookContext ctx)`）实现。详见 [第 6 节](#6-文件上传与-vision-pipeline)。
 
 ---
 
@@ -685,23 +634,12 @@ extensions:
 
 **MCP 配置的 Fanout 机制：**
 
-当通过 API 添加/修改 MCP 配置时，Gateway 会将变更**扇出**到所有运行中的用户实例：
+当通过 API 添加/修改 MCP 配置时，`McpController` 会将变更**扇出**到所有运行中的用户实例：
 
-```typescript
-// gateway/src/index.ts:442-453
-// POST MCP 配置后 fanout 到所有用户实例
-const userInstances = manager.getRunningInstancesForAgent(agentId)
-  .filter(inst => inst.userId !== SYSTEM_USER)
-if (userInstances.length > 0 && bodyStr) {
-  const body = JSON.parse(bodyStr)
-  await Promise.allSettled(userInstances.map(async inst => {
-    const instTarget = manager.getTarget(inst.agentId, inst.userId)
-    if (instTarget) {
-      await postJsonToTarget(instTarget, '/config/extensions', body, config.secretKey)
-    }
-  }))
-}
-```
+1. 先将配置写入 sys 实例（`InstanceManager.getOrSpawn(agentId, "__default__")`）
+2. 获取所有非 sys 用户实例（`InstanceManager.getAllInstances()` 过滤）
+3. 对每个用户实例并发发送相同的 POST/DELETE 请求（`GoosedProxy.proxyWithBody()`）
+4. 使用 `allSettled` 语义：单个实例失败不影响整体
 
 ---
 
@@ -736,33 +674,39 @@ Prometheus Exporter 模块位于 `prometheus-exporter/`，基于 **Spring Boot 2
 ### 4.1 实例管理架构
 
 ```
-InstanceManager
-|
-|-- instances: Map<"agentId:userId", ManagedInstance>
-|     |
-|     |-- "universal-agent:sys"   -> { port: 54321, status: 'running', child: Process }
-|     |-- "kb-agent:sys"          -> { port: 54322, status: 'running', child: Process }
-|     |-- "universal-agent:alice" -> { port: 54400, status: 'running', child: Process }
-|     |-- "kb-agent:alice"        -> { port: 54401, status: 'running', child: Process }
-|     +-- "universal-agent:bob"   -> { port: 54500, status: 'running', child: Process }
-|
-|-- spawnLocks: Map<string, Promise>    # 防止并发 spawn 同一实例
-|-- warmingUsers: Set<string>           # 正在预热的用户
-+-- idleTimer: setInterval              # 空闲回收定时器
+InstanceManager (Spring @Service)
+│
+├── instances: ConcurrentHashMap<"agentId:userId", ManagedInstance>
+│     │
+│     ├── "universal-agent:sys"   → { port: 54321, status: RUNNING, process: Process }
+│     ├── "kb-agent:sys"          → { port: 54322, status: RUNNING, process: Process }
+│     ├── "universal-agent:alice" → { port: 54400, status: RUNNING, process: Process }
+│     ├── "kb-agent:alice"        → { port: 54401, status: RUNNING, process: Process }
+│     └── "universal-agent:bob"   → { port: 54500, status: RUNNING, process: Process }
+│
+├── spawnLocks: ConcurrentHashMap<String, Object>  # 防止并发 spawn 同一实例
+│
+├── IdleReaper (@Scheduled)                        # 空闲回收定时任务
+└── PrewarmService                                 # 首次请求预热
 ```
 
-**ManagedInstance 数据结构：**
+**ManagedInstance 数据模型** (`gateway-common`)：
 
-```typescript
-// gateway/src/instance-manager.ts:12-20
-interface ManagedInstance {
-  agentId: string            // Agent 标识
-  userId: string             // 用户标识
-  port: number               // 动态分配的端口号
-  child: ChildProcess | null // 子进程句柄
-  status: 'starting' | 'running' | 'stopped' | 'error'
-  lastActivity: number       // 最后活跃时间戳
-  runtimeRoot: string        // 工作目录路径
+```java
+// ManagedInstance.java — 核心字段
+public class ManagedInstance {
+    enum Status { STARTING, RUNNING, STOPPED, ERROR }
+
+    String agentId;              // Agent 标识
+    String userId;               // 用户标识
+    int port;                    // 动态分配的端口号
+    long pid;                    // 进程 PID
+    Status status;               // 实例状态
+    long lastActivity;           // 最后活跃时间戳
+    transient Process process;   // JDK Process 句柄（不可序列化）
+
+    String getKey() { return agentId + ":" + userId; }
+    void touch() { lastActivity = System.currentTimeMillis(); }
 }
 ```
 
@@ -770,29 +714,33 @@ interface ManagedInstance {
 
 ```
 用户首次请求
-    |
-    v
-getOrSpawn(agentId, userId)
-    |
-    |-- 1. 检查缓存: instances.get("agentId:userId")
-    |     |-- 命中且 running -> 更新 lastActivity, 返回 URL
-    |     +-- 未命中 -> 继续
-    |
-    |-- 2. 检查 spawn 锁: spawnLocks.get(key)
-    |     |-- 已有锁 -> 等待已有 Promise 完成
-    |     +-- 无锁 -> 设置锁，开始 spawn
-    |
-    |-- 3. spawnForUser(agentId, userId)
-    |     |-- 3a. prepareUserRuntime() -- 创建目录 + 符号链接
-    |     |-- 3b. allocatePort()       -- 绑定 :0 获取随机端口
-    |     |-- 3c. spawn('goosed', ['agent'], { env, cwd })
-    |     +-- 3d. waitForReady()       -- 轮询 /status 最多 30 次
-    |
-    |-- 4. 后台预热: warmUpUserInstances(userId, excludeAgentId)
-    |     +-- 异步 spawn 该用户的其他所有 Agent
-    |
-    +-- 5. 清除 spawn 锁, 返回 http://127.0.0.1:{port}
+    │
+    ▼
+InstanceManager.getOrSpawn(agentId, userId) → Mono<ManagedInstance>
+    │
+    ├── 1. 检查缓存: instances.get("agentId:userId")
+    │     ├── 命中且 RUNNING → touch(), 返回 Mono.just(instance)
+    │     ├── 命中但进程已死 → 移除陈旧条目，继续
+    │     └── 未命中 → 继续
+    │
+    ├── 2. 检查实例限制
+    │     ├── perUser 超限 (默认 5) → Mono.error(403)
+    │     └── global 超限 (默认 50) → Mono.error(503)
+    │
+    ├── 3. synchronized(spawnLocks.computeIfAbsent(key))  # 双重检查锁
+    │     │
+    │     └── doSpawn(agentId, userId)
+    │           ├── 3a. RuntimePreparer.prepare()   — 创建目录 + 符号链接
+    │           ├── 3b. PortAllocator.allocate()     — 绑定 :0 获取随机端口
+    │           ├── 3c. buildEnvironment()           — 合并 config/secrets 为 env
+    │           ├── 3d. resetStuckRunningSchedules() — 重置卡住的定时任务
+    │           ├── 3e. ProcessBuilder.start()       — 启动 goosed 进程
+    │           └── 3f. waitForReady()               — 轮询 /status（指数退避 50ms→500ms，最多 20 次）
+    │
+    └── 4. 返回 Mono.just(instance)
 ```
+
+**首次预热**由 `PrewarmService` 独立处理（非 InstanceManager 职责）：用户首次经过 `UserContextFilter` 时，fire-and-forget 启动默认 Agent。
 
 ### 4.3 用户目录隔离
 
@@ -836,105 +784,35 @@ getOrSpawn(agentId, userId)
 
 ### 4.4 空闲回收机制
 
-Gateway 通过定时器定期检查并回收空闲的用户实例，防止资源浪费：
-
-```typescript
-// gateway/src/instance-manager.ts:286-301
-startIdleReaper(intervalMs: number, maxIdleMs: number): void {
-  this.idleTimer = setInterval(() => {
-    const now = Date.now()
-    for (const [key, inst] of this.instances) {
-      if (inst.userId === SYSTEM_USER) continue  // 永不回收 sys 实例
-      if (inst.status !== 'running') continue
-      if (now - inst.lastActivity > maxIdleMs) {
-        console.log(`[idle-reaper] Stopping idle instance ${key}`)
-        this.stopInstance(key)
-      }
-    }
-  }, intervalMs)
-}
-```
+`IdleReaper` 是一个 Spring `@Scheduled` 定时任务，定期检查并回收空闲的用户实例，防止资源浪费。
 
 关键设计：
 
 - **sys 实例永不回收**：系统用户实例在启动时预创建，始终运行
-- **默认空闲超时**：15 分钟无活动自动回收
-- **活跃续命**：用户对任一 Agent 的操作会刷新该用户所有 Agent 实例的 `lastActivity`
-- **检查间隔**：每 60 秒检查一次
-
-```typescript
-// gateway/src/instance-manager.ts:142-149
-// 用户活跃时，刷新该用户所有实例的活跃时间
-private touchUserInstances(userId: string): void {
-  const now = Date.now()
-  for (const inst of this.instances.values()) {
-    if (inst.userId === userId && inst.status === 'running') {
-      inst.lastActivity = now
-    }
-  }
-}
-```
+- **默认空闲超时**：15 分钟无活动自动回收（`gateway.idle.timeoutMinutes`）
+- **活跃续命**：用户对任一 Agent 的操作会通过 `InstanceManager.touchAllForUser(userId)` 刷新该用户所有实例的 `lastActivity`
+- **检查间隔**：每 60 秒（`gateway.idle.checkIntervalMs`）
+- **预热状态清理**：回收后如用户无任何残余实例，通知 `PrewarmService.clearUser()` 允许下次重新预热
 
 ### 4.5 会话归属与可见性
 
-会话通过 `working_dir` 字段判断归属用户：
+`SessionService` 通过 `ConcurrentHashMap<String, String>` 缓存 `sessionId → userId` 的归属关系。会话通过 `working_dir` 字段判断归属用户（匹配 `/users/{userId}/` 路径模式）。
 
-```typescript
-// gateway/src/user-registry.ts:19-22
-export function extractUserFromWorkingDir(workingDir: string): string {
-  const match = workingDir.match(/\/users\/([^/]+)/)
-  return match ? match[1] : SYSTEM_USER  // 无 /users/ 前缀则归属 sys
-}
-```
+**会话列表聚合逻辑** (`SessionController.listSessions`)：
 
-会话列表聚合逻辑：
-
-```typescript
-// gateway/src/index.ts:220-259（简化）
-// GET /sessions - 聚合多实例查询
-for (const agent of config.agents) {
-  // 查询用户实例（如有运行）
-  const userTarget = manager.getTarget(agent.id, userId)
-  if (userTarget) {
-    sessions.push(...(await fetch(userTarget + '/sessions')))
-  }
-  // 查询 sys 实例（获取共享/定时任务会话）
-  const sysTarget = manager.getTarget(agent.id, SYSTEM_USER)
-  if (sysTarget) {
-    sessions.push(...(await fetch(sysTarget + '/sessions')))
-  }
-}
-
-// 过滤：用户只能看到自己的会话 + sys 共享会话
-sessions.filter(s => {
-  const owner = extractUserFromWorkingDir(s.working_dir)
-  return owner === userId || owner === SYSTEM_USER
-})
-```
+1. 遍历所有 Agent，对每个 Agent 查询用户实例和 sys 实例的 `/sessions` 接口
+2. 通过 `working_dir` 过滤归属：用户只能看到自己的会话 + sys 共享会话
+3. 为每条会话注入 `agentId` 字段（goosed 原始响应不含此字段）
+4. 所有查询通过 `GoosedProxy.fetchJson()` 异步执行
 
 ### 4.6 后台预热
 
-当用户首次激活某个 Agent 时，Gateway 会在后台自动预热该用户的所有其他 Agent，避免后续切换时的冷启动等待：
+`PrewarmService` 在用户首次经过 `UserContextFilter` 时触发，fire-and-forget 启动默认 Agent（`gateway.prewarm.defaultAgentId`，默认 `universal-agent`）：
 
-```typescript
-// gateway/src/instance-manager.ts:112-136
-private warmUpUserInstances(userId: string, excludeAgentId: string): void {
-  if (this.warmingUsers.has(userId)) return  // 防止重复预热
-
-  const otherAgents = this.config.agents.filter(a => a.id !== excludeAgentId)
-  console.log(`[warm-up] Pre-warming ${otherAgents.length} agent(s) for user ${userId}`)
-
-  // Fire-and-forget
-  Promise.allSettled(
-    otherAgents.map(agent => this.getOrSpawn(agent.id, userId))
-  ).then(results => {
-    const failed = results.filter(r => r.status === 'rejected').length
-    if (failed > 0) {
-      console.warn(`[warm-up] ${failed} agent(s) failed to warm up for user ${userId}`)
-    }
-  })
-}
-```
+- 每个用户仅触发一次（`warmedUsers` Set 追踪），sys 用户不触发
+- 预热失败不抛异常，不影响正常请求
+- `IdleReaper` 回收用户所有实例后，调用 `clearUser()` 允许下次重新预热
+- 可通过 `gateway.prewarm.enabled=false` 禁用
 
 ---
 
@@ -1034,9 +912,9 @@ Ops Factory 支持用户在对话中附带图片和文件作为上下文。采�
 
 **处理流程：**
 
-1. Gateway 使用内置 multipart 解析器（`multipart.ts`）解析请求体
-2. 文件名清理：去除路径分隔符和特殊字符，添加时间戳前缀
-3. 文件类型白名单校验（扩展名检查，支持代码、文档、图片、压缩包等常见格式）
+1. Gateway 的 `FileController` 接收 multipart/form-data 请求
+2. `PathSanitizer.sanitizeFilename()` 清理文件名：去除路径分隔符和特殊字符
+3. `FileService.isAllowedExtension()` 白名单校验（支持代码、文档、图片、压缩包等常见格式，拦截 `.exe`、`.bat`、`.dll` 等可执行文件）
 4. 存储到 `users/{userId}/agents/{agentId}/uploads/{sessionId}/{timestamp}_{filename}`
 5. 返回服务端绝对路径
 
@@ -1096,47 +974,32 @@ Vision Preprocess Hook 支持两种 API 格式：
 
 ### 6.4 Reply Pipeline（Hook 链）
 
-Gateway 的 `/reply` 路由在转发请求到 goosed 之前，通过 ReplyPipeline 执行一系列 Request Hooks：
+Gateway 的 `/reply` 路由在转发请求到 goosed 之前，通过 `HookPipeline` 执行一系列 `RequestHook`：
 
 ```
-用户消息 → [body-limit] → [file-attachment] → [vision-preprocess] → goosed
-              |               |                    |
-              v               v                    v
-          请求体过大?      文件路径合法?         图片处理模式?
-          → 413 拒绝      → 403/404 拒绝       → off: 400 拒绝
-                                                → passthrough: 放行
-                                                → preprocess: 转文字
+用户消息 → [BodyLimitHook] → [FileAttachmentHook] → [VisionPreprocessHook] → goosed
+               @Order(1)          @Order(2)               @Order(3)
+                  |                   |                       |
+                  v                   v                       v
+            请求体过大?          文件路径合法?            图片处理模式?
+            → 413 拒绝          → 403/404 拒绝          → off: 400 拒绝
+                                                        → passthrough: 放行
+                                                        → preprocess: 转文字
 ```
 
 **Hook 详解：**
 
-| Hook | 文件 | 职责 |
-|------|------|------|
-| `body-limit` | `hooks/body-limit.ts` | 检查请求体大小，超过限制（含 base64 膨胀余量）返回 413 |
-| `file-attachment` | `hooks/file-attachment.ts` | 校验消息中引用的上传文件路径在合法范围内 |
-| `vision-preprocess` | `hooks/vision-preprocess.ts` | 根据 vision mode 处理图片（拒绝/放行/调 API 转文字） |
+| Hook | Java 类 | 职责 |
+|------|---------|------|
+| `BodyLimitHook` | `hook/BodyLimitHook.java` | 检查请求体大小 ≤ maxFileSizeMb × 4/3（base64 膨胀余量），超限返回 413 |
+| `FileAttachmentHook` | `hook/FileAttachmentHook.java` | 解析 JSON 提取文件路径，校验路径在用户目录内，越界返回 403/404 |
+| `VisionPreprocessHook` | `hook/VisionPreprocessHook.java` | 根据 agent/全局 vision mode 处理图片（拒绝/放行/调 Vision API 转文字） |
 
-**Pipeline 核心接口** (`gateway/src/hooks.ts`)：
+**Pipeline 核心接口**：
 
-```typescript
-interface HookContext {
-  req: http.IncomingMessage
-  res: http.ServerResponse
-  agentId: string
-  userId: string
-  agentConfig: Record<string, unknown>  // 完整的 agent 配置（config.yaml + secrets.yaml）
-  body: Record<string, unknown>         // 解析后的请求体（hooks 可修改）
-  bodyStr: string                       // 序列化后的请求体（hooks 完成后自动同步）
-  state: Map<string, unknown>           // hooks 间共享状态
-}
-
-class ReplyPipeline {
-  onRequest(name: string, fn: RequestHook): void
-  onResponse(name: string, fn: ResponseHook): void
-  async runRequestHooks(ctx: HookContext): Promise<boolean>   // false = 已短路终止
-  async runResponseHooks(ctx: HookContext, upstream: Response): Promise<void>
-}
-```
+- **`RequestHook`**（函数式接口）：`Mono<HookContext> process(HookContext ctx)` — 返回修改后的 context 或 error Mono 短路
+- **`HookContext`**：携带 `body`（JSON Map）、`agentId`、`userId`、`state`（hooks 间共享 Map）
+- **`HookPipeline`**：按 `@Order` 注解顺序通过 `flatMap` 链式执行所有 Hook，任何 error Mono 即短路终止
 
 ### 6.5 前端集成
 
@@ -1171,10 +1034,10 @@ class ReplyPipeline {
   v
 Gateway (/reply)
   |
-  | 3. ReplyPipeline.runRequestHooks()
-  |    ├── body-limit: 大小检查
-  |    ├── file-attachment: 路径检查
-  |    └── vision-preprocess:
+  | 3. HookPipeline.process(HookContext)
+  |    ├── BodyLimitHook: 大小检查
+  |    ├── FileAttachmentHook: 路径检查
+  |    └── VisionPreprocessHook:
   |        ├── mode=off       → 400 拒绝
   |        ├── mode=passthrough → 放行
   |        └── mode=preprocess → 调 Vision API → 替换图片为文字描述
@@ -1195,22 +1058,28 @@ SSE 流式响应 → Gateway 转发 → 浏览器渲染
 
 ```
 ops-factory/
-├── gateway/                       # 网关服务
-│   ├── config/
-│   │   └── agents.yaml            # Agent 注册表 + OnlyOffice 配置
-│   ├── src/
-│   │   ├── index.ts               # HTTP 服务器主入口（含文件上传路由）
-│   │   ├── instance-manager.ts    # 多用户实例管理
-│   │   ├── config.ts              # 配置加载（含 upload/vision 配置）
-│   │   ├── file-server.ts         # 文件服务
-│   │   ├── user-registry.ts       # 会话归属缓存
-│   │   ├── hooks.ts               # ReplyPipeline Hook 链机制
-│   │   ├── multipart.ts           # multipart/form-data 解析器
-│   │   └── hooks/                 # 内置 Request Hooks
-│   │       ├── body-limit.ts      # 请求体大小限制
-│   │       ├── file-attachment.ts # 上传文件路径校验
-│   │       └── vision-preprocess.ts # 图片预处理 Hook
-│   └── package.json
+├── gateway/                       # 网关服务（Java 21 / Spring Boot WebFlux / Maven 多模块）
+│   ├── pom.xml                    # 父 POM (ops-gateway-parent)
+│   ├── config.yaml                # 网关运行时配置
+│   ├── scripts/
+│   │   └── ctl.sh                 # 服务控制脚本（startup/shutdown/status/restart）
+│   ├── gateway-common/            # 共享模块：常量、模型、工具类
+│   │   ├── pom.xml
+│   │   └── src/main/java/.../common/
+│   │       ├── constants/GatewayConstants.java
+│   │       ├── model/{ManagedInstance, AgentRegistryEntry, UserRole}.java
+│   │       └── util/{PathSanitizer, ProcessUtil, YamlLoader}.java
+│   ├── gateway-service/           # 主应用模块
+│   │   ├── pom.xml
+│   │   └── src/main/java/.../gateway/
+│   │       ├── GatewayApplication.java
+│   │       ├── config/            # GatewayProperties, CorsFilter, GlobalExceptionHandler
+│   │       ├── controller/        # 8 个控制器
+│   │       ├── filter/            # AuthWebFilter, UserContextFilter
+│   │       ├── hook/              # HookPipeline, BodyLimitHook, FileAttachmentHook, VisionPreprocessHook
+│   │       ├── service/           # AgentConfigService, SessionService, FileService, LangfuseService
+│   │       ├── process/           # InstanceManager, IdleReaper, PrewarmService, PortAllocator, RuntimePreparer
+│   │       └── proxy/             # GoosedProxy, SseRelayService
 │
 ├── web-app/                       # 前端应用
 │   ├── src/
@@ -1240,10 +1109,11 @@ ops-factory/
 │   │   └── index.ts               # 导出
 │   └── package.json
 │
-├── agents/                        # Agent 配置（共享模板）
-│   ├── universal-agent/
-│   ├── kb-agent/
-│   └── report-agent/
+│   ├── agents/                    # Agent 配置（共享模板）
+│   │   ├── universal-agent/
+│   │   ├── kb-agent/
+│   │   └── ...
+│   └── users/                     # 用户运行时目录（自动生成，gitignored）
 │
 ├── langfuse/                      # Langfuse 可观测性
 │   └── docker-compose.yml
@@ -1256,18 +1126,9 @@ ops-factory/
 │   ├── helpers.ts
 │   └── vitest.config.ts
 │
-└── users/                         # 用户运行时目录（自动生成）
-    ├── sys/
-    ├── alice/
-    │   └── agents/
-    │       └── universal-agent/
-    │           ├── config -> (symlink)
-    │           ├── data/
-    │           ├── state/
-    │           └── uploads/       # 上传文件（按 session 分目录）
-    │               └── {sessionId}/
-    │                   └── {timestamp}_{filename}
-    └── bob/
+└── docs/                          # 架构文档
+    ├── architecture.md            # 整体架构文档
+    └── gateway-architecture.md    # Gateway 模块架构文档
 ```
 
 ---
@@ -1300,10 +1161,11 @@ ops-factory/
    等待 /api/public/health 就绪
        |
        v
-3. Gateway (Node.js)
-   npx tsx gateway/src/index.ts
+3. Gateway (Spring Boot WebFlux)
+   cd gateway && mvn package -DskipTests  # 构建（ctl.sh 自动检测是否需要）
+   java -Dloader.path=lib -jar gateway-service/target/gateway-service.jar
    等待 /status 就绪
-   --> 自动 spawn sys 用户的所有 Agent 实例
+   --> @PostConstruct 自动 spawn sysOnly Agent 实例 + 注册默认定时任务
        |
        v
 4. Web App (Vite)
@@ -1324,10 +1186,11 @@ ops-factory/
 | `VITE_GATEWAY_SECRET_KEY` | `test` | 前端认证密钥 |
 | `OFFICE_PREVIEW_ENABLED` | `true` | OnlyOffice 启用开关 |
 | `ONLYOFFICE_URL` | `http://localhost:8080` | OnlyOffice 服务地址 |
-| `IDLE_TIMEOUT_MS` | `900000` (15min) | 用户实例空闲超时 |
-| `MAX_UPLOAD_FILE_SIZE_MB` | `10` | 单个上传文件大小上限（MB） |
-| `MAX_UPLOAD_IMAGE_SIZE_MB` | `5` | 单个上传图片大小上限（MB） |
-| `UPLOAD_RETENTION_HOURS` | `24` | 上传文件兜底清理时间（小时） |
+| `IDLE_TIMEOUT_MINUTES` | `15` | 用户实例空闲超时（分钟） |
+| `MAX_INSTANCES_PER_USER` | `5` | 每用户最大实例数 |
+| `MAX_INSTANCES_GLOBAL` | `50` | 全局最大实例数 |
+| `MAX_UPLOAD_FILE_SIZE_MB` | `50` | 单个上传文件大小上限（MB） |
+| `MAX_UPLOAD_IMAGE_SIZE_MB` | `20` | 单个上传图片大小上限（MB） |
 | `VISION_MODE` | `off` | 全局默认 Vision 模式（off/passthrough/preprocess） |
 | `VISION_PROVIDER` | (空) | Vision 模型 provider |
 | `VISION_MODEL` | (空) | Vision 模型名称 |
@@ -1358,7 +1221,7 @@ ops-factory/
 | **无持久化状态** | 高 | `InstanceManager` 的实例信息全在内存中，Gateway 崩溃后无法恢复用户实例，需全部重建 |
 | **无健康检查与自愈** | 中 | goosed 进程如果异常退出（非正常 SIGTERM），仅记录 `status: 'error'`，不会自动重启 |
 | **会话归属缓存无持久化** | 中 | `SessionOwnerCache` 是纯内存 Map，Gateway 重启后需重新从 goosed 实例重建 |
-| **无进程数限制** | 中 | 用户数 * Agent 数 = 进程数，没有上限控制，大量并发用户可能耗尽系统资源 |
+| ~~**无进程数限制**~~ | ~~中~~ | ✅ 已实现：`maxInstancesPerUser`（默认 5）和 `maxInstancesGlobal`（默认 50）限制，超限返回 403/503 |
 
 ### 9.3 性能
 
@@ -1383,9 +1246,9 @@ ops-factory/
 
 | 问题 | 说明 |
 |------|------|
-| **无 monorepo 工具** | 三个包（gateway、web-app、typescript-sdk）各自独立，没有 npm workspaces/turborepo/nx 统一管理，安装和构建需分别操作 |
-| **测试覆盖不足** | 集成测试覆盖了主要路由，但 Web App 的单元测试极少；缺少对多用户并发场景的压力测试 |
-| **日志缺乏结构化** | 全部使用 `console.log/error`，没有日志级别控制、结构化输出或日志收集方案 |
+| **无 monorepo 工具** | Gateway 已改为 Maven 多模块（统一构建），但 web-app 和 typescript-sdk 仍各自独立，安装和构建需分别操作 |
+| **测试覆盖不足** | Gateway 已有 358 个测试（单元 + E2E），但 Web App 的单元测试极少；缺少对多用户并发场景的压力测试；Gateway 部分场景需真实 goosed 进程的集成测试 |
+| ~~**日志缺乏结构化**~~ | ✅ 已改进：Gateway 使用 Log4j2 替代 console.log，支持日志级别控制和外部化配置（`log4j2.xml`） |
 | **配置管理分散** | 配置散落在 YAML 文件、环境变量、`.env` 文件中，缺乏统一的配置验证和文档 |
 | **无 CI/CD** | 缺少自动化构建、测试、部署流水线 |
 | **Python SDK 已不存在** | README 中仍引用 Python SDK，但代码库中已无相关目录 |
@@ -1399,9 +1262,9 @@ ops-factory/
 
 **P1（短期改进）：**
 1. 实现监控面板与 Langfuse API 真实对接
-2. 增加进程数上限和资源管控
+2. ~~增加进程数上限和资源管控~~ ✅ 已实现（`maxInstancesPerUser` / `maxInstancesGlobal`）
 3. 实现 goosed 进程异常退出后的自动重启
-4. 引入结构化日志（如 pino/winston）
+4. ~~引入结构化日志~~ ✅ 已实现（Log4j2）
 
 **P2（中期优化）：**
 1. 引入 monorepo 工具统一依赖管理
