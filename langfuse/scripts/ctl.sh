@@ -40,70 +40,45 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 log_ok()    { echo -e "${GREEN}[OK]${NC}    $1"; }
 log_fail()  { echo -e "${RED}[FAIL]${NC}  $1"; }
 
-# --- Generate .env from config.yaml ---
-generate_env_file() {
-    local env_file="${SERVICE_DIR}/.env"
-    local port pg_db pg_user pg_password pg_port nextauth_secret salt telemetry_enabled
-    local init_org_id init_org_name init_project_id init_project_name init_project_public_key init_project_secret_key
-    local init_user_email init_user_name init_user_password
+# --- Load config from config.yaml into environment ---
+load_config() {
+    export LANGFUSE_PORT="$(yaml_val port)"
+    export POSTGRES_DB="$(yaml_nested_val postgres db)"
+    export POSTGRES_USER="$(yaml_nested_val postgres user)"
+    export POSTGRES_PASSWORD="$(yaml_nested_val postgres password)"
+    export POSTGRES_PORT="$(yaml_nested_val postgres port)"
+    export NEXTAUTH_SECRET="$(yaml_val nextauthSecret)"
+    export SALT="$(yaml_val salt)"
+    export TELEMETRY_ENABLED="$(yaml_val telemetryEnabled)"
+    export LANGFUSE_INIT_ORG_ID="$(yaml_nested_val init orgId)"
+    export LANGFUSE_INIT_ORG_NAME="$(yaml_nested_val init orgName)"
+    export LANGFUSE_INIT_PROJECT_ID="$(yaml_nested_val init projectId)"
+    export LANGFUSE_INIT_PROJECT_NAME="$(yaml_nested_val init projectName)"
+    export LANGFUSE_INIT_PROJECT_PUBLIC_KEY="$(yaml_nested_val init projectPublicKey)"
+    export LANGFUSE_INIT_PROJECT_SECRET_KEY="$(yaml_nested_val init projectSecretKey)"
+    export LANGFUSE_INIT_USER_EMAIL="$(yaml_nested_val init userEmail)"
+    export LANGFUSE_INIT_USER_NAME="$(yaml_nested_val init userName)"
+    export LANGFUSE_INIT_USER_PASSWORD="$(yaml_nested_val init userPassword)"
 
-    port="$(yaml_val port)"
-    pg_db="$(yaml_nested_val postgres db)"
-    pg_user="$(yaml_nested_val postgres user)"
-    pg_password="$(yaml_nested_val postgres password)"
-    pg_port="$(yaml_nested_val postgres port)"
-    nextauth_secret="$(yaml_val nextauthSecret)"
-    salt="$(yaml_val salt)"
-    telemetry_enabled="$(yaml_val telemetryEnabled)"
-    init_org_id="$(yaml_nested_val init orgId)"
-    init_org_name="$(yaml_nested_val init orgName)"
-    init_project_id="$(yaml_nested_val init projectId)"
-    init_project_name="$(yaml_nested_val init projectName)"
-    init_project_public_key="$(yaml_nested_val init projectPublicKey)"
-    init_project_secret_key="$(yaml_nested_val init projectSecretKey)"
-    init_user_email="$(yaml_nested_val init userEmail)"
-    init_user_name="$(yaml_nested_val init userName)"
-    init_user_password="$(yaml_nested_val init userPassword)"
-
-    [ -n "${port}" ] || port="3100"
-    [ -n "${pg_db}" ] || pg_db="langfuse"
-    [ -n "${pg_user}" ] || pg_user="langfuse"
-    [ -n "${pg_password}" ] || pg_password="langfuse"
-    [ -n "${pg_port}" ] || pg_port="5432"
-    [ -n "${nextauth_secret}" ] || nextauth_secret="opsfactory-langfuse-secret-key"
-    [ -n "${salt}" ] || salt="opsfactory-langfuse-salt"
-    [ -n "${telemetry_enabled}" ] || telemetry_enabled="false"
-    [ -n "${init_org_id}" ] || init_org_id="opsfactory"
-    [ -n "${init_org_name}" ] || init_org_name="ops-factory"
-    [ -n "${init_project_id}" ] || init_project_id="opsfactory-agents"
-    [ -n "${init_project_name}" ] || init_project_name="ops-factory-agents"
-    [ -n "${init_project_public_key}" ] || init_project_public_key="pk-lf-opsfactory"
-    [ -n "${init_project_secret_key}" ] || init_project_secret_key="sk-lf-opsfactory"
-    [ -n "${init_user_email}" ] || init_user_email="admin@opsfactory.local"
-    [ -n "${init_user_name}" ] || init_user_name="admin"
-    [ -n "${init_user_password}" ] || init_user_password="opsfactory"
-
-    cat > "${env_file}" <<EOF
-LANGFUSE_PORT=${port}
-POSTGRES_DB=${pg_db}
-POSTGRES_USER=${pg_user}
-POSTGRES_PASSWORD=${pg_password}
-POSTGRES_PORT=${pg_port}
-NEXTAUTH_SECRET=${nextauth_secret}
-SALT=${salt}
-TELEMETRY_ENABLED=${telemetry_enabled}
-LANGFUSE_INIT_ORG_ID=${init_org_id}
-LANGFUSE_INIT_ORG_NAME=${init_org_name}
-LANGFUSE_INIT_PROJECT_ID=${init_project_id}
-LANGFUSE_INIT_PROJECT_NAME=${init_project_name}
-LANGFUSE_INIT_PROJECT_PUBLIC_KEY=${init_project_public_key}
-LANGFUSE_INIT_PROJECT_SECRET_KEY=${init_project_secret_key}
-LANGFUSE_INIT_USER_EMAIL=${init_user_email}
-LANGFUSE_INIT_USER_NAME=${init_user_name}
-LANGFUSE_INIT_USER_PASSWORD=${init_user_password}
-EOF
-
-    LANGFUSE_PORT="${port}"
+    # Apply defaults (docker-compose.yml also has defaults, but these ensure
+    # the shell variables used in this script are always set)
+    : "${LANGFUSE_PORT:=3100}"
+    : "${POSTGRES_DB:=langfuse}"
+    : "${POSTGRES_USER:=langfuse}"
+    : "${POSTGRES_PASSWORD:=langfuse}"
+    : "${POSTGRES_PORT:=5432}"
+    : "${NEXTAUTH_SECRET:=opsfactory-langfuse-secret-key}"
+    : "${SALT:=opsfactory-langfuse-salt}"
+    : "${TELEMETRY_ENABLED:=false}"
+    : "${LANGFUSE_INIT_ORG_ID:=opsfactory}"
+    : "${LANGFUSE_INIT_ORG_NAME:=ops-factory}"
+    : "${LANGFUSE_INIT_PROJECT_ID:=opsfactory-agents}"
+    : "${LANGFUSE_INIT_PROJECT_NAME:=ops-factory-agents}"
+    : "${LANGFUSE_INIT_PROJECT_PUBLIC_KEY:=pk-lf-opsfactory}"
+    : "${LANGFUSE_INIT_PROJECT_SECRET_KEY:=sk-lf-opsfactory}"
+    : "${LANGFUSE_INIT_USER_EMAIL:=admin@opsfactory.local}"
+    : "${LANGFUSE_INIT_USER_NAME:=admin}"
+    : "${LANGFUSE_INIT_USER_PASSWORD:=opsfactory}"
 }
 
 # --- Utilities ---
@@ -119,7 +94,7 @@ wait_http_ok() {
 
 # --- Langfuse actions ---
 do_startup() {
-    generate_env_file
+    load_config
 
     if docker ps --format '{{.Names}}' | grep -q '^langfuse$'; then
         log_info "Langfuse already running"
@@ -144,7 +119,7 @@ do_shutdown() {
 }
 
 do_status() {
-    generate_env_file
+    load_config
     local port="${LANGFUSE_PORT}"
     if docker ps --format '{{.Names}}' | grep -q '^langfuse$'; then
         if curl -fsS "http://127.0.0.1:${port}/api/public/health" >/dev/null 2>&1; then
