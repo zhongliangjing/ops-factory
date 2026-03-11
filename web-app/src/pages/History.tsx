@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useGoosed } from '../contexts/GoosedContext'
 import { useInbox } from '../contexts/InboxContext'
 import SessionList, { type SessionWithAgent } from '../components/SessionList'
+import Pagination from '../components/Pagination'
 import type { Session } from '@goosed/sdk'
 import { isScheduledSession } from '../config/runtime'
 
@@ -29,6 +30,8 @@ export default function History() {
     const [searchTerm, setSearchTerm] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [deletingSessionKeys, setDeletingSessionKeys] = useState<Set<string>>(new Set())
+    const [currentPage, setCurrentPage] = useState(1)
+    const [pageSize, setPageSize] = useState(20)
 
     // Single source of truth: derive filter from URL
     const historyFilter = parseHistoryFilter(searchParams.get('type'))
@@ -115,6 +118,19 @@ export default function History() {
         )
     }, [filteredByType, searchTerm])
 
+    // Calculate pagination values
+    const totalPages = Math.ceil(filteredSessions.length / pageSize)
+    const paginatedSessions = useMemo(() => {
+        const startIndex = (currentPage - 1) * pageSize
+        const endIndex = startIndex + pageSize
+        return filteredSessions.slice(startIndex, endIndex)
+    }, [filteredSessions, currentPage, pageSize])
+
+    // Reset to page 1 when filter or search changes
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [historyFilter, searchTerm])
+
     const handleResumeSession = (session: SessionWithAgent) => {
         const resolvedAgentId = session.agentId || agents[0]?.id || ''
         if (resolvedAgentId && (isScheduledSession(session))) {
@@ -150,6 +166,12 @@ export default function History() {
             setSessions(prev => prev.filter(s => s.id !== session.id))
             setLastDeletedSessionId(session.id)
             setLastDeletedAt(Date.now())
+            // If current page becomes empty after deletion, go to previous page
+            setCurrentPage(prev => {
+                const newFilteredCount = filteredSessions.length - 1
+                const newTotalPages = Math.ceil(newFilteredCount / pageSize)
+                return prev > newTotalPages ? Math.max(1, newTotalPages) : prev
+            })
         } catch (err) {
             console.error('Failed to delete session:', err)
             const message = err instanceof Error ? err.message : 'Unknown error'
@@ -157,6 +179,12 @@ export default function History() {
                 setSessions(prev => prev.filter(s => s.id !== session.id))
                 setLastDeletedSessionId(session.id)
                 setLastDeletedAt(Date.now())
+                // If current page becomes empty after deletion, go to previous page
+                setCurrentPage(prev => {
+                    const newFilteredCount = filteredSessions.length - 1
+                    const newTotalPages = Math.ceil(newFilteredCount / pageSize)
+                    return prev > newTotalPages ? Math.max(1, newTotalPages) : prev
+                })
                 return
             }
             alert('Failed to delete session: ' + message)
@@ -292,7 +320,7 @@ export default function History() {
                     )}
 
                     <SessionList
-                        sessions={filteredSessions}
+                        sessions={paginatedSessions}
                         isLoading={isLoading}
                         onResume={handleResumeSession}
                         onDelete={handleDeleteSession}
@@ -300,6 +328,21 @@ export default function History() {
                         getSessionKey={getSessionKey}
                         onMarkUnread={historyFilter !== 'user' ? handleMarkUnread : undefined}
                     />
+
+                    {filteredSessions.length > 0 && (
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            pageSize={pageSize}
+                            totalItems={filteredSessions.length}
+                            onPageChange={setCurrentPage}
+                            onPageSizeChange={(newSize) => {
+                                setPageSize(newSize)
+                                setCurrentPage(1)
+                            }}
+                            disabled={isLoading}
+                        />
+                    )}
                 </>
             )}
 
