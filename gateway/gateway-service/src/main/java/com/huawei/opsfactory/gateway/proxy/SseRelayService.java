@@ -2,6 +2,7 @@ package com.huawei.opsfactory.gateway.proxy;
 
 import com.huawei.opsfactory.gateway.common.constants.GatewayConstants;
 import com.huawei.opsfactory.gateway.config.GatewayProperties;
+import com.huawei.opsfactory.gateway.process.InstanceManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -13,6 +14,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -28,11 +30,14 @@ public class SseRelayService {
     private final GoosedProxy goosedProxy;
     private final WebClient webClient;
     private final GatewayProperties properties;
+    private final InstanceManager instanceManager;
 
-    public SseRelayService(GoosedProxy goosedProxy, GatewayProperties properties) {
+    public SseRelayService(GoosedProxy goosedProxy, GatewayProperties properties,
+                           InstanceManager instanceManager) {
         this.goosedProxy = goosedProxy;
         this.webClient = goosedProxy.getWebClient();
         this.properties = properties;
+        this.instanceManager = instanceManager;
     }
 
     /**
@@ -43,8 +48,12 @@ public class SseRelayService {
      * 1. firstByteTimeout — abort if no data arrives at all (prepare_reply_context hung)
      * 2. idleTimeout — abort if gap between chunks exceeds threshold (tool execution hung)
      * 3. maxDuration — hard ceiling on any single reply
+     *
+     * On timeout, the hung instance is automatically killed so the next request
+     * triggers a fresh spawn instead of hitting the same deadlock.
      */
-    public Flux<DataBuffer> relay(int port, String path, String body) {
+    public Flux<DataBuffer> relay(int port, String path, String body,
+                                   String agentId, String userId) {
         String target = goosedProxy.goosedBaseUrl(port) + path;
         long startTime = System.currentTimeMillis();
         AtomicInteger chunkCount = new AtomicInteger(0);
@@ -110,7 +119,8 @@ public class SseRelayService {
                 // Layer 3: Hard max duration
                 .take(maxDuration);
 
-        // On timeout, emit a synthetic SSE error event so the webapp can show a message
+        // On timeout or connection error, emit a synthetic SSE error event,
+        // then kill the hung instance so the next request spawns a fresh one.
         return withTimeouts
                 .onErrorResume(e -> {
                     if (e instanceof TimeoutException) {
@@ -121,15 +131,46 @@ public class SseRelayService {
                                 : "Agent stopped responding for " + sseConfig.getIdleTimeoutSec() + "s";
                         log.warn("[SSE-DIAG] relay TIMEOUT after {}ms, chunks={}, bytes={}: {}",
                                 elapsed, chunks, totalBytes.get(), reason);
+                        recycleAsync(agentId, userId, "timeout");
                         return sseErrorEvent(reason);
                     }
                     if (e instanceof WebClientRequestException) {
                         log.warn("[SSE-DIAG] relay CONNECTION ERROR: {}", e.getMessage());
                         return sseErrorEvent("Agent connection failed: " + e.getMessage());
                     }
+                    // PrematureCloseException comes wrapped in WebClientResponseException
+                    if (isPrematureClose(e)) {
+                        log.warn("[SSE-DIAG] relay PREMATURE CLOSE after {}ms, chunks={}, bytes={}: {}",
+                                System.currentTimeMillis() - startTime,
+                                chunkCount.get(), totalBytes.get(), e.getMessage());
+                        // Instance likely already dead/recycled — emit error event
+                        return sseErrorEvent("Agent connection lost, please retry");
+                    }
                     // Other errors: propagate
                     return Flux.error(e);
                 });
+    }
+
+    /**
+     * Kill the hung instance on a separate thread to avoid blocking the SSE response.
+     */
+    private void recycleAsync(String agentId, String userId, String reason) {
+        Mono.fromRunnable(() -> {
+            log.info("[SSE-DIAG] Recycling hung instance {}:{} reason={}", agentId, userId, reason);
+            instanceManager.forceRecycle(agentId, userId);
+        }).subscribeOn(Schedulers.boundedElastic()).subscribe();
+    }
+
+    /**
+     * Check if the error is a PrematureCloseException (connection lost mid-stream).
+     * This occurs when goosed is killed while an SSE stream is active.
+     */
+    private boolean isPrematureClose(Throwable e) {
+        // Direct PrematureCloseException
+        if (e.getClass().getSimpleName().equals("PrematureCloseException")) return true;
+        // Wrapped in WebClientResponseException
+        Throwable cause = e.getCause();
+        return cause != null && cause.getClass().getSimpleName().equals("PrematureCloseException");
     }
 
     /**

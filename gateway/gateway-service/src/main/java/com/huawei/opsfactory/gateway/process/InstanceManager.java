@@ -477,6 +477,19 @@ public class InstanceManager {
     }
 
     /**
+     * Kill a hung instance asynchronously so the next getOrSpawn() will create a fresh one.
+     * Called by SseRelayService when a timeout is detected (goosed is deadlocked).
+     */
+    public void forceRecycle(String agentId, String userId) {
+        String key = ManagedInstance.buildKey(agentId, userId);
+        ManagedInstance instance = instances.get(key);
+        if (instance != null && instance.getStatus() == ManagedInstance.Status.RUNNING) {
+            log.warn("Force-recycling hung instance {}:{} (port={})", agentId, userId, instance.getPort());
+            stopInstance(instance);
+        }
+    }
+
+    /**
      * Stop all instances for a given agent across all users.
      */
     public void stopAllForAgent(String agentId) {

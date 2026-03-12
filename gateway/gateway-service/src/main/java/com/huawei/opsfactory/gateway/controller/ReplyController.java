@@ -53,7 +53,8 @@ public class ReplyController {
                                 .flatMapMany(instance -> {
                                     instance.touch();
                                     instanceManager.touchAllForUser(userId);
-                                    return sseRelayService.relay(instance.getPort(), "/reply", processedBody);
+                                    return sseRelayService.relay(instance.getPort(), "/reply", processedBody,
+                                            agentId, userId);
                                 }));
     }
 

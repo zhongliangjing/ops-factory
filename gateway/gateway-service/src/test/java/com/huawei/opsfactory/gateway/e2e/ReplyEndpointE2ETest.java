@@ -46,7 +46,7 @@ public class ReplyEndpointE2ETest extends BaseE2ETest {
 
         DataBuffer buffer = new DefaultDataBufferFactory()
                 .wrap("data: {\"content\":\"hello\"}\n\n".getBytes(StandardCharsets.UTF_8));
-        when(sseRelayService.relay(eq(9999), eq("/reply"), anyString()))
+        when(sseRelayService.relay(eq(9999), eq("/reply"), anyString(), eq("test-agent"), eq("alice")))
                 .thenReturn(Flux.just(buffer));
 
         webClient.post().uri("/agents/test-agent/reply")
@@ -78,7 +78,7 @@ public class ReplyEndpointE2ETest extends BaseE2ETest {
 
         DataBuffer buffer = new DefaultDataBufferFactory()
                 .wrap("data: ok\n\n".getBytes(StandardCharsets.UTF_8));
-        when(sseRelayService.relay(eq(8888), eq("/reply"), anyString()))
+        when(sseRelayService.relay(eq(8888), eq("/reply"), anyString(), eq("test-agent"), eq("sys")))
                 .thenReturn(Flux.just(buffer));
 
         webClient.post().uri("/agents/test-agent/reply")
