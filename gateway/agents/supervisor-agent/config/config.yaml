@@ -11,7 +11,7 @@ GOOSE_AUTO_COMPACT_THRESHOLD: '0.8'
 GOOSE_MAX_TURNS: '50'
 extensions:
   extensionmanager:
-    enabled: true
+    enabled: false
     type: platform
     name: Extension Manager
     description: Enable extension management tools for discovering, enabling, and disabling extensions
@@ -111,6 +111,7 @@ extensions:
     args:
     - tsx
     - config/mcp/platform-monitor/src/index.ts
+    envs: {}
     env_keys:
     - GATEWAY_URL
     - GATEWAY_SECRET_KEY
@@ -124,13 +125,5 @@ extensions:
     name: analyze
     description: 'Analyze code structure with tree-sitter: directory overviews, file details, symbol call graphs'
     display_name: Analyze
-    bundled: true
-    available_tools: []
-  summarize:
-    enabled: false
-    type: platform
-    name: summarize
-    description: Load files/directories and get an LLM summary in a single call
-    display_name: Summarize
     bundled: true
     available_tools: []

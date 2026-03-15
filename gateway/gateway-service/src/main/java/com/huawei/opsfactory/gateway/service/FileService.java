@@ -1,15 +1,22 @@
 package com.huawei.opsfactory.gateway.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huawei.opsfactory.gateway.common.util.PathSanitizer;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -185,5 +192,128 @@ public class FileService {
                 || mimeType.startsWith("image/")
                 || "application/json".equals(mimeType)
                 || "application/pdf".equals(mimeType);
+    }
+
+    // ── File capsule persistence ────────────────────────────────────────
+
+    private static final Logger log = LogManager.getLogger(FileService.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final String CAPSULE_FILE = "file-capsules.json";
+
+    /**
+     * Compute the diff between two file snapshots.
+     * Returns files that are new or have been modified (size or modifiedAt changed).
+     */
+    public List<Map<String, String>> diffFiles(List<Map<String, Object>> before,
+                                                List<Map<String, Object>> after) {
+        Map<String, Map<String, Object>> beforeMap = new HashMap<>();
+        for (Map<String, Object> f : before) {
+            beforeMap.put((String) f.get("path"), f);
+        }
+
+        List<Map<String, String>> changed = new ArrayList<>();
+        for (Map<String, Object> f : after) {
+            String path = (String) f.get("path");
+            Map<String, Object> prev = beforeMap.get(path);
+            boolean isNew = prev == null;
+            boolean isUpdated = prev != null && (
+                    !prev.get("modifiedAt").equals(f.get("modifiedAt"))
+                            || !prev.get("size").equals(f.get("size")));
+            if (isNew || isUpdated) {
+                String name = (String) f.get("name");
+                String ext = (String) f.get("type");
+                changed.add(Map.of("path", path, "name", name, "ext", ext != null ? ext : ""));
+            }
+        }
+        return changed;
+    }
+
+    /**
+     * Persist file capsule entries for a session.
+     * Merges new entries into existing data (read-modify-write).
+     * Path: {workingDir}/data/{sessionId}/file-capsules.json
+     */
+    public void persistOutputFiles(Path workingDir, String sessionId, String messageId,
+                                    List<Map<String, String>> files) {
+        Path dir = workingDir.resolve("data").resolve(sessionId);
+        Path file = dir.resolve(CAPSULE_FILE);
+        try {
+            Files.createDirectories(dir);
+
+            // Read existing entries (if any)
+            Map<String, List<Map<String, String>>> entries = new LinkedHashMap<>();
+            if (Files.exists(file)) {
+                Map<String, Object> existing = MAPPER.readValue(
+                        Files.readString(file, StandardCharsets.UTF_8),
+                        new TypeReference<>() {});
+                Object raw = existing.get("entries");
+                if (raw instanceof Map<?, ?> rawMap) {
+                    for (Map.Entry<?, ?> e : rawMap.entrySet()) {
+                        if (e.getValue() instanceof List<?> list) {
+                            List<Map<String, String>> typed = new ArrayList<>();
+                            for (Object item : list) {
+                                if (item instanceof Map<?, ?> m) {
+                                    Map<String, String> entry = new LinkedHashMap<>();
+                                    m.forEach((k, v) -> entry.put(String.valueOf(k), String.valueOf(v)));
+                                    typed.add(entry);
+                                }
+                            }
+                            entries.put(String.valueOf(e.getKey()), typed);
+                        }
+                    }
+                }
+            }
+
+            // Add / replace entry for this messageId
+            entries.put(messageId, files);
+
+            // Write back
+            Map<String, Object> wrapper = new LinkedHashMap<>();
+            wrapper.put("entries", entries);
+            Files.writeString(file, MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(wrapper),
+                    StandardCharsets.UTF_8);
+
+            log.debug("Persisted {} file capsules for session {} message {}", files.size(), sessionId, messageId);
+        } catch (Exception e) {
+            log.warn("Failed to persist file capsules for session {}: {}", sessionId, e.getMessage());
+        }
+    }
+
+    /**
+     * Load persisted file capsule entries for a session.
+     * Returns messageId → files mapping, or empty map on any error.
+     */
+    public Map<String, List<Map<String, String>>> loadOutputFiles(Path workingDir, String sessionId) {
+        Path file = workingDir.resolve("data").resolve(sessionId).resolve(CAPSULE_FILE);
+        if (!Files.exists(file)) {
+            return Map.of();
+        }
+        try {
+            Map<String, Object> data = MAPPER.readValue(
+                    Files.readString(file, StandardCharsets.UTF_8),
+                    new TypeReference<>() {});
+            Object raw = data.get("entries");
+            if (!(raw instanceof Map<?, ?> rawMap)) {
+                return Map.of();
+            }
+            Map<String, List<Map<String, String>>> result = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> e : rawMap.entrySet()) {
+                if (e.getValue() instanceof List<?> list) {
+                    List<Map<String, String>> typed = new ArrayList<>();
+                    for (Object item : list) {
+                        if (item instanceof Map<?, ?> m) {
+                            Map<String, String> entry = new LinkedHashMap<>();
+                            m.forEach((k, v) -> entry.put(String.valueOf(k), String.valueOf(v)));
+                            typed.add(entry);
+                        }
+                    }
+                    result.put(String.valueOf(e.getKey()), typed);
+                }
+            }
+            return result;
+        } catch (Exception e) {
+            log.warn("Failed to read file capsules for session {}: {}", sessionId, e.getMessage());
+            return Map.of();
+        }
     }
 }

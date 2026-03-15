@@ -4,15 +4,15 @@ import { useTranslation } from 'react-i18next'
 import { useGoosed } from '../contexts/GoosedContext'
 import { useToast } from '../contexts/ToastContext'
 import ChatInput from '../components/ChatInput'
-import { PROMPT_TEMPLATES } from '../config/prompts'
-import { PromptTemplate } from '../types/prompt'
+import { PROMPT_TEMPLATES, CATEGORIES, type PromptTemplateConfig } from '../config/promptTemplates'
+import { iconMap } from '../config/iconMap'
 
 interface ModelInfo {
     provider: string
     model: string
 }
 
-const AGENT_TAB_ORDER = ['all', 'universal-agent', 'kb-agent'] as const
+const UNIVERSAL_AGENT_ID = 'universal-agent'
 
 export default function Home() {
     const { t } = useTranslation()
@@ -25,11 +25,12 @@ export default function Home() {
     const [presetMessage, setPresetMessage] = useState('')
     const [presetToken, setPresetToken] = useState(0)
     const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null)
-    const [activeAgentTab, setActiveAgentTab] = useState<string>('all')
+    const [activeCategory, setActiveCategory] = useState<string>('all')
 
     useEffect(() => {
         if (agents.length > 0 && !selectedAgent) {
-            setSelectedAgent(agents[0].id)
+            const universal = agents.find(a => a.id === UNIVERSAL_AGENT_ID)
+            setSelectedAgent(universal ? universal.id : agents[0].id)
         }
     }, [agents, selectedAgent])
 
@@ -68,44 +69,18 @@ export default function Home() {
         }
     }
 
-    const availableAgentTabs = useMemo(() => {
-        const fromTemplates = Array.from(new Set(PROMPT_TEMPLATES.map(template => template.agentId)))
-        // Ensure 'all' is always first
-        const ordered = AGENT_TAB_ORDER.filter(id => id === 'all' || fromTemplates.includes(id)) as string[]
-        const remaining = fromTemplates.filter(id => !AGENT_TAB_ORDER.includes(id as any))
-        return ordered.concat(remaining)
-    }, [])
-
-    useEffect(() => {
-        if (!availableAgentTabs.includes(activeAgentTab)) {
-            setActiveAgentTab(availableAgentTabs[0] || 'all')
-        }
-    }, [activeAgentTab, availableAgentTabs])
-
     const filteredTemplates = useMemo(
-        () => activeAgentTab === 'all'
+        () => activeCategory === 'all'
             ? PROMPT_TEMPLATES
-            : PROMPT_TEMPLATES.filter(template => template.agentId === activeAgentTab),
-        [activeAgentTab]
+            : PROMPT_TEMPLATES.filter(tpl => tpl.category === activeCategory),
+        [activeCategory]
     )
 
-    const getAgentLabel = (agentId: string) => {
-        if (agentId === 'all') return t('home.allAgents')
-
-        const fromConfig = agents.find(agent => agent.id === agentId)?.name
-        if (fromConfig) return fromConfig
-
-        if (agentId === 'report-agent') return 'Report Agent'
-        if (agentId === 'kb-agent') return 'KB Agent'
-        if (agentId === 'contract-agent') return 'Contract Agent'
-        if (agentId === 'universal-agent') return 'Universal Agent'
-        return agentId
-    }
-
-    const handleTemplateSelect = (template: PromptTemplate) => {
-        const targetAgentId = agents.find(agent => agent.id === template.agentId)?.id || template.agentId
+    const handleTemplateSelect = (template: PromptTemplateConfig) => {
+        const targetAgentId = agents.find(a => a.id === template.agentId)?.id || template.agentId
         setSelectedAgent(targetAgentId)
-        setPresetMessage(template.prompt)
+        const i18nKey = template.i18nKey.replace('templates.', '')
+        setPresetMessage(t(`home.templates.${i18nKey}.prompt`))
         setPresetToken(prev => prev + 1)
         setActiveTemplateId(template.id)
     }
@@ -146,24 +121,25 @@ export default function Home() {
             </div>
 
             <div className="home-template-section">
-                <div className="home-template-tabs" role="tablist" aria-label="Agent template tabs">
-                    {availableAgentTabs.map(tabAgentId => (
+                <div className="home-template-tabs" role="tablist" aria-label="Scenario category tabs">
+                    {CATEGORIES.map(categoryId => (
                         <button
-                            key={tabAgentId}
+                            key={categoryId}
                             type="button"
                             role="tab"
-                            aria-selected={activeAgentTab === tabAgentId}
-                            className={`home-template-tab ${activeAgentTab === tabAgentId ? 'is-active' : ''}`}
-                            onClick={() => setActiveAgentTab(tabAgentId)}
+                            aria-selected={activeCategory === categoryId}
+                            className={`home-template-tab ${activeCategory === categoryId ? 'is-active' : ''}`}
+                            onClick={() => setActiveCategory(categoryId)}
                         >
-                            {getAgentLabel(tabAgentId)}
+                            {t(`home.categories.${categoryId}`)}
                         </button>
                     ))}
                 </div>
 
                 <div className="home-template-grid">
                     {filteredTemplates.map(template => {
-                        const Icon = template.icon
+                        const Icon = iconMap[template.icon]
+                        const i18nKey = template.i18nKey.replace('templates.', '')
                         return (
                             <button
                                 key={template.id}
@@ -172,10 +148,10 @@ export default function Home() {
                                 onClick={() => handleTemplateSelect(template)}
                             >
                                 <div className="prompt-template-icon-container">
-                                    <Icon size={20} />
+                                    {Icon && <Icon size={20} />}
                                 </div>
-                                <h4 className="prompt-template-name">{template.title}</h4>
-                                <p className="prompt-template-desc">{template.description}</p>
+                                <h4 className="prompt-template-name">{t(`home.templates.${i18nKey}.title`)}</h4>
+                                <p className="prompt-template-desc">{t(`home.templates.${i18nKey}.description`)}</p>
                             </button>
                         )
                     })}

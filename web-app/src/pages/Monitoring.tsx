@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useGoosed } from '../contexts/GoosedContext'
 import { useMonitoring, useMonitoringPlatform, type TimeRange, type DailyPoint, type TraceRow, type AgentInfo } from '../hooks/useMonitoring'
+import { useMetrics, type MetricsPoint, type AgentMetrics } from '../hooks/useMetrics'
 
 // --- Helpers --------------------------------------------------------------
 
@@ -48,6 +49,17 @@ function fmtMs(ms: number): string {
   if (min < 60) return `${min}min`
   const hr = Math.floor(min / 60)
   return `${hr}h ${min % 60}min`
+}
+
+function fmtMs2(ms: number): string {
+  if (ms === 0) return '\u2014'
+  if (ms < 1000) return `${Math.round(ms)}ms`
+  return `${(ms / 1000).toFixed(2)}s`
+}
+
+function fmtTimeShort(epoch: number): string {
+  const d = new Date(epoch)
+  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
 }
 
 // --- Shared sub-components ------------------------------------------------
@@ -262,6 +274,7 @@ function AgentsTab() {
   const { t } = useTranslation()
   const { error: connectionError } = useGoosed()
   const { instances, agents, isLoading, error } = useMonitoringPlatform()
+  const { data: metricsData } = useMetrics(30_000)
 
   if (isLoading && agents.length === 0) {
     return <div className="mon-loading">{t('monitoring.loading')}</div>
@@ -285,32 +298,208 @@ function AgentsTab() {
     }
   }
 
+  const agentMetrics: Record<string, AgentMetrics> = metricsData?.agentMetrics || {}
+
   return (
     <div className="mon-section">
       <h2 className="mon-section-title">{t('monitoring.agentDetails')}</h2>
       {agents.length === 0 ? (
         <div className="mon-no-data">{t('monitoring.noData')}</div>
       ) : (
-        <div className="mon-agent-table">
-          <div className="mon-agent-table-header mon-agent-table-5col">
-            <span>{t('monitoring.agentName')}</span>
-            <span>{t('monitoring.agentProvider')}</span>
-            <span>{t('monitoring.agentModel')}</span>
-            <span>{t('monitoring.agentInstanceCount')}</span>
-            <span>{t('monitoring.agentStatus')}</span>
-          </div>
-          {agents.map((agent: AgentInfo) => (
-            <div key={agent.id} className="mon-agent-table-row mon-agent-table-5col">
-              <span className="mon-agent-name">{agent.name}</span>
-              <span className="mon-agent-provider">{agent.provider}</span>
-              <span className="mon-agent-model">{agent.model}</span>
-              <span className="mon-obs-count">{instanceCounts[agent.id] || 0}</span>
-              <span><span className={`status-pill status-${agent.status}`}>{agent.status}</span></span>
-            </div>
-          ))}
+        <div className="mon-agent-cards">
+          {agents.map((agent: AgentInfo) => {
+            const running = instanceCounts[agent.id] || 0
+            const metrics = agentMetrics[agent.id]
+            return (
+              <div key={agent.id} className="mon-agent-card">
+                <div className="mon-agent-card-header">
+                  <div className="mon-agent-card-title">
+                    <span className="mon-agent-card-name">{agent.name}</span>
+                    <span className={`status-pill status-${agent.status}`}>{agent.status}</span>
+                  </div>
+                  <div className="mon-agent-card-meta">
+                    <span className="mon-agent-card-tag">{agent.provider}</span>
+                    <span className="mon-agent-card-tag">{agent.model}</span>
+                  </div>
+                </div>
+                <div className="mon-agent-card-stats">
+                  <div className="mon-agent-card-stat">
+                    <span className="mon-agent-card-stat-label">{t('monitoring.agentInstanceCount')}</span>
+                    <span className="mon-agent-card-stat-value">{running}</span>
+                  </div>
+                  <div className="mon-agent-card-stat">
+                    <span className="mon-agent-card-stat-label">{t('monitoring.usageRequests')}</span>
+                    <span className="mon-agent-card-stat-value">{metrics ? metrics.requestCount : 0}</span>
+                  </div>
+                  <div className="mon-agent-card-stat">
+                    <span className="mon-agent-card-stat-label">{t('monitoring.usageAvgLatency')}</span>
+                    <span className="mon-agent-card-stat-value">{metrics ? fmtMs2(metrics.avgLatencyMs) : '\u2014'}</span>
+                  </div>
+                  <div className="mon-agent-card-stat">
+                    <span className="mon-agent-card-stat-label">{t('monitoring.usageErrors')}</span>
+                    <span className={`mon-agent-card-stat-value${metrics && metrics.errorCount > 0 ? ' mon-stat-error' : ''}`}>
+                      {metrics ? metrics.errorCount : 0}
+                    </span>
+                  </div>
+                </div>
+                {agent.skills && agent.skills.length > 0 && (
+                  <div className="mon-agent-card-skills">
+                    {agent.skills.map((skill: any) => (
+                      <span key={typeof skill === 'string' ? skill : skill.name || skill.path} className="mon-agent-card-skill">
+                        {typeof skill === 'string' ? skill : skill.name || skill.path}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
     </div>
+  )
+}
+
+// --- Tab: Usage -----------------------------------------------------------
+
+function UsageSparkline({ data, valueKey, color, formatter }: {
+  data: MetricsPoint[]
+  valueKey: keyof MetricsPoint
+  color: string
+  formatter?: (v: number) => string
+}) {
+  const fmt = formatter || String
+  const values = data.map(d => d[valueKey] as number)
+  if (values.length < 2) return null
+
+  // Downsample if too many points
+  const maxPts = 60
+  const step = values.length > maxPts ? Math.ceil(values.length / maxPts) : 1
+  const sampled = values.filter((_, i) => i % step === 0)
+  const sampledData = data.filter((_, i) => i % step === 0)
+  if (sampled.length < 2) return null
+
+  const max = Math.max(...sampled)
+  const min = Math.min(...sampled)
+  const range = max - min || 1
+  const padY = 10
+  const w = 600
+  const h = 140
+  const chartH = h - 28
+  const stepX = sampled.length > 1 ? (w - 40) / (sampled.length - 1) : (w - 40)
+
+  const points = sampled.map((v, i) => ({
+    x: 20 + i * stepX,
+    y: padY + (1 - (v - min) / range) * (chartH - padY * 2),
+  }))
+
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ')
+  const areaPath = `${linePath} L${points[points.length - 1].x},${chartH} L${points[0].x},${chartH} Z`
+  const gradId = `grad-usage-${color.replace(/[^a-z0-9]/gi, '')}-${valueKey as string}`
+  const gridLines = [0.25, 0.5, 0.75].map(pct => padY + pct * (chartH - padY * 2))
+
+  // Show labels at first, quarter, half, three-quarter, last
+  const labelIndices = new Set([
+    0,
+    Math.floor(sampled.length / 4),
+    Math.floor(sampled.length / 2),
+    Math.floor(sampled.length * 3 / 4),
+    sampled.length - 1,
+  ])
+
+  return (
+    <svg className="mon-sparkline" viewBox={`0 0 ${w} ${h}`}>
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.12" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.01" />
+        </linearGradient>
+      </defs>
+      {gridLines.map((y, i) => (
+        <line key={i} x1="20" y1={y} x2={w - 20} y2={y}
+          stroke="var(--color-border)" strokeWidth="0.5" strokeDasharray="4 4" />
+      ))}
+      <path d={areaPath} fill={`url(#${gradId})`} />
+      <path d={linePath} fill="none" stroke={color} strokeWidth="2"
+        strokeLinecap="round" strokeLinejoin="round" />
+      {points.map((p, i) => (
+        <g key={i}>
+          {labelIndices.has(i) && (
+            <>
+              <circle cx={p.x} cy={p.y} r="4" fill="var(--color-bg-primary)" stroke={color} strokeWidth="2" />
+              <text x={p.x} y={p.y - 12} textAnchor="middle" fontSize="11" fontWeight="600"
+                fill="var(--color-text-secondary)">{fmt(sampled[i])}</text>
+              <text x={p.x} y={h - 4} textAnchor="middle" fontSize="10"
+                fill="var(--color-text-muted)">{fmtTimeShort(sampledData[i].t)}</text>
+            </>
+          )}
+        </g>
+      ))}
+    </svg>
+  )
+}
+
+function PerformanceTab() {
+  const { t } = useTranslation()
+  const { error: connectionError } = useGoosed()
+  const { data, isLoading, error } = useMetrics(30_000)
+
+  if (isLoading && !data) {
+    return <div className="mon-loading">{t('monitoring.loading')}</div>
+  }
+  if (error && !connectionError) {
+    return <div className="conn-banner conn-banner-error">{t('monitoring.errorLoading')}: {error}</div>
+  }
+  if (!data) return null
+
+  const { current, aggregate, series } = data
+
+  return (
+    <>
+      {/* KPI Row 1 */}
+      <div className="mon-kpi-row" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+        <KpiCard label={t('monitoring.usageActiveInstances')} value={current ? String(current.activeInstances) : '0'} />
+        <KpiCard label={t('monitoring.usageTotalTokens')} value={current ? fmtNum(current.totalTokens) : '0'} />
+        <KpiCard label={t('monitoring.usageRequests')} value={fmtNum(aggregate.totalRequests)} sub={t('monitoring.usageLast1h')} />
+        <KpiCard label={t('monitoring.usageAvgLatency')} value={fmtMs2(aggregate.avgLatencyMs)} />
+        <KpiCard label={t('monitoring.usageAvgTtft')} value={fmtMs2(aggregate.avgTtftMs)} />
+      </div>
+      {/* KPI Row 2 */}
+      <div className="mon-kpi-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginTop: 'var(--spacing-3)' }}>
+        <KpiCard label={t('monitoring.usageTotalSessions')} value={current ? String(current.totalSessions) : '0'} />
+        <KpiCard label={t('monitoring.perfTokensPerSec')} value={aggregate.avgTokensPerSec > 0 ? `${aggregate.avgTokensPerSec.toFixed(1)}` : '\u2014'} />
+        <KpiCard
+          label={t('monitoring.usageErrors')}
+          value={String(aggregate.totalErrors)}
+          accent={aggregate.totalErrors > 0 ? 'error' : undefined}
+        />
+        <KpiCard label={t('monitoring.perfP95Latency')} value={fmtMs2(aggregate.p95LatencyMs)} />
+      </div>
+
+      {/* Charts */}
+      {series.length > 1 && (
+        <div className="mon-section">
+          <div className="mon-chart-grid">
+            <div className="mon-chart-block">
+              <span className="mon-chart-title">{t('monitoring.usageTtftTrend')}</span>
+              <UsageSparkline data={series} valueKey="avgTtft" color="var(--color-success)" formatter={v => fmtMs2(v)} />
+            </div>
+            <div className="mon-chart-block">
+              <span className="mon-chart-title">{t('monitoring.usageLatencyTrend')}</span>
+              <UsageSparkline data={series} valueKey="avgLatency" color="var(--color-warning)" formatter={v => fmtMs2(v)} />
+            </div>
+            <div className="mon-chart-block">
+              <span className="mon-chart-title">{t('monitoring.perfTokensPerSecTrend')}</span>
+              <UsageSparkline data={series} valueKey="tokensPerSec" color="var(--color-accent)" formatter={v => v > 0 ? v.toFixed(1) : '0'} />
+            </div>
+            <div className="mon-chart-block">
+              <span className="mon-chart-title">{t('monitoring.usageRequestsTrend')}</span>
+              <UsageSparkline data={series} valueKey="requests" color="#8b5cf6" formatter={v => String(Math.round(v))} />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 
@@ -467,7 +656,7 @@ function ObservabilityTab() {
 
 // --- Main page ------------------------------------------------------------
 
-type MonitoringTab = 'platform' | 'agents' | 'observability'
+type MonitoringTab = 'platform' | 'agents' | 'performance' | 'observability'
 
 export default function Monitoring() {
   const { t } = useTranslation()
@@ -477,6 +666,7 @@ export default function Monitoring() {
   const tabs: { key: MonitoringTab; label: string }[] = [
     { key: 'platform', label: t('monitoring.tabPlatform') },
     { key: 'agents', label: t('monitoring.tabAgents') },
+    { key: 'performance', label: t('monitoring.tabPerformance') },
     { key: 'observability', label: t('monitoring.tabObservability') },
   ]
 
@@ -515,6 +705,7 @@ export default function Monitoring() {
       {/* Tab Content */}
       {activeTab === 'platform' && <PlatformTab />}
       {activeTab === 'agents' && <AgentsTab />}
+      {activeTab === 'performance' && <PerformanceTab />}
       {activeTab === 'observability' && <ObservabilityTab />}
     </div>
   )

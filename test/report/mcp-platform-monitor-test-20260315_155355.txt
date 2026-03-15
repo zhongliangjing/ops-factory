@@ -1,0 +1,167 @@
+TAP version 13
+# Subtest: tool definitions
+    # Subtest: should define 4 tools
+    ok 1 - should define 4 tools
+      ---
+      duration_ms: 0.929083
+      type: 'test'
+      ...
+    # Subtest: get_realtime_metrics should have empty properties (no params)
+    ok 2 - get_realtime_metrics should have empty properties (no params)
+      ---
+      duration_ms: 0.101209
+      type: 'test'
+      ...
+    # Subtest: get_observability_data should accept hours param
+    ok 3 - get_observability_data should accept hours param
+      ---
+      duration_ms: 0.223166
+      type: 'test'
+      ...
+    1..3
+ok 1 - tool definitions
+  ---
+  duration_ms: 1.910292
+  type: 'suite'
+  ...
+# Subtest: gw() helper
+    # Subtest: should fetch and parse JSON
+    ok 1 - should fetch and parse JSON
+      ---
+      duration_ms: 10.891875
+      type: 'test'
+      ...
+    # Subtest: should append query params
+    ok 2 - should append query params
+      ---
+      duration_ms: 0.296917
+      type: 'test'
+      ...
+    # Subtest: should throw on non-ok response
+    ok 3 - should throw on non-ok response
+      ---
+      duration_ms: 0.353292
+      type: 'test'
+      ...
+    1..3
+ok 2 - gw() helper
+  ---
+  duration_ms: 11.640541
+  type: 'suite'
+  ...
+# Subtest: handleGetPlatformStatus
+    # Subtest: should combine /monitoring/system and /monitoring/instances
+    ok 1 - should combine /monitoring/system and /monitoring/instances
+      ---
+      duration_ms: 0.463667
+      type: 'test'
+      ...
+    1..1
+ok 3 - handleGetPlatformStatus
+  ---
+  duration_ms: 0.584709
+  type: 'suite'
+  ...
+# Subtest: handleGetAgentsStatus
+    # Subtest: should combine /agents and /monitoring/instances
+    ok 1 - should combine /agents and /monitoring/instances
+      ---
+      duration_ms: 0.528
+      type: 'test'
+      ...
+    1..1
+ok 4 - handleGetAgentsStatus
+  ---
+  duration_ms: 0.590291
+  type: 'suite'
+  ...
+# Subtest: handleGetObservabilityData
+    # Subtest: should return error when Langfuse is not enabled
+    ok 1 - should return error when Langfuse is not enabled
+      ---
+      duration_ms: 1.09625
+      type: 'test'
+      ...
+    # Subtest: should return error when Langfuse is not reachable
+    ok 2 - should return error when Langfuse is not reachable
+      ---
+      duration_ms: 1.019208
+      type: 'test'
+      ...
+    # Subtest: should fetch overview/traces/observations when Langfuse is available
+    ok 3 - should fetch overview/traces/observations when Langfuse is available
+      ---
+      duration_ms: 0.771334
+      type: 'test'
+      ...
+    1..3
+ok 5 - handleGetObservabilityData
+  ---
+  duration_ms: 2.96025
+  type: 'suite'
+  ...
+# Subtest: handleGetRealtimeMetrics
+    # Subtest: should fetch /monitoring/metrics and return JSON
+    ok 1 - should fetch /monitoring/metrics and return JSON
+      ---
+      duration_ms: 0.199333
+      type: 'test'
+      ...
+    1..1
+ok 6 - handleGetRealtimeMetrics
+  ---
+  duration_ms: 0.226541
+  type: 'suite'
+  ...
+# Subtest: dispatch
+    # Subtest: should route get_platform_status
+    ok 1 - should route get_platform_status
+      ---
+      duration_ms: 0.30575
+      type: 'test'
+      ...
+    # Subtest: should route get_agents_status
+    ok 2 - should route get_agents_status
+      ---
+      duration_ms: 0.177833
+      type: 'test'
+      ...
+    # Subtest: should route get_observability_data with default hours
+    ok 3 - should route get_observability_data with default hours
+      ---
+      duration_ms: 0.179208
+      type: 'test'
+      ...
+    # Subtest: should route get_observability_data with custom hours
+    ok 4 - should route get_observability_data with custom hours
+      ---
+      duration_ms: 0.16375
+      type: 'test'
+      ...
+    # Subtest: should route get_realtime_metrics
+    ok 5 - should route get_realtime_metrics
+      ---
+      duration_ms: 0.126125
+      type: 'test'
+      ...
+    # Subtest: should throw on unknown tool
+    ok 6 - should throw on unknown tool
+      ---
+      duration_ms: 0.107875
+      type: 'test'
+      ...
+    1..6
+ok 7 - dispatch
+  ---
+  duration_ms: 1.810583
+  type: 'suite'
+  ...
+1..7
+# tests 18
+# suites 7
+# pass 18
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 162.825542

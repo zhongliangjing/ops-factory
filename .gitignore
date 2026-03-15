@@ -42,8 +42,7 @@ venv/
 *.swo
 .VSCodeCounter/
 
-# Claude Code
-CLAUDE.md
+# Claude Code (CLAUDE.md is intentionally tracked for team sharing)
 
 # Runtime / temp
 *.pid

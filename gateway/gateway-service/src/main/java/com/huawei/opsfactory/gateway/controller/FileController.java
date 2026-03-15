@@ -85,7 +85,9 @@ public class FileController {
 
             String filename = resource.getFilename();
             String mimeType = fileService.getMimeType(filename != null ? filename : "");
-            String disposition = fileService.isInline(mimeType) ? "inline" : "attachment";
+            // Force attachment when ?download=true is present
+            boolean forceDownload = "true".equals(exchange.getRequest().getQueryParams().getFirst("download"));
+            String disposition = (!forceDownload && fileService.isInline(mimeType)) ? "inline" : "attachment";
 
             byte[] content = resource.getInputStream().readAllBytes();
             return ResponseEntity.ok()

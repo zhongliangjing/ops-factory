@@ -1,6 +1,6 @@
-import { useCallback, useReducer, useRef, useEffect } from 'react'
+import { useCallback, useReducer, useRef, useEffect, useState } from 'react'
 import { GoosedClient } from '@goosed/sdk'
-import type { TokenState, ImageData } from '@goosed/sdk'
+import type { TokenState, ImageData, OutputFile } from '@goosed/sdk'
 import { ChatMessage, MessageContent, type AttachedFile } from '../components/Message'
 
 // ── ChatState enum ──────────────────────────────────────────────
@@ -65,12 +65,18 @@ interface UseChatOptions {
     client: GoosedClient
 }
 
+export interface OutputFilesEvent {
+    sessionId: string
+    files: OutputFile[]
+}
+
 export interface UseChatReturn {
     messages: ChatMessage[]
     chatState: ChatState
     isLoading: boolean
     error: string | null
     tokenState: TokenState | null
+    outputFilesEvent: OutputFilesEvent | null
     sendMessage: (text: string, images?: ImageData[], attachedFiles?: AttachedFile[]) => Promise<void>
     stopMessage: () => Promise<boolean>
     clearMessages: () => void
@@ -151,6 +157,7 @@ export function useChat({ sessionId, client }: UseChatOptions): UseChatReturn {
     const isStreamingRef = useRef(false)
     const abortControllerRef = useRef<AbortController | null>(null)
     const streamErrorRef = useRef<string | null>(null)
+    const [outputFilesEvent, setOutputFilesEvent] = useState<OutputFilesEvent | null>(null)
 
     // Track mounted state
     const isMountedRef = useRef(true)
@@ -269,6 +276,17 @@ export function useChat({ sessionId, client }: UseChatOptions): UseChatReturn {
                         break
                     }
 
+                    case 'OutputFiles': {
+                        // Gateway detected new/modified files after this reply
+                        if (event.files && event.files.length > 0 && event.sessionId) {
+                            setOutputFilesEvent({
+                                sessionId: event.sessionId,
+                                files: event.files,
+                            })
+                        }
+                        break
+                    }
+
                     case 'ModelChange':
                     case 'Notification':
                     case 'Ping':
@@ -321,6 +339,7 @@ export function useChat({ sessionId, client }: UseChatOptions): UseChatReturn {
         isLoading: state.chatState === ChatState.Streaming || state.chatState === ChatState.Thinking || state.chatState === ChatState.Compacting,
         error: state.error,
         tokenState: state.tokenState,
+        outputFilesEvent,
         sendMessage,
         stopMessage,
         clearMessages,

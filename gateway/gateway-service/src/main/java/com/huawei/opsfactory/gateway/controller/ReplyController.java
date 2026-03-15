@@ -1,5 +1,6 @@
 package com.huawei.opsfactory.gateway.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huawei.opsfactory.gateway.common.model.ManagedInstance;
 import com.huawei.opsfactory.gateway.common.util.JsonUtil;
 import com.huawei.opsfactory.gateway.filter.UserContextFilter;
@@ -8,9 +9,12 @@ import com.huawei.opsfactory.gateway.hook.HookPipeline;
 import com.huawei.opsfactory.gateway.process.InstanceManager;
 import com.huawei.opsfactory.gateway.proxy.GoosedProxy;
 import com.huawei.opsfactory.gateway.proxy.SseRelayService;
+import com.huawei.opsfactory.gateway.service.AgentConfigService;
+import com.huawei.opsfactory.gateway.service.FileService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,26 +25,40 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/agents/{agentId}")
 public class ReplyController {
 
     private static final Logger log = LogManager.getLogger(ReplyController.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final InstanceManager instanceManager;
     private final SseRelayService sseRelayService;
     private final GoosedProxy goosedProxy;
     private final HookPipeline hookPipeline;
+    private final AgentConfigService agentConfigService;
+    private final FileService fileService;
 
     public ReplyController(InstanceManager instanceManager,
                            SseRelayService sseRelayService,
                            GoosedProxy goosedProxy,
-                           HookPipeline hookPipeline) {
+                           HookPipeline hookPipeline,
+                           AgentConfigService agentConfigService,
+                           FileService fileService) {
         this.instanceManager = instanceManager;
         this.sseRelayService = sseRelayService;
         this.goosedProxy = goosedProxy;
         this.hookPipeline = hookPipeline;
+        this.agentConfigService = agentConfigService;
+        this.fileService = fileService;
     }
 
     /**
@@ -60,6 +78,11 @@ public class ReplyController {
                 .flatMapMany(processedBody -> {
                     log.debug("[REPLY] hooks done, getting instance for {}:{}", agentId, userId);
                     String sessionId = JsonUtil.extractSessionId(processedBody);
+                    Path workingDir = agentConfigService.getUserAgentDir(userId, agentId);
+
+                    // Snapshot files before relay (best-effort, empty list on error)
+                    List<Map<String, Object>> beforeFiles = snapshotFiles(workingDir);
+
                     return instanceManager.getOrSpawn(agentId, userId)
                             .flatMapMany(instance -> {
                                 log.info("[REPLY] instance ready {}:{} port={} pid={} sessionResumed={}",
@@ -67,11 +90,58 @@ public class ReplyController {
                                         instance.isSessionResumed(sessionId));
                                 instance.touch();
                                 instanceManager.touchAllForUser(userId);
-                                return ensureSessionResumed(instance, sessionId)
+
+                                Flux<DataBuffer> upstream = ensureSessionResumed(instance, sessionId)
                                         .thenMany(sseRelayService.relay(instance.getPort(), "/reply",
                                                 processedBody, agentId, userId));
+
+                                // After stream completes: diff files → inject OutputFiles SSE event
+                                return upstream.concatWith(
+                                        Mono.defer(() -> buildOutputFilesEvent(workingDir, sessionId, beforeFiles))
+                                                .subscribeOn(Schedulers.boundedElastic()));
                             });
                 });
+    }
+
+    /**
+     * Snapshot current files in the working directory (best-effort).
+     */
+    private List<Map<String, Object>> snapshotFiles(Path workingDir) {
+        try {
+            return fileService.listFiles(workingDir);
+        } catch (Exception e) {
+            log.debug("[REPLY] file snapshot failed (best-effort): {}", e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Compute file diff and emit an OutputFiles SSE event if files changed.
+     * Returns empty Mono if no files changed or on any error.
+     */
+    private Mono<DataBuffer> buildOutputFilesEvent(Path workingDir, String sessionId,
+                                                    List<Map<String, Object>> beforeFiles) {
+        try {
+            List<Map<String, Object>> afterFiles = fileService.listFiles(workingDir);
+            List<Map<String, String>> changed = fileService.diffFiles(beforeFiles, afterFiles);
+            if (changed.isEmpty()) {
+                return Mono.empty();
+            }
+
+            String json = MAPPER.writeValueAsString(Map.of(
+                    "type", "OutputFiles",
+                    "sessionId", sessionId != null ? sessionId : "",
+                    "files", changed));
+            String ssePayload = "data: " + json + "\n\n";
+            log.info("[REPLY] detected {} output files for session {}", changed.size(), sessionId);
+
+            DataBuffer buf = DefaultDataBufferFactory.sharedInstance
+                    .wrap(ssePayload.getBytes(StandardCharsets.UTF_8));
+            return Mono.just(buf);
+        } catch (Exception e) {
+            log.warn("[REPLY] failed to build OutputFiles event: {}", e.getMessage());
+            return Mono.empty();
+        }
     }
 
     /**

@@ -3,6 +3,8 @@ package com.huawei.opsfactory.gateway.controller;
 import com.huawei.opsfactory.gateway.common.model.ManagedInstance;
 import com.huawei.opsfactory.gateway.config.GatewayProperties;
 import com.huawei.opsfactory.gateway.filter.UserContextFilter;
+import com.huawei.opsfactory.gateway.monitoring.MetricsBuffer;
+import com.huawei.opsfactory.gateway.monitoring.MetricsSnapshot;
 import com.huawei.opsfactory.gateway.process.InstanceManager;
 import com.huawei.opsfactory.gateway.service.AgentConfigService;
 import com.huawei.opsfactory.gateway.service.LangfuseService;
@@ -31,6 +33,7 @@ public class MonitoringController {
     private final AgentConfigService agentConfigService;
     private final LangfuseService langfuseService;
     private final GatewayProperties gatewayProperties;
+    private final MetricsBuffer metricsBuffer;
 
     @Value("${server.port:3000}")
     private int serverPort;
@@ -41,11 +44,13 @@ public class MonitoringController {
     public MonitoringController(InstanceManager instanceManager,
                                 AgentConfigService agentConfigService,
                                 LangfuseService langfuseService,
-                                GatewayProperties gatewayProperties) {
+                                GatewayProperties gatewayProperties,
+                                MetricsBuffer metricsBuffer) {
         this.instanceManager = instanceManager;
         this.agentConfigService = agentConfigService;
         this.langfuseService = langfuseService;
         this.gatewayProperties = gatewayProperties;
+        this.metricsBuffer = metricsBuffer;
     }
 
     @GetMapping("/system")
@@ -171,6 +176,93 @@ public class MonitoringController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "from and to parameters are required");
         }
         return langfuseService.getObservationsFormatted(from, to);
+    }
+
+    @GetMapping("/metrics")
+    public Mono<Map<String, Object>> metrics(ServerWebExchange exchange) {
+        requireAdmin(exchange);
+        List<MetricsSnapshot> snapshots = metricsBuffer.getSnapshots(120);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("collectionIntervalSec", 30);
+        result.put("maxSlots", 120);
+        result.put("returnedSlots", snapshots.size());
+
+        // Current state from latest snapshot
+        if (!snapshots.isEmpty()) {
+            MetricsSnapshot latest = snapshots.get(snapshots.size() - 1);
+            Map<String, Object> current = new LinkedHashMap<>();
+            current.put("activeInstances", latest.getActiveInstances());
+            current.put("totalTokens", latest.getTotalTokens());
+            current.put("totalSessions", latest.getTotalSessions());
+            result.put("current", current);
+        } else {
+            result.put("current", null);
+        }
+
+        // Aggregate stats over all snapshots (weighted mean by request count)
+        int totalRequests = 0;
+        int totalErrors = 0;
+        double weightedLatencySum = 0;
+        double weightedTtftSum = 0;
+        for (MetricsSnapshot s : snapshots) {
+            totalRequests += s.getRequestCount();
+            totalErrors += s.getErrorCount();
+            weightedLatencySum += s.getAvgLatencyMs() * s.getRequestCount();
+            weightedTtftSum += s.getAvgTtftMs() * s.getRequestCount();
+        }
+        double avgLatency = totalRequests > 0 ? weightedLatencySum / totalRequests : 0;
+        double avgTtft = totalRequests > 0 ? weightedTtftSum / totalRequests : 0;
+
+        // Compute average tokens/sec (mean of non-zero snapshots)
+        double tokensPerSecSum = 0;
+        int tokensPerSecCount = 0;
+        // Compute aggregate p95 latency (max of per-snapshot p95 as approximation)
+        double maxP95Latency = 0;
+        double maxP95Ttft = 0;
+        for (MetricsSnapshot s : snapshots) {
+            if (s.getTokensPerSec() > 0) {
+                tokensPerSecSum += s.getTokensPerSec();
+                tokensPerSecCount++;
+            }
+            if (s.getP95LatencyMs() > maxP95Latency) maxP95Latency = s.getP95LatencyMs();
+            if (s.getP95TtftMs() > maxP95Ttft) maxP95Ttft = s.getP95TtftMs();
+        }
+        double avgTokensPerSec = tokensPerSecCount > 0 ? tokensPerSecSum / tokensPerSecCount : 0;
+
+        Map<String, Object> aggregate = new LinkedHashMap<>();
+        aggregate.put("totalRequests", totalRequests);
+        aggregate.put("totalErrors", totalErrors);
+        aggregate.put("avgLatencyMs", Math.round(avgLatency * 100.0) / 100.0);
+        aggregate.put("avgTtftMs", Math.round(avgTtft * 100.0) / 100.0);
+        aggregate.put("avgTokensPerSec", Math.round(avgTokensPerSec * 100.0) / 100.0);
+        aggregate.put("p95LatencyMs", Math.round(maxP95Latency * 100.0) / 100.0);
+        aggregate.put("p95TtftMs", Math.round(maxP95Ttft * 100.0) / 100.0);
+        result.put("aggregate", aggregate);
+
+        // Time series (oldest first)
+        List<Map<String, Object>> series = new ArrayList<>();
+        for (MetricsSnapshot s : snapshots) {
+            Map<String, Object> point = new LinkedHashMap<>();
+            point.put("t", s.getTimestamp());
+            point.put("instances", s.getActiveInstances());
+            point.put("tokens", s.getTotalTokens());
+            point.put("requests", s.getRequestCount());
+            point.put("avgLatency", Math.round(s.getAvgLatencyMs() * 100.0) / 100.0);
+            point.put("avgTtft", Math.round(s.getAvgTtftMs() * 100.0) / 100.0);
+            point.put("p95Latency", Math.round(s.getP95LatencyMs() * 100.0) / 100.0);
+            point.put("p95Ttft", Math.round(s.getP95TtftMs() * 100.0) / 100.0);
+            point.put("bytes", s.getTotalBytes());
+            point.put("errors", s.getErrorCount());
+            point.put("tokensPerSec", Math.round(s.getTokensPerSec() * 100.0) / 100.0);
+            series.add(point);
+        }
+        result.put("series", series);
+
+        // Per-agent metrics breakdown
+        result.put("agentMetrics", metricsBuffer.getAgentStats());
+
+        return Mono.just(result);
     }
 
     private static String formatUptime(long ms) {

@@ -90,7 +90,13 @@ export interface SystemInfo {
     enabled_extensions: string[];
 }
 
-export type SSEEventType = 'Ping' | 'Message' | 'Finish' | 'Error' | 'ModelChange' | 'Notification' | 'UpdateConversation';
+export type SSEEventType = 'Ping' | 'Message' | 'Finish' | 'Error' | 'ModelChange' | 'Notification' | 'UpdateConversation' | 'OutputFiles';
+
+export interface OutputFile {
+    path: string;
+    name: string;
+    ext: string;
+}
 
 export interface SSEEvent {
     type: SSEEventType;
@@ -102,6 +108,9 @@ export interface SSEEvent {
     mode?: string;
     request_id?: string;
     conversation?: Record<string, unknown>[];
+    // OutputFiles event fields
+    sessionId?: string;
+    files?: OutputFile[];
 }
 
 export interface ImageData {

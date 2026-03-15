@@ -141,11 +141,17 @@ public class GatewayProperties {
     public static class Idle {
         private int timeoutMinutes = 15;
         private long checkIntervalMs = 60000L;
+        private int maxRestartAttempts = 3;
+        private long restartBaseDelayMs = 5000L;
 
         public int getTimeoutMinutes() { return timeoutMinutes; }
         public void setTimeoutMinutes(int timeoutMinutes) { this.timeoutMinutes = timeoutMinutes; }
         public long getCheckIntervalMs() { return checkIntervalMs; }
         public void setCheckIntervalMs(long checkIntervalMs) { this.checkIntervalMs = checkIntervalMs; }
+        public int getMaxRestartAttempts() { return maxRestartAttempts; }
+        public void setMaxRestartAttempts(int maxRestartAttempts) { this.maxRestartAttempts = maxRestartAttempts; }
+        public long getRestartBaseDelayMs() { return restartBaseDelayMs; }
+        public void setRestartBaseDelayMs(long restartBaseDelayMs) { this.restartBaseDelayMs = restartBaseDelayMs; }
     }
 
     public static class Upload {

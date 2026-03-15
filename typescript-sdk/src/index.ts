@@ -35,4 +35,5 @@ export type {
     PromptTemplate,
     PromptListResponse,
     PromptContentResponse,
+    OutputFile,
 } from './types.js';

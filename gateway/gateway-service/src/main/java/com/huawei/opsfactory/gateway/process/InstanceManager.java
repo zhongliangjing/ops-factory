@@ -289,6 +289,7 @@ public class InstanceManager {
                     log.debug("Reusing existing instance {}:{} port={} pid={}", agentId, userId,
                             existing.getPort(), existing.getPid());
                     existing.touch();
+                    existing.resetRestartCount();
                     return existing;
                 }).subscribeOn(Schedulers.boundedElastic());
             }
@@ -539,6 +540,25 @@ public class InstanceManager {
                 inst.touch();
             }
         }
+    }
+
+    /**
+     * Asynchronously respawn a crashed instance. Called by InstanceWatchdog
+     * when a dead process is detected during periodic health checks.
+     */
+    public void respawnAsync(String agentId, String userId, int restartCount) {
+        Mono.fromCallable(() -> {
+            ManagedInstance instance = doSpawn(agentId, userId);
+            instance.setRestartCount(restartCount);
+            instance.setLastRestartTime(System.currentTimeMillis());
+            return instance;
+        }).subscribeOn(Schedulers.boundedElastic())
+          .subscribe(
+              inst -> log.info("Watchdog respawned {}:{} on port {} (restart #{})",
+                      agentId, userId, inst.getPort(), restartCount),
+              err -> log.error("Watchdog failed to respawn {}:{}: {}",
+                      agentId, userId, err.getMessage())
+          );
     }
 
     @PreDestroy

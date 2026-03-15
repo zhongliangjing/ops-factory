@@ -15,6 +15,8 @@ public class ManagedInstance {
     private final long pid;
     private volatile Status status;
     private volatile long lastActivity;
+    private volatile int restartCount = 0;
+    private volatile long lastRestartTime = 0;
     private transient Process process;
     /** Sessions that have been resumed (provider+extensions loaded) on this instance. */
     private final Set<String> resumedSessions = ConcurrentHashMap.newKeySet();
@@ -73,6 +75,26 @@ public class ManagedInstance {
     /** Check whether a session has been resumed on this instance. */
     public boolean isSessionResumed(String sessionId) {
         return sessionId != null && resumedSessions.contains(sessionId);
+    }
+
+    public int getRestartCount() {
+        return restartCount;
+    }
+
+    public void setRestartCount(int restartCount) {
+        this.restartCount = restartCount;
+    }
+
+    public void resetRestartCount() {
+        this.restartCount = 0;
+    }
+
+    public long getLastRestartTime() {
+        return lastRestartTime;
+    }
+
+    public void setLastRestartTime(long lastRestartTime) {
+        this.lastRestartTime = lastRestartTime;
     }
 
     public String getKey() {

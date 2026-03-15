@@ -2,6 +2,7 @@ package com.huawei.opsfactory.gateway.e2e;
 
 import com.huawei.opsfactory.gateway.common.model.AgentRegistryEntry;
 import com.huawei.opsfactory.gateway.common.model.ManagedInstance;
+import com.huawei.opsfactory.gateway.monitoring.MetricsSnapshot;
 import org.junit.Test;
 import reactor.core.publisher.Mono;
 
@@ -280,5 +281,79 @@ public class MonitoringEndpointE2ETest extends BaseE2ETest {
                 .header(HEADER_USER_ID, "bob")
                 .exchange()
                 .expectStatus().isForbidden();
+    }
+
+    // ====================== GET /monitoring/metrics ======================
+
+    @Test
+    public void metrics_admin_returnsMetricsData() {
+        MetricsSnapshot s = new MetricsSnapshot();
+        s.setTimestamp(1000L);
+        s.setActiveInstances(2);
+        s.setTotalTokens(5000);
+        s.setTotalSessions(3);
+        s.setRequestCount(4);
+        s.setAvgLatencyMs(2500.0);
+        s.setAvgTtftMs(800.0);
+        s.setP95LatencyMs(4000.0);
+        s.setP95TtftMs(1500.0);
+        s.setTotalBytes(15000);
+        s.setErrorCount(1);
+
+        when(metricsBuffer.getSnapshots(120)).thenReturn(List.of(s));
+
+        webClient.get().uri("/monitoring/metrics")
+                .header(HEADER_SECRET_KEY, SECRET_KEY)
+                .header(HEADER_USER_ID, "sys")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.collectionIntervalSec").isEqualTo(30)
+                .jsonPath("$.maxSlots").isEqualTo(120)
+                .jsonPath("$.returnedSlots").isEqualTo(1)
+                .jsonPath("$.current.activeInstances").isEqualTo(2)
+                .jsonPath("$.current.totalTokens").isEqualTo(5000)
+                .jsonPath("$.current.totalSessions").isEqualTo(3)
+                .jsonPath("$.aggregate.totalRequests").isEqualTo(4)
+                .jsonPath("$.aggregate.totalErrors").isEqualTo(1)
+                .jsonPath("$.aggregate.avgLatencyMs").isEqualTo(2500.0)
+                .jsonPath("$.aggregate.avgTtftMs").isEqualTo(800.0)
+                .jsonPath("$.series.length()").isEqualTo(1)
+                .jsonPath("$.series[0].t").isEqualTo(1000)
+                .jsonPath("$.series[0].instances").isEqualTo(2)
+                .jsonPath("$.series[0].requests").isEqualTo(4)
+                .jsonPath("$.series[0].errors").isEqualTo(1);
+    }
+
+    @Test
+    public void metrics_empty_returnsEmptyResult() {
+        when(metricsBuffer.getSnapshots(120)).thenReturn(List.of());
+
+        webClient.get().uri("/monitoring/metrics")
+                .header(HEADER_SECRET_KEY, SECRET_KEY)
+                .header(HEADER_USER_ID, "sys")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.returnedSlots").isEqualTo(0)
+                .jsonPath("$.current").isEmpty()
+                .jsonPath("$.aggregate.totalRequests").isEqualTo(0)
+                .jsonPath("$.series.length()").isEqualTo(0);
+    }
+
+    @Test
+    public void metrics_nonAdmin_returns403() {
+        webClient.get().uri("/monitoring/metrics")
+                .header(HEADER_SECRET_KEY, SECRET_KEY)
+                .header(HEADER_USER_ID, "alice")
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
+    @Test
+    public void metrics_unauthenticated_returns401() {
+        webClient.get().uri("/monitoring/metrics")
+                .exchange()
+                .expectStatus().isUnauthorized();
     }
 }

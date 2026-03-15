@@ -1,6 +1,7 @@
 package com.huawei.opsfactory.gateway.proxy;
 
 import com.huawei.opsfactory.gateway.config.GatewayProperties;
+import com.huawei.opsfactory.gateway.monitoring.MetricsBuffer;
 import com.huawei.opsfactory.gateway.process.InstanceManager;
 import org.junit.Before;
 import org.junit.Test;
@@ -18,7 +19,8 @@ public class SseRelayServiceTest {
         properties.setSecretKey("test-key");
         GoosedProxy goosedProxy = new GoosedProxy(properties);
         InstanceManager instanceManager = mock(InstanceManager.class);
-        sseRelayService = new SseRelayService(goosedProxy, properties, instanceManager);
+        MetricsBuffer metricsBuffer = mock(MetricsBuffer.class);
+        sseRelayService = new SseRelayService(goosedProxy, properties, instanceManager, metricsBuffer);
     }
 
     @Test

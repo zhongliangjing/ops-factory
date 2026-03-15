@@ -1,8 +1,8 @@
-import { useRef, useEffect, useMemo, useState } from 'react'
+import { useRef, useEffect, useMemo, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import Message, { ChatMessage, type DetectedFile } from './Message'
 import type { ToolResponseMap } from './Message'
-import { ChatState } from '../hooks/useChat'
+import { ChatState, type OutputFilesEvent } from '../hooks/useChat'
 import { extractSourceDocuments, type Citation } from '../utils/citationParser'
 import { useUser } from '../contexts/UserContext'
 import { GATEWAY_URL, GATEWAY_SECRET_KEY } from '../config/runtime'
@@ -12,25 +12,18 @@ interface MessageListProps {
     isLoading?: boolean
     chatState?: ChatState
     agentId?: string
+    sessionId?: string | null
+    outputFilesEvent?: OutputFilesEvent | null
     onRetry?: () => void
 }
 
-interface ListedFile {
-    name: string
-    path: string
-    size: number
-    modifiedAt: string
-    type: string
-}
-
-export default function MessageList({ messages, isLoading = false, chatState = ChatState.Idle, agentId, onRetry }: MessageListProps) {
+export default function MessageList({ messages, isLoading = false, chatState = ChatState.Idle, agentId, sessionId, outputFilesEvent, onRetry }: MessageListProps) {
     const { t } = useTranslation()
     const { userId } = useUser()
     const containerRef = useRef<HTMLDivElement>(null)
     const bottomRef = useRef<HTMLDivElement>(null)
-    const baselineFilesRef = useRef<Map<string, ListedFile>>(new Map())
-    const processedAssistantMsgRef = useRef<string | null>(null)
     const [messageOutputFiles, setMessageOutputFiles] = useState<Map<string, DetectedFile[]>>(new Map())
+    const processedOutputFilesRef = useRef<Set<string>>(new Set())
 
     // Auto-scroll to bottom when new messages arrive
     useEffect(() => {
@@ -75,81 +68,88 @@ export default function MessageList({ messages, isLoading = false, chatState = C
         return extractSourceDocuments(visibleMessages)
     }, [visibleMessages])
 
-    const fetchAgentFiles = async (targetAgentId: string): Promise<ListedFile[]> => {
-        const headers: Record<string, string> = { 'x-secret-key': GATEWAY_SECRET_KEY }
-        if (userId) headers['x-user-id'] = userId
-        const res = await fetch(`${GATEWAY_URL}/agents/${targetAgentId}/files`, {
-            headers,
+    const gatewayHeaders = useCallback((): Record<string, string> => {
+        const h: Record<string, string> = { 'x-secret-key': GATEWAY_SECRET_KEY }
+        if (userId) h['x-user-id'] = userId
+        return h
+    }, [userId])
+
+    // ── Real-time: handle OutputFiles SSE event ─────────────────────
+    // When the gateway sends an OutputFiles event after a /reply completes,
+    // attach the files to the last assistant text message and persist the mapping.
+    useEffect(() => {
+        if (!outputFilesEvent || !agentId || !finalAssistantTextMessageId) return
+
+        // Deduplicate: don't process the same event twice
+        const eventKey = `${outputFilesEvent.sessionId}:${finalAssistantTextMessageId}`
+        if (processedOutputFilesRef.current.has(eventKey)) return
+        processedOutputFilesRef.current.add(eventKey)
+
+        const files: DetectedFile[] = outputFilesEvent.files.map(f => ({
+            path: f.path,
+            name: f.name,
+            ext: f.ext,
+        }))
+
+        // Update local state
+        setMessageOutputFiles(prev => {
+            const next = new Map(prev)
+            next.set(finalAssistantTextMessageId, files)
+            return next
         })
-        if (!res.ok) return []
-        const data = await res.json() as { files?: ListedFile[] }
-        return Array.isArray(data.files) ? data.files : []
-    }
 
-    // Reset file tracking when agent changes.
+        // Persist to gateway (fire-and-forget)
+        fetch(`${GATEWAY_URL}/agents/${agentId}/file-capsules`, {
+            method: 'POST',
+            headers: { ...gatewayHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                sessionId: outputFilesEvent.sessionId,
+                messageId: finalAssistantTextMessageId,
+                files,
+            }),
+        }).catch(() => { /* best-effort persistence */ })
+    }, [outputFilesEvent, agentId, finalAssistantTextMessageId, gatewayHeaders])
+
+    // ── Resume: load persisted file capsules from gateway ───────────
     useEffect(() => {
-        baselineFilesRef.current = new Map()
-        processedAssistantMsgRef.current = null
+        if (!agentId || !sessionId || isLoading) return
+        // Only fetch on initial load when we have messages but no output files yet
+        if (messageOutputFiles.size > 0 || visibleMessages.length === 0) return
+
+        let cancelled = false
+        const loadPersistedCapsules = async () => {
+            try {
+                const res = await fetch(
+                    `${GATEWAY_URL}/agents/${agentId}/file-capsules?sessionId=${encodeURIComponent(sessionId)}`,
+                    { headers: gatewayHeaders() }
+                )
+                if (!res.ok || cancelled) return
+                const data = await res.json() as { entries?: Record<string, DetectedFile[]> }
+                if (!data.entries || cancelled) return
+
+                const map = new Map<string, DetectedFile[]>()
+                for (const [msgId, files] of Object.entries(data.entries)) {
+                    if (Array.isArray(files) && files.length > 0) {
+                        map.set(msgId, files)
+                    }
+                }
+                if (map.size > 0) {
+                    setMessageOutputFiles(map)
+                }
+            } catch {
+                /* best-effort resume */
+            }
+        }
+
+        loadPersistedCapsules()
+        return () => { cancelled = true }
+    }, [agentId, sessionId, isLoading, visibleMessages.length, gatewayHeaders])
+
+    // Reset state when agent or session changes
+    useEffect(() => {
         setMessageOutputFiles(new Map())
-
-        if (!agentId) return
-        let cancelled = false
-
-        const initBaseline = async () => {
-            const files = await fetchAgentFiles(agentId)
-            if (cancelled) return
-            baselineFilesRef.current = new Map(files.map(f => [f.path, f]))
-        }
-
-        initBaseline().catch(() => { /* best-effort baseline */ })
-        return () => { cancelled = true }
-    }, [agentId])
-
-    // Stable file capsule source: detect newly created/updated files after each completed assistant turn.
-    useEffect(() => {
-        if (!agentId || isLoading) return
-        const lastAssistant = [...visibleMessages].reverse().find(msg => msg.role === 'assistant' && msg.id)
-        const assistantId = finalAssistantTextMessageId || lastAssistant?.id
-        if (!assistantId) return
-        if (processedAssistantMsgRef.current === assistantId) return
-
-        let cancelled = false
-        const updateTurnFiles = async () => {
-            const currentFiles = await fetchAgentFiles(agentId)
-            if (cancelled) return
-
-            const currentMap = new Map(currentFiles.map(f => [f.path, f]))
-            const baselineMap = baselineFilesRef.current
-            const changed: DetectedFile[] = []
-
-            for (const file of currentFiles) {
-                const previous = baselineMap.get(file.path)
-                const isNew = !previous
-                const isUpdated = !!previous && (previous.modifiedAt !== file.modifiedAt || previous.size !== file.size)
-                if (!isNew && !isUpdated) continue
-                const ext = file.type?.toLowerCase() || (file.name.split('.').pop()?.toLowerCase() || '')
-                changed.push({
-                    path: file.path,
-                    name: file.name,
-                    ext,
-                })
-            }
-
-            if (changed.length > 0) {
-                setMessageOutputFiles(prev => {
-                    const next = new Map(prev)
-                    next.set(assistantId, changed)
-                    return next
-                })
-            }
-
-            baselineFilesRef.current = currentMap
-            processedAssistantMsgRef.current = assistantId
-        }
-
-        updateTurnFiles().catch(() => { /* best-effort file detection */ })
-        return () => { cancelled = true }
-    }, [agentId, isLoading, visibleMessages, finalAssistantTextMessageId])
+        processedOutputFilesRef.current = new Set()
+    }, [agentId, sessionId])
 
     if (visibleMessages.length === 0 && !isLoading) {
         return (
@@ -182,6 +182,7 @@ export default function MessageList({ messages, isLoading = false, chatState = C
                     message.role === 'assistant' &&
                     !!message.id &&
                     message.id === finalAssistantTextMessageId
+                const hasOutputFiles = !!message.id && messageOutputFiles.has(message.id)
                 return (
                     <Message
                         key={message.id || index}
@@ -192,8 +193,8 @@ export default function MessageList({ messages, isLoading = false, chatState = C
                         isStreaming={isLastAssistant}
                         onRetry={message.role === 'assistant' && index === visibleMessages.length - 1 ? onRetry : undefined}
                         sourceDocuments={isFinalAssistantResponse ? sourceDocuments : undefined}
-                        outputFiles={isFinalAssistantResponse && message.id ? messageOutputFiles.get(message.id) : undefined}
-                        showFileCapsules={isFinalAssistantResponse}
+                        outputFiles={message.id ? messageOutputFiles.get(message.id) : undefined}
+                        showFileCapsules={hasOutputFiles}
                     />
                 )
             })}

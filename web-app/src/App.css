@@ -5584,11 +5584,11 @@ textarea {
     background: var(--color-bg-primary);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-xl);
-    padding: var(--spacing-5) var(--spacing-5);
+    padding: var(--spacing-5) var(--spacing-6);
     display: flex;
     flex-direction: column;
     gap: var(--spacing-1);
-    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-fast);
 }
 
 .mon-kpi-card:hover {
@@ -5649,6 +5649,12 @@ textarea {
     border: 1px solid var(--color-border);
     border-radius: var(--radius-xl);
     padding: var(--spacing-5) var(--spacing-6);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-base);
+}
+
+.mon-chart-block:hover {
+    border-color: var(--color-border-hover);
+    box-shadow: var(--shadow-sm);
 }
 
 .mon-chart-title {
@@ -5659,6 +5665,19 @@ textarea {
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: var(--spacing-4);
+}
+
+/* Usage chart grid — 2 columns */
+.mon-chart-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-4);
+}
+
+@media (max-width: 900px) {
+    .mon-chart-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Agent details table */
@@ -6095,6 +6114,114 @@ textarea {
     grid-template-columns: 1fr 120px 1fr 80px 100px;
 }
 
+/* ---- Agent Cards (enriched agents tab) ---- */
+
+.mon-agent-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: var(--spacing-5);
+}
+
+.mon-agent-card {
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-5) var(--spacing-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-4);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.mon-agent-card:hover {
+    border-color: var(--color-border-hover);
+    box-shadow: var(--shadow-sm);
+}
+
+.mon-agent-card-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+}
+
+.mon-agent-card-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-3);
+}
+
+.mon-agent-card-name {
+    font-weight: 600;
+    font-size: var(--font-size-base);
+    color: var(--color-text-primary);
+}
+
+.mon-agent-card-meta {
+    display: flex;
+    gap: var(--spacing-2);
+    flex-wrap: wrap;
+}
+
+.mon-agent-card-tag {
+    font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, monospace;
+    font-size: 0.6875rem;
+    color: var(--color-text-muted);
+    background: var(--color-bg-secondary);
+    padding: 2px 8px;
+    border-radius: var(--radius-md);
+}
+
+.mon-agent-card-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-3);
+    padding-top: var(--spacing-3);
+    border-top: 1px solid var(--color-border);
+}
+
+.mon-agent-card-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.mon-agent-card-stat-label {
+    font-size: 0.625rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    line-height: 1.2;
+}
+
+.mon-agent-card-stat-value {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.mon-stat-error {
+    color: var(--color-error);
+}
+
+.mon-agent-card-skills {
+    display: flex;
+    gap: var(--spacing-2);
+    flex-wrap: wrap;
+    padding-top: var(--spacing-2);
+}
+
+.mon-agent-card-skill {
+    font-size: 0.625rem;
+    color: var(--color-text-muted);
+    background: var(--color-bg-tertiary);
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
+    letter-spacing: 0.02em;
+}
+
 /* Observability tab toolbar (langfuse link + range toggle) */
 .mon-obs-toolbar {
     display: flex;
@@ -6135,6 +6262,12 @@ textarea {
         flex-direction: column;
         align-items: flex-start;
         gap: var(--spacing-3);
+    }
+    .mon-agent-cards {
+        grid-template-columns: 1fr;
+    }
+    .mon-agent-card-stats {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 

@@ -369,11 +369,10 @@ export default function Files() {
                                         </button>
                                     )}
                                     <a
-                                        href={getDownloadUrl(file, userId)}
+                                        href={getDownloadUrl(file, userId) + '&download=true'}
                                         className="file-download-btn"
                                         title={t('files.download')}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                        download
                                     >
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
                                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />

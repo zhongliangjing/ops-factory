@@ -4,6 +4,8 @@ import com.huawei.opsfactory.gateway.common.model.ManagedInstance;
 import com.huawei.opsfactory.gateway.config.GatewayProperties;
 import com.huawei.opsfactory.gateway.filter.AuthWebFilter;
 import com.huawei.opsfactory.gateway.filter.UserContextFilter;
+import com.huawei.opsfactory.gateway.monitoring.MetricsBuffer;
+import com.huawei.opsfactory.gateway.monitoring.MetricsSnapshot;
 import com.huawei.opsfactory.gateway.process.InstanceManager;
 import com.huawei.opsfactory.gateway.process.PrewarmService;
 import com.huawei.opsfactory.gateway.service.AgentConfigService;
@@ -43,6 +45,9 @@ public class MonitoringControllerTest {
 
     @MockBean
     private LangfuseService langfuseService;
+
+    @MockBean
+    private MetricsBuffer metricsBuffer;
 
     @Test
     public void testSystem_asAdmin() {
@@ -226,5 +231,117 @@ public class MonitoringControllerTest {
                 .jsonPath("$.agents.configured").isEqualTo(2)
                 .jsonPath("$.gateway.uptimeMs").isNumber()
                 .jsonPath("$.idle.timeoutMs").isNumber();
+    }
+
+    // ====================== GET /monitoring/metrics ======================
+
+    @Test
+    public void testMetrics_empty() {
+        when(metricsBuffer.getSnapshots(120)).thenReturn(List.of());
+
+        webTestClient.get().uri("/monitoring/metrics")
+                .header("x-secret-key", "test")
+                .header("x-user-id", "sys")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.collectionIntervalSec").isEqualTo(30)
+                .jsonPath("$.maxSlots").isEqualTo(120)
+                .jsonPath("$.returnedSlots").isEqualTo(0)
+                .jsonPath("$.current").isEmpty()
+                .jsonPath("$.aggregate.totalRequests").isEqualTo(0)
+                .jsonPath("$.aggregate.totalErrors").isEqualTo(0)
+                .jsonPath("$.series.length()").isEqualTo(0);
+    }
+
+    @Test
+    public void testMetrics_withSnapshots() {
+        MetricsSnapshot s1 = new MetricsSnapshot();
+        s1.setTimestamp(1000L);
+        s1.setActiveInstances(2);
+        s1.setTotalTokens(5000);
+        s1.setTotalSessions(3);
+        s1.setRequestCount(4);
+        s1.setAvgLatencyMs(2000.0);
+        s1.setAvgTtftMs(500.0);
+        s1.setP95LatencyMs(3000.0);
+        s1.setP95TtftMs(800.0);
+        s1.setTotalBytes(10000);
+        s1.setErrorCount(1);
+
+        MetricsSnapshot s2 = new MetricsSnapshot();
+        s2.setTimestamp(2000L);
+        s2.setActiveInstances(3);
+        s2.setTotalTokens(8000);
+        s2.setTotalSessions(5);
+        s2.setRequestCount(6);
+        s2.setAvgLatencyMs(3000.0);
+        s2.setAvgTtftMs(700.0);
+        s2.setP95LatencyMs(5000.0);
+        s2.setP95TtftMs(1200.0);
+        s2.setTotalBytes(20000);
+        s2.setErrorCount(0);
+
+        when(metricsBuffer.getSnapshots(120)).thenReturn(List.of(s1, s2));
+
+        webTestClient.get().uri("/monitoring/metrics")
+                .header("x-secret-key", "test")
+                .header("x-user-id", "sys")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.returnedSlots").isEqualTo(2)
+                // Current = latest snapshot (s2)
+                .jsonPath("$.current.activeInstances").isEqualTo(3)
+                .jsonPath("$.current.totalTokens").isEqualTo(8000)
+                .jsonPath("$.current.totalSessions").isEqualTo(5)
+                // Aggregate: weighted average = (2000*4 + 3000*6) / (4+6) = 26000/10 = 2600
+                .jsonPath("$.aggregate.totalRequests").isEqualTo(10)
+                .jsonPath("$.aggregate.totalErrors").isEqualTo(1)
+                .jsonPath("$.aggregate.avgLatencyMs").isEqualTo(2600.0)
+                // Series
+                .jsonPath("$.series.length()").isEqualTo(2)
+                .jsonPath("$.series[0].t").isEqualTo(1000)
+                .jsonPath("$.series[1].t").isEqualTo(2000);
+    }
+
+    @Test
+    public void testMetrics_nonAdminForbidden() {
+        webTestClient.get().uri("/monitoring/metrics")
+                .header("x-secret-key", "test")
+                .header("x-user-id", "regular-user")
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
+    @Test
+    public void testMetrics_weightedAverage() {
+        // Test that average is weighted by request count, not naive average
+        // Window 1: 1 request at 10000ms latency
+        MetricsSnapshot s1 = new MetricsSnapshot();
+        s1.setTimestamp(1000L);
+        s1.setRequestCount(1);
+        s1.setAvgLatencyMs(10000.0);
+        s1.setAvgTtftMs(5000.0);
+
+        // Window 2: 99 requests at 100ms latency
+        MetricsSnapshot s2 = new MetricsSnapshot();
+        s2.setTimestamp(2000L);
+        s2.setRequestCount(99);
+        s2.setAvgLatencyMs(100.0);
+        s2.setAvgTtftMs(50.0);
+
+        when(metricsBuffer.getSnapshots(120)).thenReturn(List.of(s1, s2));
+
+        // Weighted avg = (10000*1 + 100*99) / 100 = 19900/100 = 199
+        // NOT naive avg = (10000 + 100) / 2 = 5050
+        webTestClient.get().uri("/monitoring/metrics")
+                .header("x-secret-key", "test")
+                .header("x-user-id", "sys")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.aggregate.avgLatencyMs").isEqualTo(199.0)
+                .jsonPath("$.aggregate.avgTtftMs").isEqualTo(99.5);
     }
 }

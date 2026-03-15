@@ -2,6 +2,7 @@ package com.huawei.opsfactory.gateway.e2e;
 
 import com.huawei.opsfactory.gateway.hook.HookContext;
 import com.huawei.opsfactory.gateway.hook.HookPipeline;
+import com.huawei.opsfactory.gateway.monitoring.MetricsBuffer;
 import com.huawei.opsfactory.gateway.process.InstanceManager;
 import com.huawei.opsfactory.gateway.process.PrewarmService;
 import com.huawei.opsfactory.gateway.proxy.GoosedProxy;
@@ -64,4 +65,7 @@ public abstract class BaseE2ETest {
 
     @MockBean
     protected HookPipeline hookPipeline;
+
+    @MockBean
+    protected MetricsBuffer metricsBuffer;
 }

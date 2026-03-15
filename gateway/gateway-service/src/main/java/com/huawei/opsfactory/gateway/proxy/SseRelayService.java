@@ -3,6 +3,8 @@ package com.huawei.opsfactory.gateway.proxy;
 import com.huawei.opsfactory.gateway.common.constants.GatewayConstants;
 import com.huawei.opsfactory.gateway.common.util.JsonUtil;
 import com.huawei.opsfactory.gateway.config.GatewayProperties;
+import com.huawei.opsfactory.gateway.monitoring.MetricsBuffer;
+import com.huawei.opsfactory.gateway.monitoring.RequestTiming;
 import com.huawei.opsfactory.gateway.process.InstanceManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,13 +35,15 @@ public class SseRelayService {
     private final WebClient webClient;
     private final GatewayProperties properties;
     private final InstanceManager instanceManager;
+    private final MetricsBuffer metricsBuffer;
 
     public SseRelayService(GoosedProxy goosedProxy, GatewayProperties properties,
-                           InstanceManager instanceManager) {
+                           InstanceManager instanceManager, MetricsBuffer metricsBuffer) {
         this.goosedProxy = goosedProxy;
         this.webClient = goosedProxy.getWebClient();
         this.properties = properties;
         this.instanceManager = instanceManager;
+        this.metricsBuffer = metricsBuffer;
     }
 
     /**
@@ -59,6 +63,7 @@ public class SseRelayService {
         AtomicInteger chunkCount = new AtomicInteger(0);
         AtomicInteger pingCount = new AtomicInteger(0);
         AtomicLong lastChunkTime = new AtomicLong(startTime);
+        AtomicLong firstContentTime = new AtomicLong(0);
         AtomicLong lastContentTime = new AtomicLong(startTime);
         AtomicLong totalBytes = new AtomicLong(0);
         AtomicBoolean upstreamDone = new AtomicBoolean(false);
@@ -95,6 +100,7 @@ public class SseRelayService {
                     if (isPing) {
                         pingCount.incrementAndGet();
                     } else {
+                        firstContentTime.compareAndSet(0, now);
                         lastContentTime.set(now);
                     }
 
@@ -112,12 +118,20 @@ public class SseRelayService {
                     long elapsed = System.currentTimeMillis() - startTime;
                     log.error("[SSE-DIAG] relay ERROR after {}ms, chunks={}, bytes={}: {}",
                             elapsed, chunkCount.get(), totalBytes.get(), e.getMessage());
+                    long ttft = firstContentTime.get() > 0
+                            ? firstContentTime.get() - startTime : elapsed;
+                    metricsBuffer.recordTiming(new RequestTiming(
+                            startTime, ttft, elapsed, totalBytes.get(), true, agentId, userId));
                 })
                 .doOnComplete(() -> {
                     upstreamDone.set(true);
                     long elapsed = System.currentTimeMillis() - startTime;
                     log.info("[SSE-DIAG] relay COMPLETE {}ms chunks={} bytes={}",
                             elapsed, chunkCount.get(), totalBytes.get());
+                    long ttft = firstContentTime.get() > 0
+                            ? firstContentTime.get() - startTime : elapsed;
+                    metricsBuffer.recordTiming(new RequestTiming(
+                            startTime, ttft, elapsed, totalBytes.get(), false, agentId, userId));
                 })
                 .doOnCancel(() -> {
                     long elapsed = System.currentTimeMillis() - startTime;

@@ -1,0 +1,89 @@
+
+> goose-web@0.1.0 test
+> vitest --run
+
+
+[1m[46m RUN [49m[22m [36mv4.0.17 [39m[90m/Users/buyangnie/Documents/GitHub/ops-factory/web-app[39m
+
+ [32m✓[39m src/__tests__/monitoringHelpers.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m src/__tests__/connectionError.test.ts [2m([22m[2m34 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/__tests__/hookErrorFriendly.test.ts [2m([22m[2m27 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+[90mstdout[2m | src/__tests__/ErrorBoundary.test.tsx
+[22m[39m🌐 i18next is maintained with support from Locize — consider powering your project with managed localization (AI, CDN, integrations): https://locize.com 💙
+
+Error: Test error
+    at ThrowError (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/__tests__/ErrorBoundary.test.tsx:7:11)
+    at renderWithHooks (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/react-dom/cjs/react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/react-dom/cjs/react-dom.development.js:20103:13)
+    at beginWork (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/react-dom/cjs/react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/react-dom/cjs/react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/jsdom/lib/jsdom/living/generated/EventListener.js:26:30)
+    at innerInvokeEventListeners (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:360:16)
+    at invokeEventListeners (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:296:3)
+    at HTMLUnknownElementImpl._dispatch (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:243:9)
+    at HTMLUnknownElementImpl.dispatchEvent (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:114:17)
+Error: Test error
+    at ThrowError (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/__tests__/ErrorBoundary.test.tsx:7:11)
+    at renderWithHooks (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/react-dom/cjs/react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/react-dom/cjs/react-dom.development.js:20103:13)
+    at beginWork (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/react-dom/cjs/react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/react-dom/cjs/react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/jsdom/lib/jsdom/living/generated/EventListener.js:26:30)
+    at innerInvokeEventListeners (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:360:16)
+    at invokeEventListeners (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:296:3)
+    at HTMLUnknownElementImpl._dispatch (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:243:9)
+    at HTMLUnknownElementImpl.dispatchEvent (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:114:17)
+ [32m✓[39m src/__tests__/ErrorBoundary.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 150[2mms[22m[39m
+[90mstderr[2m | src/__tests__/EmbedMode.test.tsx[2m > [22m[2mEmbed mode — URL param auth[2m > [22m[2mreads userId from URL param and sets it in context
+[22m[39m⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+[90mstderr[2m | src/__tests__/ToastProvider.test.tsx[2m > [22m[2mToastProvider[2m > [22m[2mrenders children without toast initially
+[22m[39m⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ [32m✓[39m src/__tests__/EmbedMode.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 60[2mms[22m[39m
+Error: useToast must be used within a ToastProvider
+    at useToast (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/contexts/ToastContext.tsx:20:15)
+    at Orphan (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/__tests__/ToastProvider.test.tsx:100:13)
+    at renderWithHooks (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/react-dom/cjs/react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/react-dom/cjs/react-dom.development.js:20103:13)
+    at beginWork (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/react-dom/cjs/react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/react-dom/cjs/react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/jsdom/lib/jsdom/living/generated/EventListener.js:26:30)
+    at innerInvokeEventListeners (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:360:16)
+    at invokeEventListeners (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:296:3)
+    at HTMLUnknownElementImpl._dispatch (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:243:9)
+Error: useToast must be used within a ToastProvider
+    at useToast (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/contexts/ToastContext.tsx:20:15)
+    at Orphan (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/src/__tests__/ToastProvider.test.tsx:100:13)
+    at renderWithHooks (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/react-dom/cjs/react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/react-dom/cjs/react-dom.development.js:20103:13)
+    at beginWork (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/react-dom/cjs/react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/react-dom/cjs/react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/jsdom/lib/jsdom/living/generated/EventListener.js:26:30)
+    at innerInvokeEventListeners (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:360:16)
+    at invokeEventListeners (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:296:3)
+    at HTMLUnknownElementImpl._dispatch (/Users/buyangnie/Documents/GitHub/ops-factory/web-app/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:243:9)
+ [32m✓[39m src/__tests__/ToastProvider.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[32m 129[2mms[22m[39m
+[90mstdout[2m | src/__tests__/App.test.tsx
+[22m[39m🌐 i18next is maintained with support from Locize — consider powering your project with managed localization (AI, CDN, integrations): https://locize.com 💙
+
+ [32m✓[39m src/__tests__/filePreview.test.ts [2m([22m[2m24 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m src/__tests__/alertRemoval.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+[90mstdout[2m | src/__tests__/errorMessages.test.ts
+[22m[39m🌐 i18next is maintained with support from Locize — consider powering your project with managed localization (AI, CDN, integrations): https://locize.com 💙
+
+ [32m✓[39m src/__tests__/errorMessages.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/__tests__/useChat.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 2[2mms[22m[39m
+[90mstderr[2m | src/__tests__/App.test.tsx[2m > [22m[2mApp[2m > [22m[2mrenders without crashing
+[22m[39m⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ [32m✓[39m src/__tests__/App.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 72[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m11 passed[39m[22m[90m (11)[39m
+[2m      Tests [22m [1m[32m157 passed[39m[22m[90m (157)[39m
+[2m   Start at [22m 15:54:05
+[2m   Duration [22m 2.35s[2m (transform 839ms, setup 768ms, import 2.39s, tests 454ms, environment 7.15s)[22m
+

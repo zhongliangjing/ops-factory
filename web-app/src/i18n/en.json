@@ -275,15 +275,188 @@
     "instancesStatus": "Status",
     "instancesIdleSince": "Idle",
     "instancesNone": "No running instances",
-    "agentInstanceCount": "Instances"
+    "agentInstanceCount": "Instances",
+    "tabUsage": "Usage",
+    "tabPerformance": "Performance",
+    "usageActiveInstances": "Active Instances",
+    "usageTotalTokens": "Total Tokens",
+    "usageTotalSessions": "Total Sessions",
+    "usageRequests": "Requests",
+    "usageLast1h": "last 1 hour",
+    "usageAvgLatency": "Avg Latency",
+    "usageAvgTtft": "Avg TTFT",
+    "usageErrors": "Errors",
+    "usageDataPoints": "Data Points",
+    "usageTokensTrend": "Tokens (30s intervals)",
+    "usageLatencyTrend": "Avg Latency (30s intervals)",
+    "usageTtftTrend": "TTFT (30s intervals)",
+    "usageRequestsTrend": "Requests (30s intervals)",
+    "perfTokensPerSec": "Tokens/sec",
+    "perfTokensPerSecTrend": "Tokens/sec (30s intervals)",
+    "perfP95Latency": "P95 Latency"
   },
   "home": {
-    "greeting": "Hello, I'm Ops Agent",
-    "description": "Your AI-powered coding assistant. Ask me anything about your codebase, let me help you write, debug, or explain code.",
+    "greeting": "Hello, I'm OpsClaw 🦞",
+    "description": "Your AI-powered intelligent ops agent. I can help you with fault diagnosis, log analysis, performance optimization, change risk assessment, and more.",
     "creatingSession": "Creating session...",
-    "askAnything": "Ask me anything...",
-    "allAgents": "All Agents",
-    "failedToCreateSession": "Failed to create session: {{error}}"
+    "askAnything": "Describe your ops question or scenario...",
+    "failedToCreateSession": "Failed to create session: {{error}}",
+    "categories": {
+      "all": "All",
+      "fault-diagnosis": "Fault Diagnosis",
+      "log-analysis": "Log Analysis",
+      "performance": "Performance Optimization",
+
+      "ops-knowledge": "Ops Knowledge Q&A",
+      "automation": "Automation Scripts"
+    },
+    "templates": {
+      "faultQuickCheck": {
+        "title": "Quick Fault Diagnosis",
+        "description": "Rapidly locate the fault scope and affected services.",
+        "prompt": "A production service is experiencing anomalies. Please help me perform a quick fault diagnosis: 1) List the key metrics and logs to check first; 2) Provide a step-by-step troubleshooting guide to narrow down the scope; 3) Suggest possible root causes and their likelihood."
+      },
+      "faultRootCause": {
+        "title": "Root Cause Analysis",
+        "description": "Deep-dive into the root cause of a known issue.",
+        "prompt": "We have identified a fault symptom. Please guide me through a structured root cause analysis: 1) What data should I collect? 2) Help me build a fault tree to systematically eliminate possibilities; 3) Suggest how to verify the final root cause."
+      },
+      "faultAlarmTriage": {
+        "title": "Alarm Triage",
+        "description": "Prioritize and classify a batch of alerts.",
+        "prompt": "We are receiving multiple alerts simultaneously. Please help me: 1) Suggest a triage methodology to classify alerts by severity and urgency; 2) Identify which alerts are likely correlated to the same root cause; 3) Recommend a response priority order."
+      },
+      "faultTimeline": {
+        "title": "Incident Timeline",
+        "description": "Build a chronological timeline of an incident.",
+        "prompt": "Help me construct a detailed incident timeline: 1) What events should I document (alerts, changes, user reports, actions taken)? 2) Provide a template for organizing the timeline; 3) Suggest how to identify the initial trigger event from the sequence."
+      },
+      "faultPostmortem": {
+        "title": "Post-Mortem Report",
+        "description": "Generate a structured post-incident review document.",
+        "prompt": "Help me write a blameless post-mortem report for a recent incident. Include: 1) Incident summary and impact; 2) Timeline of events; 3) Root cause analysis; 4) What went well and what didn't; 5) Action items with owners and deadlines."
+      },
+      "logErrorAnalysis": {
+        "title": "Error Log Analysis",
+        "description": "Analyze error logs to identify patterns and causes.",
+        "prompt": "I have a set of error logs that need analysis. Please help me: 1) Identify the most frequent error types and their distribution; 2) Find temporal patterns (do errors spike at certain times?); 3) Suggest probable causes for the top errors and recommended fixes."
+      },
+      "logPatternDetect": {
+        "title": "Log Pattern Detection",
+        "description": "Discover recurring patterns and anomalies in logs.",
+        "prompt": "Help me detect meaningful patterns in application logs: 1) What regular expressions or rules can I use to extract key events? 2) How to identify abnormal patterns that deviate from baseline behavior? 3) Suggest a log classification strategy to group similar entries."
+      },
+      "logTraceCorrelation": {
+        "title": "Trace Correlation",
+        "description": "Correlate distributed logs across multiple services.",
+        "prompt": "Help me correlate logs across multiple microservices for a specific request flow: 1) How to use trace IDs or request IDs to link related logs? 2) Suggest a method to reconstruct the full request path; 3) Identify where delays or errors occur in the chain."
+      },
+      "logAnomalyDetect": {
+        "title": "Anomaly Detection",
+        "description": "Identify unusual log volume or content changes.",
+        "prompt": "Help me set up a log anomaly detection approach: 1) What baseline metrics should I track (log volume, error rate, new log patterns)? 2) How to define thresholds for alerting on anomalies? 3) Suggest strategies to reduce false positives while catching real issues."
+      },
+      "logFilterQuery": {
+        "title": "Log Query Builder",
+        "description": "Build effective log search queries and filters.",
+        "prompt": "Help me build efficient log query filters: 1) Given a symptom description, suggest the key fields and keywords to filter on; 2) Provide example queries for common log systems (structured JSON logs, syslog, etc.); 3) Suggest how to progressively narrow down results."
+      },
+      "perfBottleneck": {
+        "title": "Bottleneck Analysis",
+        "description": "Identify performance bottlenecks in the system.",
+        "prompt": "Help me identify performance bottlenecks: 1) What metrics should I examine (CPU, memory, IO, network, application-level)? 2) Provide a systematic approach to narrow down from infrastructure to application layer; 3) Suggest common bottleneck patterns and their symptoms."
+      },
+      "perfDbTuning": {
+        "title": "Database Tuning",
+        "description": "Optimize database query performance and configuration.",
+        "prompt": "Help me optimize database performance: 1) What query analysis approach should I use to find slow queries? 2) Suggest indexing strategies based on common access patterns; 3) Recommend configuration parameters to tune for my workload type (read-heavy, write-heavy, or mixed)."
+      },
+      "perfCapacityPlan": {
+        "title": "Capacity Planning",
+        "description": "Forecast resource needs and plan scaling strategy.",
+        "prompt": "Help me create a capacity planning strategy: 1) What resource metrics should I trend over time? 2) How to forecast growth based on current usage patterns? 3) Suggest a scaling plan that balances cost and performance headroom."
+      },
+      "perfCacheStrategy": {
+        "title": "Caching Strategy",
+        "description": "Design or optimize a caching layer.",
+        "prompt": "Help me design a caching strategy: 1) What data access patterns benefit most from caching? 2) Suggest appropriate cache eviction policies and TTLs for different data types; 3) How to handle cache invalidation and avoid stale data issues?"
+      },
+      "perfCostOptimize": {
+        "title": "Cost Optimization",
+        "description": "Reduce infrastructure costs without sacrificing reliability.",
+        "prompt": "Help me optimize infrastructure costs: 1) What are common areas of waste (idle resources, over-provisioning, unused storage)? 2) Suggest a systematic review checklist; 3) Recommend right-sizing and scheduling strategies to reduce costs while maintaining SLAs."
+      },
+      "changeRiskReview": {
+        "title": "Change Risk Review",
+        "description": "Assess risks before deploying a change.",
+        "prompt": "Help me perform a pre-deployment risk assessment: 1) What factors should I evaluate (blast radius, rollback complexity, dependency impact)? 2) Provide a risk scoring framework; 3) Suggest risk mitigation strategies such as canary deployments, feature flags, or phased rollouts."
+      },
+      "changeRollbackPlan": {
+        "title": "Rollback Plan",
+        "description": "Design a rollback strategy for a planned change.",
+        "prompt": "Help me create a rollback plan: 1) What rollback triggers should I define (error rate threshold, latency increase, user reports)? 2) Document step-by-step rollback procedures; 3) Identify data or state changes that may complicate rollback and how to handle them."
+      },
+      "changeDependency": {
+        "title": "Dependency Impact",
+        "description": "Analyze upstream/downstream impact of a change.",
+        "prompt": "Help me analyze the dependency impact of a planned change: 1) How to identify all upstream and downstream services affected? 2) What communication should happen with dependent teams? 3) Suggest testing strategies to validate compatibility before and after the change."
+      },
+      "changeChecklist": {
+        "title": "Change Checklist",
+        "description": "Generate a pre/post change verification checklist.",
+        "prompt": "Help me create a comprehensive change management checklist: 1) Pre-change items (approvals, backups, monitoring setup, communication); 2) During-change items (deployment steps, health checks, rollback readiness); 3) Post-change items (smoke tests, metrics verification, stakeholder notification)."
+      },
+      "kbConceptExplain": {
+        "title": "Concept Explainer",
+        "description": "Explain an ops concept or technology clearly.",
+        "prompt": "Please explain an operations/infrastructure concept in depth: 1) Core principles and how it works; 2) Common use cases and when to apply it; 3) Key trade-offs and pitfalls to watch for; 4) How it relates to other relevant technologies."
+      },
+      "kbBestPractice": {
+        "title": "Best Practices",
+        "description": "Summarize best practices for an ops topic.",
+        "prompt": "Summarize the industry best practices for a specific operations topic: 1) Key principles and guidelines; 2) Common anti-patterns to avoid; 3) Recommended tools and approaches; 4) Real-world tips for implementation."
+      },
+      "kbArchCompare": {
+        "title": "Architecture Comparison",
+        "description": "Compare architectural approaches or technologies.",
+        "prompt": "Help me compare two or more architectural approaches: 1) Key differences in design philosophy; 2) Performance, scalability, and reliability trade-offs; 3) Operational complexity and maintenance burden; 4) Recommendation based on common use case scenarios."
+      },
+      "kbTroubleshootGuide": {
+        "title": "Troubleshooting Guide",
+        "description": "Create a step-by-step troubleshooting runbook.",
+        "prompt": "Help me create a troubleshooting guide for a specific system or scenario: 1) Common symptoms and their likely causes; 2) Step-by-step diagnostic commands and checks; 3) Decision tree for narrowing down the issue; 4) Resolution steps for each identified cause."
+      },
+      "kbSecurityQa": {
+        "title": "Security Q&A",
+        "description": "Answer security-related operations questions.",
+        "prompt": "Help me with a security-related operations question: 1) What are the security implications and risks? 2) What are the recommended security controls and configurations? 3) How to audit and verify the security posture? 4) Common vulnerabilities to watch for."
+      },
+      "autoShellScript": {
+        "title": "Shell Script Generator",
+        "description": "Generate a shell script for a routine ops task.",
+        "prompt": "Help me write a shell script for an operations task. Requirements: 1) Include proper error handling and logging; 2) Add input validation and safety checks; 3) Make it idempotent where possible; 4) Include usage instructions and comments."
+      },
+      "autoCronJob": {
+        "title": "Cron Job Setup",
+        "description": "Design and configure a scheduled task.",
+        "prompt": "Help me set up a cron job / scheduled task: 1) Generate the appropriate cron expression for my schedule; 2) Write the task script with proper logging and error handling; 3) Suggest monitoring to detect silent failures; 4) Include lock mechanisms to prevent overlapping runs."
+      },
+      "autoHealthCheck": {
+        "title": "Health Check Script",
+        "description": "Create a comprehensive service health check.",
+        "prompt": "Help me write a health check script for my services: 1) What endpoints and metrics to verify (HTTP status, response time, resource usage); 2) How to report status (exit codes, output format); 3) Suggest alerting thresholds; 4) Include dependency checks (database, cache, external APIs)."
+      },
+      "autoBatchOps": {
+        "title": "Batch Operations",
+        "description": "Script a safe batch operation across hosts or resources.",
+        "prompt": "Help me create a script for batch operations across multiple targets: 1) Include a dry-run mode for preview; 2) Add progress reporting and error handling per target; 3) Support parallel execution with concurrency limits; 4) Include rollback/undo capabilities."
+      },
+      "autoReportGen": {
+        "title": "Ops Report Generator",
+        "description": "Generate an automated operations report.",
+        "prompt": "Help me create a script that generates an operations report: 1) What metrics and status data to collect (uptime, incidents, changes, performance); 2) Format the output as a clear summary with highlights and action items; 3) Support different time ranges (daily, weekly, monthly); 4) Include trend comparisons with the previous period."
+      }
+    }
   },
   "onlyoffice": {
     "loadFailed": "Document preview service unavailable",

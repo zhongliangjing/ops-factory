@@ -1,0 +1,685 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] ops-gateway-parent                                                 [pom]
+[INFO] gateway-common                                                     [jar]
+[INFO] gateway-service                                                    [jar]
+[INFO] 
+[INFO] --------------< com.huawei.opsfactory:ops-gateway-parent >--------------
+[INFO] Building ops-gateway-parent 1.0.0-SNAPSHOT                         [1/3]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] ----------------< com.huawei.opsfactory:gateway-common >----------------
+[INFO] Building gateway-common 1.0.0-SNAPSHOT                             [2/3]
+[INFO]   from gateway-common/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ gateway-common ---
+[INFO] skip non existing resourceDirectory /Users/buyangnie/Documents/GitHub/ops-factory/gateway/gateway-common/src/main/resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ gateway-common ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ gateway-common ---
+[INFO] skip non existing resourceDirectory /Users/buyangnie/Documents/GitHub/ops-factory/gateway/gateway-common/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ gateway-common ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.2.2:test (default-test) @ gateway-common ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junit4.JUnit4Provider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.huawei.opsfactory.gateway.common.util.ProcessUtilTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.143 s -- in com.huawei.opsfactory.gateway.common.util.ProcessUtilTest
+[INFO] Running com.huawei.opsfactory.gateway.common.util.YamlLoaderTest
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.033 s -- in com.huawei.opsfactory.gateway.common.util.YamlLoaderTest
+[INFO] Running com.huawei.opsfactory.gateway.common.util.PathSanitizerTest
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in com.huawei.opsfactory.gateway.common.util.PathSanitizerTest
+[INFO] Running com.huawei.opsfactory.gateway.common.model.UserRoleTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 s -- in com.huawei.opsfactory.gateway.common.model.UserRoleTest
+[INFO] Running com.huawei.opsfactory.gateway.common.model.ManagedInstanceTest
+[INFO] Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.035 s -- in com.huawei.opsfactory.gateway.common.model.ManagedInstanceTest
+[INFO] Running com.huawei.opsfactory.gateway.common.model.AgentRegistryEntryTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s -- in com.huawei.opsfactory.gateway.common.model.AgentRegistryEntryTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 41, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] ---------------< com.huawei.opsfactory:gateway-service >----------------
+[INFO] Building gateway-service 1.0.0-SNAPSHOT                            [3/3]
+[INFO]   from gateway-service/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.0.2:resources (default-resources) @ gateway-service ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ gateway-service ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.0.2:copy-resources (copy-resources) @ gateway-service ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO] 
+[INFO] --- resources:3.0.2:testResources (default-testResources) @ gateway-service ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 2 resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ gateway-service ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.2.2:test (default-test) @ gateway-service ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.huawei.opsfactory.gateway.proxy.GoosedProxyExtendedTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.517 s -- in com.huawei.opsfactory.gateway.proxy.GoosedProxyExtendedTest
+[INFO] Running com.huawei.opsfactory.gateway.proxy.SseRelayServiceTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.404 s -- in com.huawei.opsfactory.gateway.proxy.SseRelayServiceTest
+[INFO] Running com.huawei.opsfactory.gateway.proxy.GoosedProxyTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.150 s -- in com.huawei.opsfactory.gateway.proxy.GoosedProxyTest
+[INFO] Running com.huawei.opsfactory.gateway.config.CorsFilterTest
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.041 s -- in com.huawei.opsfactory.gateway.config.CorsFilterTest
+[INFO] Running com.huawei.opsfactory.gateway.config.GatewayPropertiesTest
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in com.huawei.opsfactory.gateway.config.GatewayPropertiesTest
+[INFO] Running com.huawei.opsfactory.gateway.config.GlobalExceptionHandlerTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in com.huawei.opsfactory.gateway.config.GlobalExceptionHandlerTest
+[INFO] Running com.huawei.opsfactory.gateway.controller.StatusControllerTest
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::               (v2.7.18)
+
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.560 s -- in com.huawei.opsfactory.gateway.controller.StatusControllerTest
+[INFO] Running com.huawei.opsfactory.gateway.controller.AgentControllerTest
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::               (v2.7.18)
+
+[INFO] Tests run: 17, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.183 s -- in com.huawei.opsfactory.gateway.controller.AgentControllerTest
+[INFO] Running com.huawei.opsfactory.gateway.controller.MonitoringControllerTest
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::               (v2.7.18)
+
+[INFO] Tests run: 16, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.139 s -- in com.huawei.opsfactory.gateway.controller.MonitoringControllerTest
+[INFO] Running com.huawei.opsfactory.gateway.controller.CatchAllProxyControllerTest
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.025 s -- in com.huawei.opsfactory.gateway.controller.CatchAllProxyControllerTest
+[INFO] Running com.huawei.opsfactory.gateway.filter.UserContextFilterTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in com.huawei.opsfactory.gateway.filter.UserContextFilterTest
+[INFO] Running com.huawei.opsfactory.gateway.filter.AuthWebFilterTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in com.huawei.opsfactory.gateway.filter.AuthWebFilterTest
+[INFO] Running com.huawei.opsfactory.gateway.service.LangfuseServiceBuildOverviewTest
+[INFO] Tests run: 15, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.017 s -- in com.huawei.opsfactory.gateway.service.LangfuseServiceBuildOverviewTest
+[INFO] Running com.huawei.opsfactory.gateway.service.AgentConfigServiceTest
+[INFO] Tests run: 27, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.073 s -- in com.huawei.opsfactory.gateway.service.AgentConfigServiceTest
+[INFO] Running com.huawei.opsfactory.gateway.service.FileServiceTest
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in com.huawei.opsfactory.gateway.service.FileServiceTest
+[INFO] Running com.huawei.opsfactory.gateway.service.FileServiceExtendedTest
+[INFO] Tests run: 17, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.015 s -- in com.huawei.opsfactory.gateway.service.FileServiceExtendedTest
+[INFO] Running com.huawei.opsfactory.gateway.service.LangfuseServiceTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in com.huawei.opsfactory.gateway.service.LangfuseServiceTest
+[INFO] Running com.huawei.opsfactory.gateway.monitoring.MetricsBufferTest
+[INFO] Tests run: 14, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.018 s -- in com.huawei.opsfactory.gateway.monitoring.MetricsBufferTest
+[INFO] Running com.huawei.opsfactory.gateway.e2e.FileEndpointE2ETest
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::               (v2.7.18)
+
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.325 s -- in com.huawei.opsfactory.gateway.e2e.FileEndpointE2ETest
+[INFO] Running com.huawei.opsfactory.gateway.e2e.FileEndpointExtendedE2ETest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s -- in com.huawei.opsfactory.gateway.e2e.FileEndpointExtendedE2ETest
+[INFO] Running com.huawei.opsfactory.gateway.e2e.AgentEndpointE2ETest
+[INFO] Tests run: 21, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.039 s -- in com.huawei.opsfactory.gateway.e2e.AgentEndpointE2ETest
+[INFO] Running com.huawei.opsfactory.gateway.e2e.StatusEndpointE2ETest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s -- in com.huawei.opsfactory.gateway.e2e.StatusEndpointE2ETest
+[INFO] Running com.huawei.opsfactory.gateway.e2e.ReplyEndpointE2ETest
+15:54:08.679 [parallel-6] ERROR org.springframework.boot.autoconfigure.web.reactive.error.AbstractErrorWebExceptionHandler - [52208a3a]  500 Server Error for HTTP POST "/agents/test-agent/reply"
+java.lang.RuntimeException: Failed to spawn
+	at com.huawei.opsfactory.gateway.e2e.ReplyEndpointE2ETest.reply_instanceSpawnFails_returns500(ReplyEndpointE2ETest.java:167) ~[test-classes/:?]
+	Suppressed: reactor.core.publisher.FluxOnAssembly$OnAssemblyException: 
+Error has been observed at the following site(s):
+	*__checkpoint ⇢ Handler com.huawei.opsfactory.gateway.controller.ReplyController#reply(String, String, ServerWebExchange) [DispatcherHandler]
+	*__checkpoint ⇢ com.huawei.opsfactory.gateway.filter.UserContextFilter [DefaultWebFilterChain]
+	*__checkpoint ⇢ com.huawei.opsfactory.gateway.filter.AuthWebFilter [DefaultWebFilterChain]
+	*__checkpoint ⇢ com.huawei.opsfactory.gateway.config.WebFluxConfig$$Lambda/0x000000d0014dfa98 [DefaultWebFilterChain]
+	*__checkpoint ⇢ HTTP POST "/agents/test-agent/reply" [ExceptionHandlingWebHandler]
+Original Stack Trace:
+		at com.huawei.opsfactory.gateway.e2e.ReplyEndpointE2ETest.reply_instanceSpawnFails_returns500(ReplyEndpointE2ETest.java:167) ~[test-classes/:?]
+		at jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[?:?]
+		at java.lang.reflect.Method.invoke(Method.java:580) ~[?:?]
+		at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59) ~[junit-4.13.2.jar:4.13.2]
+		at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12) ~[junit-4.13.2.jar:4.13.2]
+		at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56) ~[junit-4.13.2.jar:4.13.2]
+		at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17) ~[junit-4.13.2.jar:4.13.2]
+		at org.springframework.test.context.junit4.statements.RunBeforeTestExecutionCallbacks.evaluate(RunBeforeTestExecutionCallbacks.java:74) ~[spring-test-5.3.31.jar:5.3.31]
+		at org.springframework.test.context.junit4.statements.RunAfterTestExecutionCallbacks.evaluate(RunAfterTestExecutionCallbacks.java:84) ~[spring-test-5.3.31.jar:5.3.31]
+		at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:26) ~[junit-4.13.2.jar:4.13.2]
+		at org.springframework.test.context.junit4.statements.RunBeforeTestMethodCallbacks.evaluate(RunBeforeTestMethodCallbacks.java:75) ~[spring-test-5.3.31.jar:5.3.31]
+		at org.springframework.test.context.junit4.statements.RunAfterTestMethodCallbacks.evaluate(RunAfterTestMethodCallbacks.java:86) ~[spring-test-5.3.31.jar:5.3.31]
+		at org.springframework.test.context.junit4.statements.SpringRepeat.evaluate(SpringRepeat.java:84) ~[spring-test-5.3.31.jar:5.3.31]
+		at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366) ~[junit-4.13.2.jar:4.13.2]
+		at org.springframework.test.context.junit4.SpringJUnit4ClassRunner.runChild(SpringJUnit4ClassRunner.java:251) ~[spring-test-5.3.31.jar:5.3.31]
+		at org.springframework.test.context.junit4.SpringJUnit4ClassRunner.runChild(SpringJUnit4ClassRunner.java:97) ~[spring-test-5.3.31.jar:5.3.31]
+		at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331) ~[junit-4.13.2.jar:4.13.2]
+		at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79) ~[junit-4.13.2.jar:4.13.2]
+		at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329) ~[junit-4.13.2.jar:4.13.2]
+		at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66) ~[junit-4.13.2.jar:4.13.2]
+		at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293) ~[junit-4.13.2.jar:4.13.2]
+		at org.springframework.test.context.junit4.statements.RunBeforeTestClassCallbacks.evaluate(RunBeforeTestClassCallbacks.java:61) ~[spring-test-5.3.31.jar:5.3.31]
+		at org.springframework.test.context.junit4.statements.RunAfterTestClassCallbacks.evaluate(RunAfterTestClassCallbacks.java:70) ~[spring-test-5.3.31.jar:5.3.31]
+		at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306) ~[junit-4.13.2.jar:4.13.2]
+		at org.junit.runners.ParentRunner.run(ParentRunner.java:413) ~[junit-4.13.2.jar:4.13.2]
+		at org.springframework.test.context.junit4.SpringJUnit4ClassRunner.run(SpringJUnit4ClassRunner.java:190) ~[spring-test-5.3.31.jar:5.3.31]
+		at org.junit.runner.JUnitCore.run(JUnitCore.java:137) ~[junit-4.13.2.jar:4.13.2]
+		at org.junit.runner.JUnitCore.run(JUnitCore.java:115) ~[junit-4.13.2.jar:4.13.2]
+		at org.junit.vintage.engine.execution.RunnerExecutor.execute(RunnerExecutor.java:42) ~[junit-vintage-engine-5.8.2.jar:5.8.2]
+		at org.junit.vintage.engine.VintageTestEngine.executeAllChildren(VintageTestEngine.java:80) ~[junit-vintage-engine-5.8.2.jar:5.8.2]
+		at org.junit.vintage.engine.VintageTestEngine.execute(VintageTestEngine.java:72) ~[junit-vintage-engine-5.8.2.jar:5.8.2]
+		at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:107) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+		at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:88) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+		at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:54) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+		at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:67) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+		at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:52) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+		at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:114) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+		at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:86) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+		at org.junit.platform.launcher.core.DefaultLauncherSession$DelegatingLauncher.execute(DefaultLauncherSession.java:86) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+		at org.apache.maven.surefire.junitplatform.LazyLauncher.execute(LazyLauncher.java:56) ~[surefire-junit-platform-3.2.2.jar:3.2.2]
+		at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:184) ~[surefire-junit-platform-3.2.2.jar:3.2.2]
+		at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:148) ~[surefire-junit-platform-3.2.2.jar:3.2.2]
+		at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:122) ~[surefire-junit-platform-3.2.2.jar:3.2.2]
+		at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385) ~[surefire-booter-3.2.2.jar:3.2.2]
+		at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162) ~[surefire-booter-3.2.2.jar:3.2.2]
+		at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507) ~[surefire-booter-3.2.2.jar:3.2.2]
+		at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495) ~[surefire-booter-3.2.2.jar:3.2.2]
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.032 s -- in com.huawei.opsfactory.gateway.e2e.ReplyEndpointE2ETest
+[INFO] Running com.huawei.opsfactory.gateway.e2e.AuthFilterE2ETest
+[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.026 s -- in com.huawei.opsfactory.gateway.e2e.AuthFilterE2ETest
+[INFO] Running com.huawei.opsfactory.gateway.e2e.MonitoringEndpointExtendedE2ETest
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.034 s -- in com.huawei.opsfactory.gateway.e2e.MonitoringEndpointExtendedE2ETest
+[INFO] Running com.huawei.opsfactory.gateway.e2e.SessionEndpointE2ETest
+15:54:08.784 [parallel-3] ERROR org.springframework.boot.autoconfigure.web.reactive.error.AbstractErrorWebExceptionHandler - [65749d7f]  500 Server Error for HTTP POST "/agents/test-agent/agent/start"
+java.lang.RuntimeException: Extension loading failed
+	at com.huawei.opsfactory.gateway.e2e.SessionEndpointE2ETest.startSession_resumeFails_propagatesError(SessionEndpointE2ETest.java:78) ~[test-classes/:?]
+	Suppressed: reactor.core.publisher.FluxOnAssembly$OnAssemblyException: 
+Error has been observed at the following site(s):
+	*__checkpoint ⇢ Handler com.huawei.opsfactory.gateway.controller.SessionController#startSession(String, String, ServerWebExchange) [DispatcherHandler]
+	*__checkpoint ⇢ com.huawei.opsfactory.gateway.filter.UserContextFilter [DefaultWebFilterChain]
+	*__checkpoint ⇢ com.huawei.opsfactory.gateway.filter.AuthWebFilter [DefaultWebFilterChain]
+	*__checkpoint ⇢ com.huawei.opsfactory.gateway.config.WebFluxConfig$$Lambda/0x000000d0014dfa98 [DefaultWebFilterChain]
+	*__checkpoint ⇢ HTTP POST "/agents/test-agent/agent/start" [ExceptionHandlingWebHandler]
+Original Stack Trace:
+		at com.huawei.opsfactory.gateway.e2e.SessionEndpointE2ETest.startSession_resumeFails_propagatesError(SessionEndpointE2ETest.java:78) ~[test-classes/:?]
+		at jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[?:?]
+		at java.lang.reflect.Method.invoke(Method.java:580) ~[?:?]
+		at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59) ~[junit-4.13.2.jar:4.13.2]
+		at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12) ~[junit-4.13.2.jar:4.13.2]
+		at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56) ~[junit-4.13.2.jar:4.13.2]
+		at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17) ~[junit-4.13.2.jar:4.13.2]
+		at org.springframework.test.context.junit4.statements.RunBeforeTestExecutionCallbacks.evaluate(RunBeforeTestExecutionCallbacks.java:74) ~[spring-test-5.3.31.jar:5.3.31]
+		at org.springframework.test.context.junit4.statements.RunAfterTestExecutionCallbacks.evaluate(RunAfterTestExecutionCallbacks.java:84) ~[spring-test-5.3.31.jar:5.3.31]
+		at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:26) ~[junit-4.13.2.jar:4.13.2]
+		at org.springframework.test.context.junit4.statements.RunBeforeTestMethodCallbacks.evaluate(RunBeforeTestMethodCallbacks.java:75) ~[spring-test-5.3.31.jar:5.3.31]
+		at org.springframework.test.context.junit4.statements.RunAfterTestMethodCallbacks.evaluate(RunAfterTestMethodCallbacks.java:86) ~[spring-test-5.3.31.jar:5.3.31]
+		at org.springframework.test.context.junit4.statements.SpringRepeat.evaluate(SpringRepeat.java:84) ~[spring-test-5.3.31.jar:5.3.31]
+		at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366) ~[junit-4.13.2.jar:4.13.2]
+		at org.springframework.test.context.junit4.SpringJUnit4ClassRunner.runChild(SpringJUnit4ClassRunner.java:251) ~[spring-test-5.3.31.jar:5.3.31]
+		at org.springframework.test.context.junit4.SpringJUnit4ClassRunner.runChild(SpringJUnit4ClassRunner.java:97) ~[spring-test-5.3.31.jar:5.3.31]
+		at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331) ~[junit-4.13.2.jar:4.13.2]
+		at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79) ~[junit-4.13.2.jar:4.13.2]
+		at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329) ~[junit-4.13.2.jar:4.13.2]
+		at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66) ~[junit-4.13.2.jar:4.13.2]
+		at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293) ~[junit-4.13.2.jar:4.13.2]
+		at org.springframework.test.context.junit4.statements.RunBeforeTestClassCallbacks.evaluate(RunBeforeTestClassCallbacks.java:61) ~[spring-test-5.3.31.jar:5.3.31]
+		at org.springframework.test.context.junit4.statements.RunAfterTestClassCallbacks.evaluate(RunAfterTestClassCallbacks.java:70) ~[spring-test-5.3.31.jar:5.3.31]
+		at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306) ~[junit-4.13.2.jar:4.13.2]
+		at org.junit.runners.ParentRunner.run(ParentRunner.java:413) ~[junit-4.13.2.jar:4.13.2]
+		at org.springframework.test.context.junit4.SpringJUnit4ClassRunner.run(SpringJUnit4ClassRunner.java:190) ~[spring-test-5.3.31.jar:5.3.31]
+		at org.junit.runner.JUnitCore.run(JUnitCore.java:137) ~[junit-4.13.2.jar:4.13.2]
+		at org.junit.runner.JUnitCore.run(JUnitCore.java:115) ~[junit-4.13.2.jar:4.13.2]
+		at org.junit.vintage.engine.execution.RunnerExecutor.execute(RunnerExecutor.java:42) ~[junit-vintage-engine-5.8.2.jar:5.8.2]
+		at org.junit.vintage.engine.VintageTestEngine.executeAllChildren(VintageTestEngine.java:80) ~[junit-vintage-engine-5.8.2.jar:5.8.2]
+		at org.junit.vintage.engine.VintageTestEngine.execute(VintageTestEngine.java:72) ~[junit-vintage-engine-5.8.2.jar:5.8.2]
+		at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:107) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+		at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:88) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+		at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:54) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+		at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:67) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+		at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:52) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+		at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:114) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+		at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:86) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+		at org.junit.platform.launcher.core.DefaultLauncherSession$DelegatingLauncher.execute(DefaultLauncherSession.java:86) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+		at org.apache.maven.surefire.junitplatform.LazyLauncher.execute(LazyLauncher.java:56) ~[surefire-junit-platform-3.2.2.jar:3.2.2]
+		at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:184) ~[surefire-junit-platform-3.2.2.jar:3.2.2]
+		at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:148) ~[surefire-junit-platform-3.2.2.jar:3.2.2]
+		at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:122) ~[surefire-junit-platform-3.2.2.jar:3.2.2]
+		at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385) ~[surefire-booter-3.2.2.jar:3.2.2]
+		at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162) ~[surefire-booter-3.2.2.jar:3.2.2]
+		at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507) ~[surefire-booter-3.2.2.jar:3.2.2]
+		at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495) ~[surefire-booter-3.2.2.jar:3.2.2]
+[INFO] Tests run: 14, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.080 s -- in com.huawei.opsfactory.gateway.e2e.SessionEndpointE2ETest
+[INFO] Running com.huawei.opsfactory.gateway.e2e.McpEndpointE2ETest
+15:54:08.871 [parallel-6] ERROR io.netty.resolver.dns.DnsServerAddressStreamProviders - Unable to load io.netty.resolver.dns.macos.MacOSDnsServerAddressStreamProvider, fallback to system defaults. This may result in incorrect DNS resolutions on MacOS. Check whether you have a dependency on 'io.netty:netty-resolver-dns-native-macos'. Use DEBUG level to see the full stack: java.lang.UnsatisfiedLinkError: failed to load the required native library
+15:54:08.905 [reactor-http-nio-3] ERROR org.springframework.boot.autoconfigure.web.reactive.error.AbstractErrorWebExceptionHandler - [126427e]  500 Server Error for HTTP DELETE "/agents/test-agent/mcp/my-extension"
+org.springframework.web.reactive.function.client.WebClientRequestException: Connection refused: /127.0.0.1:9999; nested exception is io.netty.channel.AbstractChannel$AnnotatedConnectException: Connection refused: /127.0.0.1:9999
+	at org.springframework.web.reactive.function.client.ExchangeFunctions$DefaultExchangeFunction.lambda$wrapException$9(ExchangeFunctions.java:141) ~[spring-webflux-5.3.31.jar:5.3.31]
+	Suppressed: reactor.core.publisher.FluxOnAssembly$OnAssemblyException: 
+Error has been observed at the following site(s):
+	*__checkpoint ⇢ Request to DELETE http://127.0.0.1:9999/config/extensions/my-extension [DefaultWebClient]
+	*__checkpoint ⇢ Handler com.huawei.opsfactory.gateway.controller.McpController#deleteMcpExtension(String, String, ServerWebExchange) [DispatcherHandler]
+	*__checkpoint ⇢ com.huawei.opsfactory.gateway.filter.UserContextFilter [DefaultWebFilterChain]
+	*__checkpoint ⇢ com.huawei.opsfactory.gateway.filter.AuthWebFilter [DefaultWebFilterChain]
+	*__checkpoint ⇢ com.huawei.opsfactory.gateway.config.WebFluxConfig$$Lambda/0x000000d0014dfa98 [DefaultWebFilterChain]
+	*__checkpoint ⇢ HTTP DELETE "/agents/test-agent/mcp/my-extension" [ExceptionHandlingWebHandler]
+Original Stack Trace:
+		at org.springframework.web.reactive.function.client.ExchangeFunctions$DefaultExchangeFunction.lambda$wrapException$9(ExchangeFunctions.java:141) ~[spring-webflux-5.3.31.jar:5.3.31]
+		at reactor.core.publisher.MonoErrorSupplied.subscribe(MonoErrorSupplied.java:55) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.Mono.subscribe(Mono.java:4490) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:103) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxPeek$PeekSubscriber.onError(FluxPeek.java:222) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxPeek$PeekSubscriber.onError(FluxPeek.java:222) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxPeek$PeekSubscriber.onError(FluxPeek.java:222) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.MonoNext$NextSubscriber.onError(MonoNext.java:93) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.MonoFlatMapMany$FlatMapManyMain.onError(MonoFlatMapMany.java:204) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.SerializedSubscriber.onError(SerializedSubscriber.java:124) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxRetryWhen$RetryWhenMainSubscriber.whenError(FluxRetryWhen.java:225) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxRetryWhen$RetryWhenOtherSubscriber.onError(FluxRetryWhen.java:274) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxContextWrite$ContextWriteSubscriber.onError(FluxContextWrite.java:121) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxConcatMap$ConcatMapImmediate.drain(FluxConcatMap.java:415) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxConcatMap$ConcatMapImmediate.onNext(FluxConcatMap.java:251) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxContextWrite$ContextWriteSubscriber.onNext(FluxContextWrite.java:107) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.EmitterProcessor.drain(EmitterProcessor.java:537) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.EmitterProcessor.tryEmitNext(EmitterProcessor.java:343) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.SinkManySerialized.tryEmitNext(SinkManySerialized.java:100) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.InternalManySink.emitNext(InternalManySink.java:27) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxRetryWhen$RetryWhenMainSubscriber.onError(FluxRetryWhen.java:190) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.MonoCreate$DefaultMonoSink.error(MonoCreate.java:201) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.netty.http.client.HttpClientConnect$MonoHttpConnect$ClientTransportSubscriber.onError(HttpClientConnect.java:311) ~[reactor-netty-http-1.0.39.jar:1.0.39]
+		at reactor.core.publisher.MonoCreate$DefaultMonoSink.error(MonoCreate.java:201) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.netty.resources.DefaultPooledConnectionProvider$DisposableAcquire.onError(DefaultPooledConnectionProvider.java:160) ~[reactor-netty-core-1.0.39.jar:1.0.39]
+		at reactor.netty.internal.shaded.reactor.pool.AbstractPool$Borrower.fail(AbstractPool.java:475) ~[reactor-netty-core-1.0.39.jar:1.0.39]
+		at reactor.netty.internal.shaded.reactor.pool.SimpleDequePool.lambda$drainLoop$9(SimpleDequePool.java:431) ~[reactor-netty-core-1.0.39.jar:1.0.39]
+		at reactor.core.publisher.FluxDoOnEach$DoOnEachSubscriber.onError(FluxDoOnEach.java:186) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.MonoCreate$DefaultMonoSink.error(MonoCreate.java:201) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.netty.resources.DefaultPooledConnectionProvider$PooledConnectionAllocator$PooledConnectionInitializer.onError(DefaultPooledConnectionProvider.java:558) ~[reactor-netty-core-1.0.39.jar:1.0.39]
+		at reactor.core.publisher.MonoFlatMap$FlatMapMain.secondError(MonoFlatMap.java:192) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.MonoFlatMap$FlatMapInner.onError(MonoFlatMap.java:259) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:106) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.Operators.error(Operators.java:198) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.MonoError.subscribe(MonoError.java:53) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.Mono.subscribe(Mono.java:4490) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:103) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.netty.transport.TransportConnector$MonoChannelPromise.tryFailure(TransportConnector.java:569) ~[reactor-netty-core-1.0.39.jar:1.0.39]
+		at reactor.netty.transport.TransportConnector$MonoChannelPromise.setFailure(TransportConnector.java:515) ~[reactor-netty-core-1.0.39.jar:1.0.39]
+		at reactor.netty.transport.TransportConnector.lambda$doConnect$7(TransportConnector.java:261) ~[reactor-netty-core-1.0.39.jar:1.0.39]
+		at io.netty.util.concurrent.DefaultPromise.notifyListener0(DefaultPromise.java:590) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.util.concurrent.DefaultPromise.notifyListeners0(DefaultPromise.java:583) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.util.concurrent.DefaultPromise.notifyListenersNow(DefaultPromise.java:559) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.util.concurrent.DefaultPromise.notifyListeners(DefaultPromise.java:492) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.util.concurrent.DefaultPromise.setValue0(DefaultPromise.java:636) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.util.concurrent.DefaultPromise.setFailure0(DefaultPromise.java:629) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.util.concurrent.DefaultPromise.tryFailure(DefaultPromise.java:118) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.channel.nio.AbstractNioChannel$AbstractNioUnsafe.fulfillConnectPromise(AbstractNioChannel.java:321) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.channel.nio.AbstractNioChannel$AbstractNioUnsafe.finishConnect(AbstractNioChannel.java:337) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:776) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:724) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:650) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:562) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:997) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+		at java.lang.Thread.run(Thread.java:1583) ~[?:?]
+Caused by: io.netty.channel.AbstractChannel$AnnotatedConnectException: Connection refused: /127.0.0.1:9999
+Caused by: java.net.ConnectException: Connection refused
+	at sun.nio.ch.Net.pollConnect(Native Method) ~[?:?]
+	at sun.nio.ch.Net.pollConnectNow(Net.java:694) ~[?:?]
+	at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:973) ~[?:?]
+	at io.netty.channel.socket.nio.NioSocketChannel.doFinishConnect(NioSocketChannel.java:337) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+	at io.netty.channel.nio.AbstractNioChannel$AbstractNioUnsafe.finishConnect(AbstractNioChannel.java:334) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+	at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:776) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:724) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:650) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+	at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:562) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:997) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+	at java.lang.Thread.run(Thread.java:1583) ~[?:?]
+15:54:08.926 [reactor-http-nio-4] ERROR org.springframework.boot.autoconfigure.web.reactive.error.AbstractErrorWebExceptionHandler - [2948f292]  500 Server Error for HTTP POST "/agents/test-agent/mcp"
+org.springframework.web.reactive.function.client.WebClientRequestException: Connection refused: /127.0.0.1:9999; nested exception is io.netty.channel.AbstractChannel$AnnotatedConnectException: Connection refused: /127.0.0.1:9999
+	at org.springframework.web.reactive.function.client.ExchangeFunctions$DefaultExchangeFunction.lambda$wrapException$9(ExchangeFunctions.java:141) ~[spring-webflux-5.3.31.jar:5.3.31]
+	Suppressed: reactor.core.publisher.FluxOnAssembly$OnAssemblyException: 
+Error has been observed at the following site(s):
+	*__checkpoint ⇢ Request to POST http://127.0.0.1:9999/config/extensions [DefaultWebClient]
+	*__checkpoint ⇢ Handler com.huawei.opsfactory.gateway.controller.McpController#createMcpExtension(String, String, ServerWebExchange) [DispatcherHandler]
+	*__checkpoint ⇢ com.huawei.opsfactory.gateway.filter.UserContextFilter [DefaultWebFilterChain]
+	*__checkpoint ⇢ com.huawei.opsfactory.gateway.filter.AuthWebFilter [DefaultWebFilterChain]
+	*__checkpoint ⇢ com.huawei.opsfactory.gateway.config.WebFluxConfig$$Lambda/0x000000d0014dfa98 [DefaultWebFilterChain]
+	*__checkpoint ⇢ HTTP POST "/agents/test-agent/mcp" [ExceptionHandlingWebHandler]
+Original Stack Trace:
+		at org.springframework.web.reactive.function.client.ExchangeFunctions$DefaultExchangeFunction.lambda$wrapException$9(ExchangeFunctions.java:141) ~[spring-webflux-5.3.31.jar:5.3.31]
+		at reactor.core.publisher.MonoErrorSupplied.subscribe(MonoErrorSupplied.java:55) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.Mono.subscribe(Mono.java:4490) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:103) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxPeek$PeekSubscriber.onError(FluxPeek.java:222) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxPeek$PeekSubscriber.onError(FluxPeek.java:222) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxPeek$PeekSubscriber.onError(FluxPeek.java:222) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.MonoNext$NextSubscriber.onError(MonoNext.java:93) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.MonoFlatMapMany$FlatMapManyMain.onError(MonoFlatMapMany.java:204) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.SerializedSubscriber.onError(SerializedSubscriber.java:124) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxRetryWhen$RetryWhenMainSubscriber.whenError(FluxRetryWhen.java:225) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxRetryWhen$RetryWhenOtherSubscriber.onError(FluxRetryWhen.java:274) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxContextWrite$ContextWriteSubscriber.onError(FluxContextWrite.java:121) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxConcatMap$ConcatMapImmediate.drain(FluxConcatMap.java:415) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxConcatMap$ConcatMapImmediate.onNext(FluxConcatMap.java:251) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxContextWrite$ContextWriteSubscriber.onNext(FluxContextWrite.java:107) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.EmitterProcessor.drain(EmitterProcessor.java:537) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.EmitterProcessor.tryEmitNext(EmitterProcessor.java:343) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.SinkManySerialized.tryEmitNext(SinkManySerialized.java:100) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.InternalManySink.emitNext(InternalManySink.java:27) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxRetryWhen$RetryWhenMainSubscriber.onError(FluxRetryWhen.java:190) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.MonoCreate$DefaultMonoSink.error(MonoCreate.java:201) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.netty.http.client.HttpClientConnect$MonoHttpConnect$ClientTransportSubscriber.onError(HttpClientConnect.java:311) ~[reactor-netty-http-1.0.39.jar:1.0.39]
+		at reactor.core.publisher.MonoCreate$DefaultMonoSink.error(MonoCreate.java:201) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.netty.resources.DefaultPooledConnectionProvider$DisposableAcquire.onError(DefaultPooledConnectionProvider.java:160) ~[reactor-netty-core-1.0.39.jar:1.0.39]
+		at reactor.netty.internal.shaded.reactor.pool.AbstractPool$Borrower.fail(AbstractPool.java:475) ~[reactor-netty-core-1.0.39.jar:1.0.39]
+		at reactor.netty.internal.shaded.reactor.pool.SimpleDequePool.lambda$drainLoop$9(SimpleDequePool.java:431) ~[reactor-netty-core-1.0.39.jar:1.0.39]
+		at reactor.core.publisher.FluxDoOnEach$DoOnEachSubscriber.onError(FluxDoOnEach.java:186) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.MonoCreate$DefaultMonoSink.error(MonoCreate.java:201) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.netty.resources.DefaultPooledConnectionProvider$PooledConnectionAllocator$PooledConnectionInitializer.onError(DefaultPooledConnectionProvider.java:558) ~[reactor-netty-core-1.0.39.jar:1.0.39]
+		at reactor.core.publisher.MonoFlatMap$FlatMapMain.secondError(MonoFlatMap.java:192) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.MonoFlatMap$FlatMapInner.onError(MonoFlatMap.java:259) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:106) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.Operators.error(Operators.java:198) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.MonoError.subscribe(MonoError.java:53) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.Mono.subscribe(Mono.java:4490) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:103) ~[reactor-core-3.4.34.jar:3.4.34]
+		at reactor.netty.transport.TransportConnector$MonoChannelPromise.tryFailure(TransportConnector.java:569) ~[reactor-netty-core-1.0.39.jar:1.0.39]
+		at reactor.netty.transport.TransportConnector$MonoChannelPromise.setFailure(TransportConnector.java:515) ~[reactor-netty-core-1.0.39.jar:1.0.39]
+		at reactor.netty.transport.TransportConnector.lambda$doConnect$7(TransportConnector.java:261) ~[reactor-netty-core-1.0.39.jar:1.0.39]
+		at io.netty.util.concurrent.DefaultPromise.notifyListener0(DefaultPromise.java:590) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.util.concurrent.DefaultPromise.notifyListeners0(DefaultPromise.java:583) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.util.concurrent.DefaultPromise.notifyListenersNow(DefaultPromise.java:559) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.util.concurrent.DefaultPromise.notifyListeners(DefaultPromise.java:492) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.util.concurrent.DefaultPromise.setValue0(DefaultPromise.java:636) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.util.concurrent.DefaultPromise.setFailure0(DefaultPromise.java:629) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.util.concurrent.DefaultPromise.tryFailure(DefaultPromise.java:118) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.channel.nio.AbstractNioChannel$AbstractNioUnsafe.fulfillConnectPromise(AbstractNioChannel.java:321) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.channel.nio.AbstractNioChannel$AbstractNioUnsafe.finishConnect(AbstractNioChannel.java:337) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:776) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:724) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:650) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:562) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:997) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+		at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+		at java.lang.Thread.run(Thread.java:1583) ~[?:?]
+Caused by: io.netty.channel.AbstractChannel$AnnotatedConnectException: Connection refused: /127.0.0.1:9999
+Caused by: java.net.ConnectException: Connection refused
+	at sun.nio.ch.Net.pollConnect(Native Method) ~[?:?]
+	at sun.nio.ch.Net.pollConnectNow(Net.java:694) ~[?:?]
+	at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:973) ~[?:?]
+	at io.netty.channel.socket.nio.NioSocketChannel.doFinishConnect(NioSocketChannel.java:337) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+	at io.netty.channel.nio.AbstractNioChannel$AbstractNioUnsafe.finishConnect(AbstractNioChannel.java:334) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+	at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:776) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:724) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:650) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+	at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:562) ~[netty-transport-4.1.101.Final.jar:4.1.101.Final]
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:997) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30) ~[netty-common-4.1.101.Final.jar:4.1.101.Final]
+	at java.lang.Thread.run(Thread.java:1583) ~[?:?]
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.101 s -- in com.huawei.opsfactory.gateway.e2e.McpEndpointE2ETest
+[INFO] Running com.huawei.opsfactory.gateway.e2e.MonitoringEndpointE2ETest
+[INFO] Tests run: 21, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.067 s -- in com.huawei.opsfactory.gateway.e2e.MonitoringEndpointE2ETest
+[INFO] Running com.huawei.opsfactory.gateway.e2e.SessionEndpointExtendedE2ETest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.018 s -- in com.huawei.opsfactory.gateway.e2e.SessionEndpointExtendedE2ETest
+[INFO] Running com.huawei.opsfactory.gateway.e2e.CatchAllProxyEndpointE2ETest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s -- in com.huawei.opsfactory.gateway.e2e.CatchAllProxyEndpointE2ETest
+[INFO] Running com.huawei.opsfactory.gateway.hook.HookPipelineTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in com.huawei.opsfactory.gateway.hook.HookPipelineTest
+[INFO] Running com.huawei.opsfactory.gateway.hook.BodyLimitHookTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.010 s -- in com.huawei.opsfactory.gateway.hook.BodyLimitHookTest
+[INFO] Running com.huawei.opsfactory.gateway.hook.FileAttachmentHookTest
+15:54:09.042 [main] WARN  com.huawei.opsfactory.gateway.hook.FileAttachmentHook - Path escapes user directory: /var/folders/xk/l0kn1t_d3pq1cd5yj7fg_b_00000gn/T/junit1106212698888948359/users/otheruser/agents/agent1/secret.txt
+15:54:09.047 [main] ERROR com.huawei.opsfactory.gateway.hook.FileAttachmentHook - Error in FileAttachmentHook
+com.fasterxml.jackson.core.JsonParseException: Unrecognized token 'not': was expecting (JSON String, Number, Array, Object or token 'null', 'true' or 'false')
+ at [Source: (String)"not valid json"; line: 1, column: 4]
+	at com.fasterxml.jackson.core.JsonParser._constructError(JsonParser.java:2391) ~[jackson-core-2.13.5.jar:2.13.5]
+	at com.fasterxml.jackson.core.base.ParserMinimalBase._reportError(ParserMinimalBase.java:745) ~[jackson-core-2.13.5.jar:2.13.5]
+	at com.fasterxml.jackson.core.json.ReaderBasedJsonParser._reportInvalidToken(ReaderBasedJsonParser.java:2961) ~[jackson-core-2.13.5.jar:2.13.5]
+	at com.fasterxml.jackson.core.json.ReaderBasedJsonParser._reportInvalidToken(ReaderBasedJsonParser.java:2939) ~[jackson-core-2.13.5.jar:2.13.5]
+	at com.fasterxml.jackson.core.json.ReaderBasedJsonParser._matchToken(ReaderBasedJsonParser.java:2713) ~[jackson-core-2.13.5.jar:2.13.5]
+	at com.fasterxml.jackson.core.json.ReaderBasedJsonParser._matchNull(ReaderBasedJsonParser.java:2699) ~[jackson-core-2.13.5.jar:2.13.5]
+	at com.fasterxml.jackson.core.json.ReaderBasedJsonParser.nextToken(ReaderBasedJsonParser.java:775) ~[jackson-core-2.13.5.jar:2.13.5]
+	at com.fasterxml.jackson.databind.ObjectMapper._readTreeAndClose(ObjectMapper.java:4703) ~[jackson-databind-2.13.5.jar:2.13.5]
+	at com.fasterxml.jackson.databind.ObjectMapper.readTree(ObjectMapper.java:3076) ~[jackson-databind-2.13.5.jar:2.13.5]
+	at com.huawei.opsfactory.gateway.hook.FileAttachmentHook.process(FileAttachmentHook.java:37) ~[classes/:?]
+	at com.huawei.opsfactory.gateway.hook.FileAttachmentHookTest.testInvalidJson_passthrough(FileAttachmentHookTest.java:145) ~[test-classes/:?]
+	at jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[?:?]
+	at java.lang.reflect.Method.invoke(Method.java:580) ~[?:?]
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:26) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.rules.ExternalResource$1.evaluate(ExternalResource.java:54) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:137) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:115) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.vintage.engine.execution.RunnerExecutor.execute(RunnerExecutor.java:42) ~[junit-vintage-engine-5.8.2.jar:5.8.2]
+	at org.junit.vintage.engine.VintageTestEngine.executeAllChildren(VintageTestEngine.java:80) ~[junit-vintage-engine-5.8.2.jar:5.8.2]
+	at org.junit.vintage.engine.VintageTestEngine.execute(VintageTestEngine.java:72) ~[junit-vintage-engine-5.8.2.jar:5.8.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:107) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:88) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:54) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:67) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:52) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:114) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:86) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+	at org.junit.platform.launcher.core.DefaultLauncherSession$DelegatingLauncher.execute(DefaultLauncherSession.java:86) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+	at org.apache.maven.surefire.junitplatform.LazyLauncher.execute(LazyLauncher.java:56) ~[surefire-junit-platform-3.2.2.jar:3.2.2]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:184) ~[surefire-junit-platform-3.2.2.jar:3.2.2]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:148) ~[surefire-junit-platform-3.2.2.jar:3.2.2]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:122) ~[surefire-junit-platform-3.2.2.jar:3.2.2]
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385) ~[surefire-booter-3.2.2.jar:3.2.2]
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162) ~[surefire-booter-3.2.2.jar:3.2.2]
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507) ~[surefire-booter-3.2.2.jar:3.2.2]
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495) ~[surefire-booter-3.2.2.jar:3.2.2]
+15:54:09.048 [main] WARN  com.huawei.opsfactory.gateway.hook.FileAttachmentHook - Referenced file does not exist: /var/folders/xk/l0kn1t_d3pq1cd5yj7fg_b_00000gn/T/junit14427153091022670212/users/user1/agents/agent1/nonexistent.txt
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.014 s -- in com.huawei.opsfactory.gateway.hook.FileAttachmentHookTest
+[INFO] Running com.huawei.opsfactory.gateway.hook.HookContextTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in com.huawei.opsfactory.gateway.hook.HookContextTest
+[INFO] Running com.huawei.opsfactory.gateway.process.InstanceManagerTest
+15:54:09.074 [main] WARN  com.huawei.opsfactory.gateway.process.InstanceManager - Instance agent1:user1 process died (port=8080), removing stale entry
+15:54:09.079 [boundedElastic-1] ERROR com.huawei.opsfactory.gateway.process.InstanceManager - Failed to spawn agent1:user1
+java.io.IOException: Cannot run program "goosed" (in directory "/var/folders/xk/l0kn1t_d3pq1cd5yj7fg_b_00000gn/T/gateway-test"): Exec failed, error: 2 (No such file or directory) 
+	at java.lang.ProcessBuilder.start(ProcessBuilder.java:1170) ~[?:?]
+	at java.lang.ProcessBuilder.start(ProcessBuilder.java:1089) ~[?:?]
+	at com.huawei.opsfactory.gateway.process.InstanceManager.doSpawn(InstanceManager.java:340) ~[classes/:?]
+	at com.huawei.opsfactory.gateway.process.InstanceManager.lambda$4(InstanceManager.java:299) ~[classes/:?]
+	at reactor.core.publisher.MonoCallable.call(MonoCallable.java:92) ~[reactor-core-3.4.34.jar:3.4.34]
+	at reactor.core.publisher.FluxSubscribeOnCallable$CallableSubscribeOnSubscription.run(FluxSubscribeOnCallable.java:227) ~[reactor-core-3.4.34.jar:3.4.34]
+	at reactor.core.scheduler.SchedulerTask.call(SchedulerTask.java:68) ~[reactor-core-3.4.34.jar:3.4.34]
+	at reactor.core.scheduler.SchedulerTask.call(SchedulerTask.java:28) ~[reactor-core-3.4.34.jar:3.4.34]
+	at java.util.concurrent.FutureTask.run(FutureTask.java:317) ~[?:?]
+	at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:304) ~[?:?]
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[?:?]
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[?:?]
+	at java.lang.Thread.run(Thread.java:1583) ~[?:?]
+Caused by: java.io.IOException: Exec failed, error: 2 (No such file or directory) 
+	at java.lang.ProcessImpl.forkAndExec(Native Method) ~[?:?]
+	at java.lang.ProcessImpl.<init>(ProcessImpl.java:295) ~[?:?]
+	at java.lang.ProcessImpl.start(ProcessImpl.java:225) ~[?:?]
+	at java.lang.ProcessBuilder.start(ProcessBuilder.java:1126) ~[?:?]
+	... 12 more
+15:54:09.095 [main] ERROR com.huawei.opsfactory.gateway.process.InstanceManager - Error stopping agent1:user1
+java.lang.RuntimeException: Process error
+	at com.huawei.opsfactory.gateway.common.util.ProcessUtil.stopGracefully(ProcessUtil.java:45) ~[classes/:?]
+	at com.huawei.opsfactory.gateway.process.InstanceManager.stopInstance(InstanceManager.java:507) ~[classes/:?]
+	at com.huawei.opsfactory.gateway.process.InstanceManager.stopAll(InstanceManager.java:569) ~[classes/:?]
+	at com.huawei.opsfactory.gateway.process.InstanceManagerTest.testStopAll_handlesErrors(InstanceManagerTest.java:154) ~[test-classes/:?]
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:26) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:137) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:115) ~[junit-4.13.2.jar:4.13.2]
+	at org.junit.vintage.engine.execution.RunnerExecutor.execute(RunnerExecutor.java:42) ~[junit-vintage-engine-5.8.2.jar:5.8.2]
+	at org.junit.vintage.engine.VintageTestEngine.executeAllChildren(VintageTestEngine.java:80) ~[junit-vintage-engine-5.8.2.jar:5.8.2]
+	at org.junit.vintage.engine.VintageTestEngine.execute(VintageTestEngine.java:72) ~[junit-vintage-engine-5.8.2.jar:5.8.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:107) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:88) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:54) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:67) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:52) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:114) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:86) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+	at org.junit.platform.launcher.core.DefaultLauncherSession$DelegatingLauncher.execute(DefaultLauncherSession.java:86) ~[junit-platform-launcher-1.8.2.jar:1.8.2]
+	at org.apache.maven.surefire.junitplatform.LazyLauncher.execute(LazyLauncher.java:56) ~[surefire-junit-platform-3.2.2.jar:3.2.2]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:184) ~[surefire-junit-platform-3.2.2.jar:3.2.2]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:148) ~[surefire-junit-platform-3.2.2.jar:3.2.2]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:122) ~[surefire-junit-platform-3.2.2.jar:3.2.2]
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385) ~[surefire-booter-3.2.2.jar:3.2.2]
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162) ~[surefire-booter-3.2.2.jar:3.2.2]
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507) ~[surefire-booter-3.2.2.jar:3.2.2]
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495) ~[surefire-booter-3.2.2.jar:3.2.2]
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.044 s -- in com.huawei.opsfactory.gateway.process.InstanceManagerTest
+[INFO] Running com.huawei.opsfactory.gateway.process.InstanceManagerExtendedTest
+15:54:09.117 [boundedElastic-1] ERROR com.huawei.opsfactory.gateway.process.InstanceManager - Failed to spawn agent2:user1
+java.lang.NullPointerException: Cannot invoke "java.nio.file.Path.resolve(String)" because "runtimeRoot" is null
+	at com.huawei.opsfactory.gateway.process.InstanceManager.resetStuckRunningSchedules(InstanceManager.java:381) ~[classes/:?]
+	at com.huawei.opsfactory.gateway.process.InstanceManager.doSpawn(InstanceManager.java:329) ~[classes/:?]
+	at com.huawei.opsfactory.gateway.process.InstanceManager.lambda$4(InstanceManager.java:299) ~[classes/:?]
+	at reactor.core.publisher.MonoCallable.call(MonoCallable.java:92) ~[reactor-core-3.4.34.jar:3.4.34]
+	at reactor.core.publisher.FluxSubscribeOnCallable$CallableSubscribeOnSubscription.run(FluxSubscribeOnCallable.java:227) ~[reactor-core-3.4.34.jar:3.4.34]
+	at reactor.core.scheduler.SchedulerTask.call(SchedulerTask.java:68) ~[reactor-core-3.4.34.jar:3.4.34]
+	at reactor.core.scheduler.SchedulerTask.call(SchedulerTask.java:28) ~[reactor-core-3.4.34.jar:3.4.34]
+	at java.util.concurrent.FutureTask.run(FutureTask.java:317) ~[?:?]
+	at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:304) ~[?:?]
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[?:?]
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[?:?]
+	at java.lang.Thread.run(Thread.java:1583) ~[?:?]
+15:54:09.119 [main] WARN  com.huawei.opsfactory.gateway.process.InstanceManager - Instance agent1:user1 process died (port=8080), removing stale entry
+15:54:09.119 [boundedElastic-1] ERROR com.huawei.opsfactory.gateway.process.InstanceManager - Failed to spawn agent1:user1
+java.lang.NullPointerException: Cannot invoke "java.nio.file.Path.resolve(String)" because "runtimeRoot" is null
+	at com.huawei.opsfactory.gateway.process.InstanceManager.resetStuckRunningSchedules(InstanceManager.java:381) ~[classes/:?]
+	at com.huawei.opsfactory.gateway.process.InstanceManager.doSpawn(InstanceManager.java:329) ~[classes/:?]
+	at com.huawei.opsfactory.gateway.process.InstanceManager.lambda$4(InstanceManager.java:299) ~[classes/:?]
+	at reactor.core.publisher.MonoCallable.call(MonoCallable.java:92) ~[reactor-core-3.4.34.jar:3.4.34]
+	at reactor.core.publisher.FluxSubscribeOnCallable$CallableSubscribeOnSubscription.run(FluxSubscribeOnCallable.java:227) ~[reactor-core-3.4.34.jar:3.4.34]
+	at reactor.core.scheduler.SchedulerTask.call(SchedulerTask.java:68) ~[reactor-core-3.4.34.jar:3.4.34]
+	at reactor.core.scheduler.SchedulerTask.call(SchedulerTask.java:28) ~[reactor-core-3.4.34.jar:3.4.34]
+	at java.util.concurrent.FutureTask.run(FutureTask.java:317) ~[?:?]
+	at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:304) ~[?:?]
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[?:?]
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[?:?]
+	at java.lang.Thread.run(Thread.java:1583) ~[?:?]
+15:54:09.120 [boundedElastic-1] ERROR com.huawei.opsfactory.gateway.process.InstanceManager - Failed to spawn agent3:user1
+java.lang.IllegalStateException: Per-user instance limit reached (2)
+	at com.huawei.opsfactory.gateway.process.InstanceManager.doSpawn(InstanceManager.java:322) ~[classes/:?]
+	at com.huawei.opsfactory.gateway.process.InstanceManager.lambda$4(InstanceManager.java:299) ~[classes/:?]
+	at reactor.core.publisher.MonoCallable.call(MonoCallable.java:92) ~[reactor-core-3.4.34.jar:3.4.34]
+	at reactor.core.publisher.FluxSubscribeOnCallable$CallableSubscribeOnSubscription.run(FluxSubscribeOnCallable.java:227) ~[reactor-core-3.4.34.jar:3.4.34]
+	at reactor.core.scheduler.SchedulerTask.call(SchedulerTask.java:68) ~[reactor-core-3.4.34.jar:3.4.34]
+	at reactor.core.scheduler.SchedulerTask.call(SchedulerTask.java:28) ~[reactor-core-3.4.34.jar:3.4.34]
+	at java.util.concurrent.FutureTask.run(FutureTask.java:317) ~[?:?]
+	at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:304) ~[?:?]
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[?:?]
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[?:?]
+	at java.lang.Thread.run(Thread.java:1583) ~[?:?]
+15:54:09.121 [boundedElastic-1] ERROR com.huawei.opsfactory.gateway.process.InstanceManager - Failed to spawn agent1:user3
+java.lang.IllegalStateException: Global instance limit reached (2)
+	at com.huawei.opsfactory.gateway.process.InstanceManager.doSpawn(InstanceManager.java:325) ~[classes/:?]
+	at com.huawei.opsfactory.gateway.process.InstanceManager.lambda$4(InstanceManager.java:299) ~[classes/:?]
+	at reactor.core.publisher.MonoCallable.call(MonoCallable.java:92) ~[reactor-core-3.4.34.jar:3.4.34]
+	at reactor.core.publisher.FluxSubscribeOnCallable$CallableSubscribeOnSubscription.run(FluxSubscribeOnCallable.java:227) ~[reactor-core-3.4.34.jar:3.4.34]
+	at reactor.core.scheduler.SchedulerTask.call(SchedulerTask.java:68) ~[reactor-core-3.4.34.jar:3.4.34]
+	at reactor.core.scheduler.SchedulerTask.call(SchedulerTask.java:28) ~[reactor-core-3.4.34.jar:3.4.34]
+	at java.util.concurrent.FutureTask.run(FutureTask.java:317) ~[?:?]
+	at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:304) ~[?:?]
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[?:?]
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[?:?]
+	at java.lang.Thread.run(Thread.java:1583) ~[?:?]
+[INFO] Tests run: 14, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.026 s -- in com.huawei.opsfactory.gateway.process.InstanceManagerExtendedTest
+[INFO] Running com.huawei.opsfactory.gateway.process.PrewarmServiceTest
+15:54:09.124 [main] WARN  com.huawei.opsfactory.gateway.process.PrewarmService - Pre-warm failed for universal-agent:alice: spawn failed
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in com.huawei.opsfactory.gateway.process.PrewarmServiceTest
+[INFO] Running com.huawei.opsfactory.gateway.process.RuntimePreparerTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.011 s -- in com.huawei.opsfactory.gateway.process.RuntimePreparerTest
+[INFO] Running com.huawei.opsfactory.gateway.process.PortAllocatorTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in com.huawei.opsfactory.gateway.process.PortAllocatorTest
+[INFO] Running com.huawei.opsfactory.gateway.process.InstanceWatchdogTest
+15:54:09.137 [main] WARN  com.huawei.opsfactory.gateway.process.InstanceWatchdog - Watchdog detected dead instance agent1:user1 (port=8080, pid=1234, exit=1)
+15:54:09.138 [main] WARN  com.huawei.opsfactory.gateway.process.InstanceWatchdog - Watchdog detected dead instance agent1:user1 (port=8080, pid=1234, exit=1)
+15:54:09.138 [main] WARN  com.huawei.opsfactory.gateway.process.InstanceWatchdog - Watchdog detected dead instance agent1:user1 (port=8080, pid=1234, exit=1)
+15:54:09.140 [main] WARN  com.huawei.opsfactory.gateway.process.InstanceWatchdog - Watchdog detected dead instance agent1:user1 (port=8080, pid=1234, exit=1)
+15:54:09.140 [main] ERROR com.huawei.opsfactory.gateway.process.InstanceWatchdog - Instance agent1:user1 exceeded max restart attempts (3), not respawning. Will retry on next user request.
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in com.huawei.opsfactory.gateway.process.InstanceWatchdogTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 380, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for ops-gateway-parent 1.0.0-SNAPSHOT:
+[INFO] 
+[INFO] ops-gateway-parent ................................. SUCCESS [  0.001 s]
+[INFO] gateway-common ..................................... SUCCESS [  0.714 s]
+[INFO] gateway-service .................................... SUCCESS [  6.869 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  7.692 s
+[INFO] Finished at: 2026-03-15T15:54:11+08:00
+[INFO] ------------------------------------------------------------------------

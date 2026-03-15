@@ -52,7 +52,7 @@ export default function Chat() {
 
     const client = selectedAgent ? getClient(selectedAgent) : null
 
-    const { messages, chatState, isLoading, error, tokenState, sendMessage, stopMessage, clearMessages, setInitialMessages } = useChat({
+    const { messages, chatState, isLoading, error, tokenState, outputFilesEvent, sendMessage, stopMessage, clearMessages, setInitialMessages } = useChat({
         sessionId,
         client: client!,
     })
@@ -302,7 +302,7 @@ export default function Chat() {
             {/* Messages area - scrollable */}
             <div className="chat-messages-area">
                 <div className="chat-messages-scroll">
-                    <MessageList messages={messages} isLoading={isLoading} chatState={chatState} agentId={selectedAgent} onRetry={handleRetry} />
+                    <MessageList messages={messages} isLoading={isLoading} chatState={chatState} agentId={selectedAgent} sessionId={sessionId} outputFilesEvent={outputFilesEvent} onRetry={handleRetry} />
                 </div>
             </div>
 

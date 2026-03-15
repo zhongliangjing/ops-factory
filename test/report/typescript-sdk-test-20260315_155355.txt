@@ -1,0 +1,282 @@
+
+> @goosed/sdk@0.1.0 test
+> node --test --import tsx tests/*.test.ts
+
+TAP version 13
+# Subtest: GoosedClient
+    # Subtest: Status APIs
+        # Subtest: status() returns ok
+        not ok 1 - status() returns ok
+          ---
+          duration_ms: 17.033333
+          type: 'test'
+          location: '/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:1:396'
+          failureType: 'testCodeFailure'
+          error: 'fetch failed'
+          code: 'ERR_TEST_FAILURE'
+          name: 'GoosedConnectionError'
+          stack: |-
+            GoosedClient.get (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/src/client.ts:149:23)
+            process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+            async TestContext.<anonymous> (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:21:28)
+            async Test.run (node:internal/test_runner/test:1054:7)
+            async Promise.all (index 0)
+            async Suite.run (node:internal/test_runner/test:1442:7)
+            async Promise.all (index 0)
+            async Suite.run (node:internal/test_runner/test:1442:7)
+            async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+          ...
+        # Subtest: systemInfo() returns version
+        not ok 2 - systemInfo() returns version
+          ---
+          duration_ms: 4.023166
+          type: 'test'
+          location: '/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:1:502'
+          failureType: 'testCodeFailure'
+          error: 'fetch failed'
+          code: 'ERR_TEST_FAILURE'
+          name: 'GoosedConnectionError'
+          stack: |-
+            GoosedClient.get (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/src/client.ts:149:23)
+            process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+            async TestContext.<anonymous> (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:26:26)
+            async Test.run (node:internal/test_runner/test:1054:7)
+            async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+          ...
+        1..2
+    not ok 1 - Status APIs
+      ---
+      duration_ms: 21.548625
+      type: 'suite'
+      location: '/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:1:368'
+      failureType: 'subtestsFailed'
+      error: '2 subtests failed'
+      code: 'ERR_TEST_FAILURE'
+      stack: |-
+        async Promise.all (index 0)
+      ...
+    # Subtest: Session Management
+        # Subtest: create and delete session
+        not ok 1 - create and delete session
+          ---
+          duration_ms: 2.130333
+          type: 'test'
+          location: '/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:1:699'
+          failureType: 'testCodeFailure'
+          error: 'fetch failed'
+          code: 'ERR_TEST_FAILURE'
+          name: 'GoosedConnectionError'
+          stack: |-
+            GoosedClient.post (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/src/client.ts:169:23)
+            process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+            async TestContext.<anonymous> (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:35:29)
+            async Test.run (node:internal/test_runner/test:1054:7)
+            async Promise.all (index 0)
+            async Suite.run (node:internal/test_runner/test:1442:7)
+            async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+          ...
+        # Subtest: list sessions
+        not ok 2 - list sessions
+          ---
+          duration_ms: 1.062542
+          type: 'test'
+          location: '/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:1:924'
+          failureType: 'testCodeFailure'
+          error: 'fetch failed'
+          code: 'ERR_TEST_FAILURE'
+          name: 'GoosedConnectionError'
+          stack: |-
+            GoosedClient.get (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/src/client.ts:149:23)
+            process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+            async GoosedClient.listSessions (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/src/client.ts:418:22)
+            async TestContext.<anonymous> (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:43:30)
+            async Test.run (node:internal/test_runner/test:1054:7)
+            async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+          ...
+        # Subtest: resume session
+        not ok 3 - resume session
+          ---
+          duration_ms: 1.014625
+          type: 'test'
+          location: '/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:1:1035'
+          failureType: 'testCodeFailure'
+          error: 'fetch failed'
+          code: 'ERR_TEST_FAILURE'
+          name: 'GoosedConnectionError'
+          stack: |-
+            GoosedClient.post (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/src/client.ts:169:23)
+            process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+            async TestContext.<anonymous> (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:48:29)
+            async Test.run (node:internal/test_runner/test:1054:7)
+            async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+          ...
+        # Subtest: update session name
+        not ok 4 - update session name
+          ---
+          duration_ms: 0.965958
+          type: 'test'
+          location: '/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:1:1352'
+          failureType: 'testCodeFailure'
+          error: 'fetch failed'
+          code: 'ERR_TEST_FAILURE'
+          name: 'GoosedConnectionError'
+          stack: |-
+            GoosedClient.post (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/src/client.ts:169:23)
+            process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+            async TestContext.<anonymous> (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:60:29)
+            async Test.run (node:internal/test_runner/test:1054:7)
+            async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+          ...
+        1..4
+    not ok 2 - Session Management
+      ---
+      duration_ms: 5.551209
+      type: 'suite'
+      location: '/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:1:664'
+      failureType: 'subtestsFailed'
+      error: '4 subtests failed'
+      code: 'ERR_TEST_FAILURE'
+      ...
+    # Subtest: Agent APIs
+        # Subtest: get tools
+        not ok 1 - get tools
+          ---
+          duration_ms: 1.366
+          type: 'test'
+          location: '/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:1:1699'
+          failureType: 'testCodeFailure'
+          error: 'fetch failed'
+          code: 'ERR_TEST_FAILURE'
+          name: 'GoosedConnectionError'
+          stack: |-
+            GoosedClient.post (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/src/client.ts:169:23)
+            process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+            async TestContext.<anonymous> (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:74:29)
+            async Test.run (node:internal/test_runner/test:1054:7)
+            async Promise.all (index 0)
+            async Suite.run (node:internal/test_runner/test:1442:7)
+            async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+          ...
+        # Subtest: call tool
+        not ok 2 - call tool
+          ---
+          duration_ms: 0.97375
+          type: 'test'
+          location: '/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:1:2051'
+          failureType: 'testCodeFailure'
+          error: 'fetch failed'
+          code: 'ERR_TEST_FAILURE'
+          name: 'GoosedConnectionError'
+          stack: |-
+            GoosedClient.post (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/src/client.ts:169:23)
+            process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+            async TestContext.<anonymous> (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:89:29)
+            async Test.run (node:internal/test_runner/test:1054:7)
+            async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+          ...
+        # Subtest: restart session
+        not ok 3 - restart session
+          ---
+          duration_ms: 1.86125
+          type: 'test'
+          location: '/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:1:2450'
+          failureType: 'testCodeFailure'
+          error: 'fetch failed'
+          code: 'ERR_TEST_FAILURE'
+          name: 'GoosedConnectionError'
+          stack: |-
+            GoosedClient.post (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/src/client.ts:169:23)
+            process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+            async TestContext.<anonymous> (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:105:29)
+            async Test.run (node:internal/test_runner/test:1054:7)
+            async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+          ...
+        1..3
+    not ok 3 - Agent APIs
+      ---
+      duration_ms: 4.450125
+      type: 'suite'
+      location: '/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:1:1672'
+      failureType: 'subtestsFailed'
+      error: '3 subtests failed'
+      code: 'ERR_TEST_FAILURE'
+      ...
+    # Subtest: Chat APIs
+        # Subtest: send message stream
+        not ok 1 - send message stream
+          ---
+          duration_ms: 1.077333
+          type: 'test'
+          location: '/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:1:2797'
+          failureType: 'testCodeFailure'
+          error: 'fetch failed'
+          code: 'ERR_TEST_FAILURE'
+          name: 'GoosedConnectionError'
+          stack: |-
+            GoosedClient.post (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/src/client.ts:169:23)
+            process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+            async TestContext.<anonymous> (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:120:29)
+            async Test.run (node:internal/test_runner/test:1054:7)
+            async Promise.all (index 0)
+            async Suite.run (node:internal/test_runner/test:1442:7)
+            async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+          ...
+        1..1
+    not ok 4 - Chat APIs
+      ---
+      duration_ms: 1.237459
+      type: 'suite'
+      location: '/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:1:2771'
+      failureType: 'subtestsFailed'
+      error: '1 subtest failed'
+      code: 'ERR_TEST_FAILURE'
+      ...
+    # Subtest: Export APIs
+        # Subtest: export session
+        not ok 1 - export session
+          ---
+          duration_ms: 0.963167
+          type: 'test'
+          location: '/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:1:3270'
+          failureType: 'testCodeFailure'
+          error: 'fetch failed'
+          code: 'ERR_TEST_FAILURE'
+          name: 'GoosedConnectionError'
+          stack: |-
+            GoosedClient.post (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/src/client.ts:169:23)
+            process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+            async TestContext.<anonymous> (/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:142:29)
+            async Test.run (node:internal/test_runner/test:1054:7)
+            async Promise.all (index 0)
+            async Suite.run (node:internal/test_runner/test:1442:7)
+            async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+          ...
+        1..1
+    not ok 5 - Export APIs
+      ---
+      duration_ms: 1.087459
+      type: 'suite'
+      location: '/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:1:3242'
+      failureType: 'subtestsFailed'
+      error: '1 subtest failed'
+      code: 'ERR_TEST_FAILURE'
+      ...
+    1..5
+not ok 1 - GoosedClient
+  ---
+  duration_ms: 34.723208
+  type: 'suite'
+  location: '/Users/buyangnie/Documents/GitHub/ops-factory/typescript-sdk/tests/client.test.ts:1:249'
+  failureType: 'subtestsFailed'
+  error: '5 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 11
+# suites 6
+# pass 0
+# fail 11
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 521.961875

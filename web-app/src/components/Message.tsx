@@ -133,7 +133,7 @@ function FileCapsule({ filePath, fileName, fileExt, agentId, userId }: {
                         </svg>
                     </button>
                 )}
-                <a href={downloadUrl} target="_blank" rel="noopener noreferrer" className="file-capsule-btn" title="Download">
+                <a href={downloadUrl + '&download=true'} download className="file-capsule-btn" title="Download">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                         <polyline points="7 10 12 15 17 10" />
