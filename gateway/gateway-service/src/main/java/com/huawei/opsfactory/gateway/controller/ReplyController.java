@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/agents/{agentId}")
+@RequestMapping("/ops-gateway/agents/{agentId}")
 public class ReplyController {
 
     private static final Logger log = LogManager.getLogger(ReplyController.class);

@@ -18,7 +18,8 @@ function resolveGatewayUrl(raw: string | undefined): string {
         if (isLoopbackHost(url.hostname) && !isLoopbackHost(pageHost)) {
             url.hostname = pageHost
         }
-        return url.toString().replace(/\/$/, '')
+        // Add /ops-gateway path prefix after port
+        return `${url.origin}/ops-gateway`
     } catch {
         return fallback
     }

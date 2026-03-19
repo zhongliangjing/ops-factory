@@ -20,6 +20,7 @@ import java.util.Set;
  * Admin-only routes: everything else (schedules, config/prompts, etc.)
  */
 @RestController
+@RequestMapping(value = "/ops-gateway")
 @Order(999)
 public class CatchAllProxyController {
 

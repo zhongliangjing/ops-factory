@@ -6,7 +6,7 @@ import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert';
 import { GoosedClient } from '../src/index.js';
 
-const BASE_URL = process.env.GOOSED_BASE_URL ?? 'http://127.0.0.1:3002';
+const BASE_URL = process.env.GOOSED_BASE_URL ?? 'http://127.0.0.1:3002/ops-gateway';
 const SECRET_KEY = process.env.GOOSED_SECRET_KEY ?? 'test-secret';
 
 describe('GoosedClient', () => {

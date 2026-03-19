@@ -24,7 +24,7 @@ import java.util.Map;
  * Data is stored at: data/{sessionId}/file-capsules.json
  */
 @RestController
-@RequestMapping("/agents/{agentId}/file-capsules")
+@RequestMapping("/ops-gateway/agents/{agentId}/file-capsules")
 public class FileCapsuleController {
 
     private final AgentConfigService agentConfigService;

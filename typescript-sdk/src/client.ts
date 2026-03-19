@@ -7,6 +7,7 @@ import type {
     ToolInfo,
     CallToolResponse,
     SSEEvent,
+    SSEEventType,
     SystemInfo,
     ExtensionResult,
     GoosedClientOptions,
@@ -21,6 +22,7 @@ import type {
     PromptTemplate,
     PromptListResponse,
     PromptContentResponse,
+    OutputFile,
 } from './types.js';
 
 export class GoosedException extends Error {
@@ -76,7 +78,7 @@ export class GoosedClient {
 
     constructor(options: GoosedClientOptions = {}) {
         const env = typeof process !== 'undefined' ? process.env : {} as Record<string, string | undefined>;
-        const defaultBaseUrl = env.GOOSED_BASE_URL || 'https://127.0.0.1:3000';
+        const defaultBaseUrl = env.GOOSED_BASE_URL || 'https://127.0.0.1:3000/ops-gateway';
         const defaultSecretKey = env.GOOSED_SECRET_KEY || 'test';
 
         this.baseUrl = (options.baseUrl ?? defaultBaseUrl).replace(/\/$/, '');
@@ -522,3 +524,25 @@ export class GoosedClient {
     }
 
 }
+
+// Export types that are used by the webapp
+export type { SSEEvent, SSEEventType, OutputFile };
+export type {
+    Session,
+    ToolInfo,
+    CallToolResponse,
+    SystemInfo,
+    ExtensionResult,
+    GoosedClientOptions,
+    ImageData,
+    UploadResult,
+    Recipe,
+    RecipeManifest,
+    ScheduledJob,
+    ListSchedulesResponse,
+    RunNowResponse,
+    ScheduleSessionInfo,
+    PromptTemplate,
+    PromptListResponse,
+    PromptContentResponse,
+};

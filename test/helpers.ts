@@ -44,7 +44,7 @@ async function freePort(): Promise<number> {
  */
 export async function startGateway(): Promise<GatewayHandle> {
   const port = await freePort()
-  const baseUrl = `http://127.0.0.1:${port}`
+  const baseUrl = `http://127.0.0.1:${port}/ops-gateway`
 
   // Write a temp config.yaml for this test run
   const testConfigPath = join(tmpdir(), `ops-factory-test-config-${port}.yaml`)
@@ -155,7 +155,7 @@ export async function startGateway(): Promise<GatewayHandle> {
  */
 export async function startJavaGateway(): Promise<GatewayHandle> {
   const port = await freePort()
-  const baseUrl = `http://127.0.0.1:${port}`
+  const baseUrl = `http://127.0.0.1:${port}/ops-gateway`
 
   const jarPath = join(PROJECT_ROOT, 'gateway', 'gateway-service', 'target', 'gateway-service.jar')
   const libDir = join(PROJECT_ROOT, 'gateway', 'gateway-service', 'target', 'lib')

@@ -71,22 +71,25 @@ async function startMockMonitoringGateway(): Promise<MockGateway> {
 
     const url = new URL(req.url || '/', `http://127.0.0.1:${port}`)
 
-    if (url.pathname === '/monitoring/system') {
+    // Support both /ops-gateway/* and direct paths for backward compatibility
+    const pathname = url.pathname
+
+    if (pathname === '/monitoring/system' || pathname === '/ops-gateway/monitoring/system') {
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify(MOCK_SYSTEM))
       return
     }
-    if (url.pathname === '/monitoring/instances') {
+    if (pathname === '/monitoring/instances' || pathname === '/ops-gateway/monitoring/instances') {
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify(MOCK_INSTANCES))
       return
     }
-    if (url.pathname === '/monitoring/status') {
+    if (pathname === '/monitoring/status' || pathname === '/ops-gateway/monitoring/status') {
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify(MOCK_STATUS))
       return
     }
-    if (url.pathname === '/status') {
+    if (pathname === '/status' || pathname === '/ops-gateway/status') {
       res.writeHead(200); res.end('ok'); return
     }
     res.writeHead(404); res.end('Not Found')
@@ -125,7 +128,7 @@ async function startExporter(gatewayPort: number): Promise<ExporterHandle> {
   const testConfigPath = join(tmpdir(), `ops-factory-exporter-test-${port}.yaml`)
   const testConfig = {
     port,
-    gatewayUrl: `http://127.0.0.1:${gatewayPort}`,
+    gatewayUrl: `http://127.0.0.1:${gatewayPort}/ops-gateway`,
     gatewaySecretKey: SECRET_KEY,
     collectTimeoutMs: 3000,
   }

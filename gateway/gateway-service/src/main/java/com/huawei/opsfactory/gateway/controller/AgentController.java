@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/agents")
+@RequestMapping("/ops-gateway/agents")
 public class AgentController {
 
     private final AgentConfigService agentConfigService;

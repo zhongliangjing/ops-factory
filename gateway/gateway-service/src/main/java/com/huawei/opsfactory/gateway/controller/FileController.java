@@ -31,7 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/agents/{agentId}/files")
+@RequestMapping("/ops-gateway/agents/{agentId}/files")
 public class FileController {
 
     private final InstanceManager instanceManager;

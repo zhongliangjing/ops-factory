@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/monitoring")
+@RequestMapping("/ops-gateway/monitoring")
 public class MonitoringController {
 
     private final InstanceManager instanceManager;

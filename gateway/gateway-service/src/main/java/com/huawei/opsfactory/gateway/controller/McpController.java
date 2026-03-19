@@ -16,7 +16,7 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping("/agents/{agentId}/mcp")
+@RequestMapping("/ops-gateway/agents/{agentId}/mcp")
 public class McpController {
 
     private final InstanceManager instanceManager;
