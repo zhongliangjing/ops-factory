@@ -15,10 +15,21 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | null>(null)
 
+export function getCookie(name: string) {
+    const cookies = document.cookie;
+    for(let cookie of cookies) {
+        const [cookieName,cookieValue] = cookie.trim().split('=')
+        if(cookieName ===name) {
+            return decodeURIComponent(cookieValue)
+        }
+    }
+    return null;
+}
+
 export function UserProvider({ children }: { children: ReactNode }) {
     const [userId, setUserId] = useState<string | null>(() => {
         const params = new URLSearchParams(window.location.search)
-        const urlUserId = params.get('userId')
+        const urlUserId = getCookie('username') ? getCookie('username') : params.get('userId')
         if (urlUserId) {
             localStorage.setItem(STORAGE_KEY, urlUserId)
             return urlUserId
