@@ -123,6 +123,10 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 log_ok()    { echo -e "${GREEN}[OK]${NC}    $1"; }
 log_fail()  { echo -e "${RED}[FAIL]${NC}  $1"; }
 
+LOG_DIR="${SERVICE_DIR}/logs"
+GATEWAY_HEALTH_PATH="/ops-gateway/status"
+GATEWAY_AGENTS_PATH="/ops-gateway/agents"
+
 # --- Utilities ---
 check_port() { lsof -ti:"$1" >/dev/null 2>&1; }
 
@@ -168,16 +172,31 @@ wait_http_ok() {
     return 1
 }
 
+start_detached() {
+    local log_file="$1"
+    shift
+
+    mkdir -p "${LOG_DIR}"
+    if command -v setsid >/dev/null 2>&1; then
+        nohup setsid "$@" </dev/null >>"${log_file}" 2>&1 &
+    else
+        nohup "$@" </dev/null >>"${log_file}" 2>&1 &
+    fi
+    echo $!
+}
+
 gateway_url() {
     local sk="${GATEWAY_SECRET_KEY}"
     for host in "${GATEWAY_HOST}" "127.0.0.1"; do
-        if curl -fsS ${CURL_TLS_OPTS} "${GATEWAY_SCHEME}://${host}:${GATEWAY_PORT}/status" -H "x-secret-key: ${sk}" >/dev/null 2>&1; then
+        if curl -fsS ${CURL_TLS_OPTS} "${GATEWAY_SCHEME}://${host}:${GATEWAY_PORT}${GATEWAY_HEALTH_PATH}" \
+                -H "x-secret-key: ${sk}" >/dev/null 2>&1; then
             echo "${GATEWAY_SCHEME}://${host}:${GATEWAY_PORT}"; return 0
         fi
     done
     for host in "${GATEWAY_HOST}" "127.0.0.1"; do
         local code
-        code="$(curl -s ${CURL_TLS_OPTS} -o /dev/null -w "%{http_code}" "${GATEWAY_SCHEME}://${host}:${GATEWAY_PORT}/status" 2>/dev/null || true)"
+        code="$(curl -s ${CURL_TLS_OPTS} -o /dev/null -w "%{http_code}" \
+            "${GATEWAY_SCHEME}://${host}:${GATEWAY_PORT}${GATEWAY_HEALTH_PATH}" 2>/dev/null || true)"
         [ "${code}" = "401" ] && { echo "${GATEWAY_SCHEME}://${host}:${GATEWAY_PORT}"; return 0; }
     done
     return 1
@@ -219,7 +238,7 @@ shutdown_agents() {
 
 check_agents_configured() {
     local agents_json
-    agents_json="$(curl -fsS ${CURL_TLS_OPTS} "${GATEWAY_SCHEME}://127.0.0.1:${GATEWAY_PORT}/agents" \
+    agents_json="$(curl -fsS ${CURL_TLS_OPTS} "${GATEWAY_SCHEME}://127.0.0.1:${GATEWAY_PORT}${GATEWAY_AGENTS_PATH}" \
         -H "x-secret-key: ${GATEWAY_SECRET_KEY}" -H "x-user-id: sys" 2>/dev/null || true)"
     [ -z "${agents_json}" ] && { log_error "Failed to query agents"; return 1; }
 
@@ -241,7 +260,8 @@ status_agents() {
 
     if [ -n "${base_url}" ]; then
         local agents_json
-        agents_json="$(curl -fsS ${CURL_TLS_OPTS} "${base_url}/agents" -H "x-secret-key: ${GATEWAY_SECRET_KEY}" -H "x-user-id: sys" 2>/dev/null || true)"
+        agents_json="$(curl -fsS ${CURL_TLS_OPTS} "${base_url}${GATEWAY_AGENTS_PATH}" \
+            -H "x-secret-key: ${GATEWAY_SECRET_KEY}" -H "x-user-id: sys" 2>/dev/null || true)"
         if [ -n "${agents_json}" ]; then
             local count
             count="$(echo "${agents_json}" | python3 -c "import sys,json;d=json.load(sys.stdin);print(len(d.get('agents',d) if isinstance(d,dict) else d))" 2>/dev/null || echo "0")"
@@ -252,7 +272,7 @@ status_agents() {
                 log_ok "Agents configured (${count} total)"
             fi
         else
-            log_fail "Failed to query /agents"
+            log_fail "Failed to query ${GATEWAY_AGENTS_PATH}"
             return 1
         fi
     else
@@ -383,22 +403,22 @@ do_startup() {
     java_opts+=("-jar" "${jar}")
 
     if [ "${mode}" = "background" ]; then
-        ${java_cmd} "${java_opts[@]}" &
-        GATEWAY_PID=$!
+        local log_file="${LOG_DIR}/gateway.log"
+        GATEWAY_PID="$(start_detached "${log_file}" "${java_cmd}" "${java_opts[@]}")"
         if ! kill -0 "${GATEWAY_PID}" 2>/dev/null; then
             log_error "Failed to start gateway"
             return 1
         fi
-        if ! wait_http_ok "Gateway" "${GATEWAY_SCHEME}://127.0.0.1:${GATEWAY_PORT}/status" \
+        if ! wait_http_ok "Gateway" "${GATEWAY_SCHEME}://127.0.0.1:${GATEWAY_PORT}${GATEWAY_HEALTH_PATH}" \
                 "x-secret-key: ${GATEWAY_SECRET_KEY}" 40 1; then
-            log_error "Gateway failed to become healthy. Check logs."
+            log_error "Gateway failed to become healthy. Check logs: ${log_file}"
             kill "${GATEWAY_PID}" 2>/dev/null || true
             return 1
         fi
-        log_info "Gateway started (PID: ${GATEWAY_PID})"
+        log_info "Gateway started (PID: ${GATEWAY_PID}, log: ${log_file})"
         check_agents_configured || true
     else
-        ${java_cmd} "${java_opts[@]}"
+        exec ${java_cmd} "${java_opts[@]}"
     fi
 }
 
@@ -413,7 +433,7 @@ do_status() {
         if gateway_url >/dev/null 2>&1; then
             log_ok "Gateway running (${GATEWAY_SCHEME}://localhost:${GATEWAY_PORT})"
         else
-            log_fail "Gateway port open but /status check failed"
+            log_fail "Gateway port open but ${GATEWAY_HEALTH_PATH} check failed"
             has_fail=1
         fi
     else

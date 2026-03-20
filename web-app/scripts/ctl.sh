@@ -31,6 +31,8 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 log_ok()    { echo -e "${GREEN}[OK]${NC}    $1"; }
 log_fail()  { echo -e "${RED}[FAIL]${NC}  $1"; }
 
+LOG_DIR="${SERVICE_DIR}/logs"
+
 # --- Utilities ---
 check_port() { lsof -ti:"$1" >/dev/null 2>&1; }
 
@@ -53,6 +55,19 @@ wait_http_ok() {
     return 1
 }
 
+start_detached() {
+    local log_file="$1"
+    shift
+
+    mkdir -p "${LOG_DIR}"
+    if command -v setsid >/dev/null 2>&1; then
+        nohup setsid "$@" </dev/null >>"${log_file}" 2>&1 &
+    else
+        nohup "$@" </dev/null >>"${log_file}" 2>&1 &
+    fi
+    echo $!
+}
+
 # --- Webapp actions ---
 WEBAPP_PID=""
 
@@ -63,8 +78,13 @@ do_startup() {
     log_info "Starting webapp at http://${VITE_HOST}:${VITE_PORT}"
     cd "${SERVICE_DIR}"
 
-    npm run dev -- --host "${VITE_HOST}" &
-    WEBAPP_PID=$!
+    local log_file="${LOG_DIR}/webapp.log"
+    if [ "${mode}" = "background" ]; then
+        WEBAPP_PID="$(start_detached "${log_file}" npm run dev -- --host "${VITE_HOST}")"
+    else
+        npm run dev -- --host "${VITE_HOST}" &
+        WEBAPP_PID=$!
+    fi
 
     if ! kill -0 "${WEBAPP_PID}" 2>/dev/null; then
         log_error "Failed to start webapp"
@@ -75,7 +95,11 @@ do_startup() {
         return 1
     fi
 
-    log_info "Webapp ready at http://localhost:${VITE_PORT}"
+    if [ "${mode}" = "background" ]; then
+        log_info "Webapp ready at http://localhost:${VITE_PORT} (PID: ${WEBAPP_PID}, log: ${log_file})"
+    else
+        log_info "Webapp ready at http://localhost:${VITE_PORT}"
+    fi
 
     if [ "${mode}" = "foreground" ]; then
         wait "${WEBAPP_PID}"

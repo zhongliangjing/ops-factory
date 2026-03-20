@@ -29,6 +29,8 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 log_ok()    { echo -e "${GREEN}[OK]${NC}    $1"; }
 log_fail()  { echo -e "${RED}[FAIL]${NC}  $1"; }
 
+LOG_DIR="${SERVICE_DIR}/logs"
+
 check_port() { lsof -ti:"$1" >/dev/null 2>&1; }
 
 stop_port() {
@@ -48,6 +50,19 @@ wait_http_ok() {
     done
     log_error "${name} health check failed: ${url}"
     return 1
+}
+
+start_detached() {
+    local log_file="$1"
+    shift
+
+    mkdir -p "${LOG_DIR}"
+    if command -v setsid >/dev/null 2>&1; then
+        nohup setsid "$@" </dev/null >>"${log_file}" 2>&1 &
+    else
+        nohup "$@" </dev/null >>"${log_file}" 2>&1 &
+    fi
+    echo $!
 }
 
 build_exporter() {
@@ -83,16 +98,17 @@ do_startup() {
     cd "${SERVICE_DIR}"
 
     if [ "${mode}" = "background" ]; then
-        CONFIG_PATH="${SERVICE_DIR}/config.yaml" java -Dserver.port="${EXPORTER_PORT}" -jar "${jar}" &
-        EXPORTER_PID=$!
+        local log_file="${LOG_DIR}/exporter.log"
+        EXPORTER_PID="$(start_detached "${log_file}" env CONFIG_PATH="${SERVICE_DIR}/config.yaml" \
+            java -Dserver.port="${EXPORTER_PORT}" -jar "${jar}")"
         if ! kill -0 "${EXPORTER_PID}" 2>/dev/null; then
             log_error "Failed to start exporter"
             return 1
         fi
         wait_http_ok "Exporter" "http://127.0.0.1:${EXPORTER_PORT}/health" 20 1
-        log_info "Exporter started (PID: ${EXPORTER_PID})"
+        log_info "Exporter started (PID: ${EXPORTER_PID}, log: ${log_file})"
     else
-        CONFIG_PATH="${SERVICE_DIR}/config.yaml" java -Dserver.port="${EXPORTER_PORT}" -jar "${jar}"
+        exec env CONFIG_PATH="${SERVICE_DIR}/config.yaml" java -Dserver.port="${EXPORTER_PORT}" -jar "${jar}"
     fi
 }
 
