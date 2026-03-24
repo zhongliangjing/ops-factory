@@ -1,0 +1,18 @@
+server:
+  port: 8092
+
+spring:
+  application:
+    name: knowledge-service
+  config:
+    import: optional:file:./config.yaml
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

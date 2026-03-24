@@ -1,0 +1,6 @@
+com/huawei/opsfactory/knowledge/api/KnowledgeRealHttpIntegrationTest.class
+com/huawei/opsfactory/knowledge/schema/SqliteSchemaResourceTest.class
+com/huawei/opsfactory/knowledge/api/KnowledgeCoverageIntegrationTest.class
+com/huawei/opsfactory/knowledge/config/KnowledgePropertiesTest.class
+com/huawei/opsfactory/knowledge/api/KnowledgeUploadFlowIntegrationTest.class
+com/huawei/opsfactory/knowledge/api/system/SystemControllerTest.class

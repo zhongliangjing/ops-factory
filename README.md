@@ -196,6 +196,7 @@ Agent-specific configuration (LLM provider, model, extensions) remains in `gatew
 | ----- | ------- | ------- | -------- |
 | `gatewayUrl` | `GATEWAY_URL` | — | **Yes** |
 | `gatewaySecretKey` | `GATEWAY_SECRET_KEY` | — | **Yes** |
+| `knowledgeServiceUrl` | `KNOWLEDGE_SERVICE_URL` | `http://127.0.0.1:8092` | |
 | `port` | `VITE_PORT` | `5173` | |
 
 ### Prometheus Exporter (`prometheus-exporter/config.yaml`)

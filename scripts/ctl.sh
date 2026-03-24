@@ -7,7 +7,7 @@ set -euo pipefail
 # Usage: ./ctl.sh <action> [component ...]
 #
 #   action:    startup | shutdown | status | restart
-#   component: onlyoffice | langfuse | gateway | exporter | webapp | all (default)
+#   component: onlyoffice | langfuse | gateway | knowledge | exporter | webapp | all (default)
 #              Multiple components can be specified.
 #
 # Examples:
@@ -35,6 +35,7 @@ ENABLE_EXPORTER="${ENABLE_EXPORTER:-true}"
 
 # === Sub-script paths ===
 CTL_GATEWAY="${ROOT_DIR}/gateway/scripts/ctl.sh"
+CTL_KNOWLEDGE="${ROOT_DIR}/knowledge-service/scripts/ctl.sh"
 CTL_WEBAPP="${ROOT_DIR}/web-app/scripts/ctl.sh"
 CTL_LANGFUSE="${ROOT_DIR}/langfuse/scripts/ctl.sh"
 CTL_ONLYOFFICE="${ROOT_DIR}/onlyoffice/scripts/ctl.sh"
@@ -61,11 +62,12 @@ run_if_enabled() {
 
 # === Cleanup trap for background processes ===
 GATEWAY_BG_PID=""
+KNOWLEDGE_BG_PID=""
 EXPORTER_BG_PID=""
 WEBAPP_BG_PID=""
 
 cleanup() {
-    for pid_var in WEBAPP_BG_PID EXPORTER_BG_PID GATEWAY_BG_PID; do
+    for pid_var in WEBAPP_BG_PID EXPORTER_BG_PID KNOWLEDGE_BG_PID GATEWAY_BG_PID; do
         local pid="${!pid_var}"
         if [[ -n "${pid}" ]] && kill -0 "${pid}" 2>/dev/null; then
             kill "${pid}" 2>/dev/null || true
@@ -75,7 +77,7 @@ cleanup() {
 }
 
 # === Component validation ===
-VALID_COMPONENTS="onlyoffice langfuse gateway exporter webapp"
+VALID_COMPONENTS="onlyoffice langfuse gateway knowledge exporter webapp"
 
 validate_component() {
     local comp="$1"
@@ -95,6 +97,7 @@ startup_one() {
         onlyoffice) run_if_enabled "${ENABLE_ONLYOFFICE}" "OnlyOffice" "${CTL_ONLYOFFICE}" startup ${bg_flag} ;;
         langfuse)   run_if_enabled "${ENABLE_LANGFUSE}" "Langfuse" "${CTL_LANGFUSE}" startup ${bg_flag} ;;
         gateway)    "${CTL_GATEWAY}" startup ${bg_flag} ;;
+        knowledge)  "${CTL_KNOWLEDGE}" startup ${bg_flag} ;;
         exporter)   run_if_enabled "${ENABLE_EXPORTER}" "Exporter" "${CTL_EXPORTER}" startup ${bg_flag} ;;
         webapp)     "${CTL_WEBAPP}" startup ${bg_flag} ;;
     esac
@@ -105,6 +108,7 @@ shutdown_one() {
         onlyoffice) "${CTL_ONLYOFFICE}" shutdown ;;
         langfuse)   "${CTL_LANGFUSE}" shutdown ;;
         gateway)    "${CTL_GATEWAY}" shutdown ;;
+        knowledge)  "${CTL_KNOWLEDGE}" shutdown ;;
         exporter)   "${CTL_EXPORTER}" shutdown ;;
         webapp)     "${CTL_WEBAPP}" shutdown ;;
     esac
@@ -121,6 +125,7 @@ status_one() {
                 "${CTL_LANGFUSE}" status || return 1
             fi ;;
         gateway)  "${CTL_GATEWAY}" status  || return 1 ;;
+        knowledge) "${CTL_KNOWLEDGE}" status || return 1 ;;
         exporter)
             if [ "${ENABLE_EXPORTER}" = "true" ]; then
                 "${CTL_EXPORTER}" status || return 1
@@ -149,10 +154,13 @@ do_startup() {
         # 3. Gateway (mandatory, background)
         "${CTL_GATEWAY}" startup --background
 
-        # 4. Exporter (optional, background)
+        # 4. Knowledge-service (mandatory, background)
+        "${CTL_KNOWLEDGE}" startup --background
+
+        # 5. Exporter (optional, background)
         run_if_enabled "${ENABLE_EXPORTER}" "Exporter" "${CTL_EXPORTER}" startup --background
 
-        # 5. Webapp (mandatory, foreground — blocking)
+        # 6. Webapp (mandatory, foreground — blocking)
         "${CTL_WEBAPP}" startup
     else
         for comp in "${components[@]}"; do
@@ -181,6 +189,7 @@ do_shutdown() {
 
     if [[ ${#components[@]} -eq 0 || "${components[0]}" == "all" ]]; then
         "${CTL_EXPORTER}" shutdown
+        "${CTL_KNOWLEDGE}" shutdown
         "${CTL_WEBAPP}" shutdown
         "${CTL_GATEWAY}" shutdown
         "${CTL_LANGFUSE}" shutdown
@@ -208,6 +217,7 @@ do_status() {
         status_one onlyoffice || has_fail=1
         status_one langfuse   || has_fail=1
         status_one gateway    || has_fail=1
+        status_one knowledge  || has_fail=1
         status_one exporter   || has_fail=1
         status_one webapp     || has_fail=1
         echo
@@ -250,6 +260,7 @@ Components (multiple allowed):
   onlyoffice  OnlyOffice Document Server (Docker)     [optional]
   langfuse    Langfuse observability platform (Docker) [optional]
   gateway     Gateway + goosed agents                  [mandatory]
+  knowledge   Knowledge ingestion / retrieval service  [mandatory]
   exporter    Prometheus metrics exporter              [optional]
   webapp      Web application (Vite dev server)        [mandatory]
 

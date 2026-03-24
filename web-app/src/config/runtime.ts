@@ -4,6 +4,7 @@ import { parse } from 'yaml'
 interface RuntimeConfigYaml {
     gatewayUrl?: string
     gatewaySecretKey?: string
+    knowledgeServiceUrl?: string
 }
 
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1'])
@@ -31,14 +32,34 @@ function resolveGatewayUrl(raw: string | undefined): string {
     }
 }
 
+function resolveKnowledgeServiceUrl(raw: string | undefined): string {
+    const pageHost = window.location.hostname || '127.0.0.1'
+    const pageProtocol = window.location.protocol || 'http:'
+    const fallback = `${pageProtocol}//${pageHost}:8092`
+
+    if (!raw) return fallback
+
+    try {
+        const url = new URL(raw)
+        if (isLoopbackHost(url.hostname) && !isLoopbackHost(pageHost)) {
+            url.hostname = pageHost
+        }
+        return url.origin
+    } catch {
+        return fallback
+    }
+}
+
 const DEFAULT_SECRET_KEY = 'test'
 
 export let GATEWAY_URL = resolveGatewayUrl(undefined)
 export let GATEWAY_SECRET_KEY = DEFAULT_SECRET_KEY
+export let KNOWLEDGE_SERVICE_URL = resolveKnowledgeServiceUrl(undefined)
 
 function setRuntimeConfig(config: RuntimeConfigYaml): void {
     GATEWAY_URL = resolveGatewayUrl(config.gatewayUrl)
     GATEWAY_SECRET_KEY = config.gatewaySecretKey || DEFAULT_SECRET_KEY
+    KNOWLEDGE_SERVICE_URL = resolveKnowledgeServiceUrl(config.knowledgeServiceUrl)
 }
 
 export async function initializeRuntimeConfig(): Promise<void> {

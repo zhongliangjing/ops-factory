@@ -12,6 +12,7 @@ This `docs/` tree serves both product-facing and engineering-facing documentatio
 ## Current Core Docs
 - `architecture/overview.md`: service responsibilities and cross-module boundaries.
 - `architecture/api-boundaries.md`: gateway/API/auth/SSE compatibility rules.
+- `architecture/knowledge-service-integration.md`: knowledge-service API, configuration, and service-to-service integration guide.
 - `architecture/process-management.md`: goosed instance lifecycle and runtime isolation rules.
 - `architecture/process-management-deep-dive.md`: detailed gateway runtime/process-management design note.
 - `development/ui-guidelines.md`: frontend layout and interaction constraints.

@@ -10,6 +10,8 @@ import ScheduledActions from './pages/ScheduledActions'
 import Monitoring from './pages/Monitoring'
 import Inbox from './pages/Inbox'
 import Login from './pages/Login'
+import Knowledge from './pages/Knowledge'
+import KnowledgeConfigure from './pages/KnowledgeConfigure'
 import FilePreview from './components/FilePreview'
 import { PreviewProvider, usePreview } from './contexts/PreviewContext'
 import { InboxProvider } from './contexts/InboxContext'
@@ -52,6 +54,8 @@ function AppContent() {
                         <Route path="/inbox" element={<Inbox />} />
                         <Route path="/agents" element={<Agents />} />
                         <Route path="/agents/:agentId/configure" element={<AdminRoute><AgentConfigure /></AdminRoute>} />
+                        <Route path="/knowledge" element={<AdminRoute><Knowledge /></AdminRoute>} />
+                        <Route path="/knowledge/:sourceId" element={<AdminRoute><KnowledgeConfigure /></AdminRoute>} />
                     </Routes>
                 </main>
                 {!isEmbed && (

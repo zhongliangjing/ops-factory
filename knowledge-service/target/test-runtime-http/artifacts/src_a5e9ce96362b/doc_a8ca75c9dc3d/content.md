@@ -1,0 +1,1 @@
+Knowledge Service PDF Sample with fetch and retrieve

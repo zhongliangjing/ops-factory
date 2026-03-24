@@ -4,3 +4,4 @@
 
 gatewayUrl: "http://127.0.0.1:3000"     # [REQUIRED]
 gatewaySecretKey: ""                    # [REQUIRED]
+knowledgeServiceUrl: "http://127.0.0.1:8092"

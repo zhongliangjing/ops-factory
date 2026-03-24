@@ -1,0 +1,97 @@
+knowledge:
+  runtime:
+    base-dir: "./data"
+
+ops-knowledge:
+  ingest:
+    max-file-size-mb: 100
+    allowed-content-types:
+      - application/pdf
+      - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+      - application/vnd.openxmlformats-officedocument.presentationml.presentation
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      - text/plain
+      - text/markdown
+      - text/html
+      - text/csv
+    deduplication: sha256
+    skip-existing-by-default: true
+
+  convert:
+    engine: tika
+    enable-pdfbox-fallback: true
+    extract-metadata: true
+    normalize-whitespace: true
+    normalize-full-half-width: true
+    keep-markdown-artifact: true
+
+  analysis:
+    language: zh
+    index-analyzer: smartcn
+    query-analyzer: smartcn
+
+  chunking:
+    mode: hierarchical
+    target-tokens: 500
+    overlap-tokens: 80
+    respect-headings: true
+    keep-tables-whole: true
+    split-long-paragraphs: true
+    merge-short-paragraphs: true
+    min-chunk-tokens: 80
+    max-chunk-tokens: 900
+
+  metadata:
+    extract-keywords: true
+    max-keywords: 12
+    extract-title-path: true
+    extract-summary: false
+    store-page-refs: true
+
+  embedding:
+    base-url: "https://openrouter.ai/api/v1"
+    api-key: "sk-or-v1-xxx"
+    model: "qwen/qwen3-embedding-4b"
+    timeout-ms: 30000
+    batch-size: 32
+    dimensions: 2560
+
+  indexing:
+    title-boost: 4.0
+    title-path-boost: 2.5
+    keyword-boost: 2.0
+    content-boost: 1.0
+    store-raw-text: true
+    store-markdown: true
+
+  retrieval:
+    mode: hybrid
+    lexical-top-k: 50
+    semantic-top-k: 50
+    final-top-k: 10
+    max-top-k: 50
+    fusion-mode: rrf
+    rrf-k: 60
+    lexical-weight: 0.5
+    semantic-weight: 0.5
+    snippet-length: 180
+
+  fetch:
+    include-neighbors-by-default: false
+    default-neighbor-window: 1
+    max-neighbor-window: 2
+
+  retrieve:
+    expand-context: true
+    expand-mode: ordinal_neighbors
+    neighbor-window: 1
+    max-evidence-count: 5
+    max-evidence-tokens: 3000
+    include-metadata: true
+    include-references: true
+
+  features:
+    allow-chunk-edit: true
+    allow-chunk-delete: true
+    allow-explain: true
+    allow-request-override: true
