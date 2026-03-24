@@ -1,5 +1,4 @@
 import { Routes, Route } from 'react-router-dom'
-import Sidebar from './components/Sidebar'
 import Home from './pages/Home'
 import Chat from './pages/Chat'
 import History from './pages/History'
@@ -33,7 +32,6 @@ function AppContent() {
 
     return (
         <div className="app-container">
-            {!isEmbed && <Sidebar />}
             <div className={mainWrapperClass}>
                 <main className="main-content">
                     <Routes>

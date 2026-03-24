@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useGoosed } from '../contexts/GoosedContext'
+import { useUser } from '../contexts/UserContext'
 import { useToast } from '../contexts/ToastContext'
 import ChatInput from '../components/ChatInput'
 import { PROMPT_TEMPLATES, CATEGORIES, type PromptTemplateConfig } from '../config/promptTemplates'
 import { iconMap } from '../config/iconMap'
+import { gatewayHeaders } from '../config/runtime'
 
 interface ModelInfo {
     provider: string
@@ -14,25 +16,76 @@ interface ModelInfo {
 
 const UNIVERSAL_AGENT_ID = 'universal-agent'
 
+// 诊断接口不需要 ops-gateway 后缀的网关地址
+const DIAGNOSIS_GATEWAY_URL = `${import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3000'}`
+
 export default function Home() {
     const { t } = useTranslation()
     const navigate = useNavigate()
     const { showToast } = useToast()
+    const { userId } = useUser()
     const { getClient, agents, isConnected, error: connectionError } = useGoosed()
     const [isCreatingSession, setIsCreatingSession] = useState(false)
+    const [diagnosisMessage, setDiagnosisMessage] = useState<string>('')
     const [selectedAgent, setSelectedAgent] = useState('')
     const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null)
     const [presetMessage, setPresetMessage] = useState('')
     const [presetToken, setPresetToken] = useState(0)
     const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null)
     const [activeCategory, setActiveCategory] = useState<string>('all')
+    
+    // 诊断接口调用
+    const handleDiagnosis = async (sceneCode: string) => {
+        try {
+            // 使用不带 ops-gateway 后缀的网关地址
+            const res = await fetch(`${DIAGNOSIS_GATEWAY_URL}/itom/api/diagnosis/getDiagnosisQuery?sceneCode=${sceneCode}`, {
+                headers: gatewayHeaders(userId),
+            });
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
+            // 使用 text() 获取字符串响应
+            const data = await res.text();
+            console.log('诊断结果:', data);
+            let messageContent = '';
+            if (data) {
+                messageContent = data;
+            }
+            setDiagnosisMessage(messageContent);
+            return data;
+        } catch (err) {
+            console.error('获取诊断信息失败:', err);
+            showToast('error', '获取诊断信息失败');
+            throw err;
+        }
+    };
 
     useEffect(() => {
-        if (agents.length > 0 && !selectedAgent) {
-            const universal = agents.find(a => a.id === UNIVERSAL_AGENT_ID)
-            setSelectedAgent(universal ? universal.id : agents[0].id)
+        const params = new URLSearchParams(window.location.search)
+        const hasScene = params.get('sceneCode')
+        if (agents.length > 0) {
+            if (hasScene) {
+                setSelectedAgent('qos-agent');
+                // 调用诊断接口获取消息内容
+                handleDiagnosis(hasScene);
+            } else if (!selectedAgent) {
+                // 没有sceneCode且没有选择agent时，选择默认agent
+                const universal = agents.find(a => a.id === UNIVERSAL_AGENT_ID);
+                setSelectedAgent(universal ? universal.id : agents[0].id);
+            }
         }
     }, [agents, selectedAgent])
+
+    // 当诊断接口返回数据后，自动发送消息
+    useEffect(() => {
+        if (selectedAgent && diagnosisMessage) {
+            console.log('诊断接口返回数据，发送消息:', diagnosisMessage);
+            // 清空诊断消息，避免重复发送
+            setDiagnosisMessage('');
+            // 发送诊断结果作为消息
+            handleInputSubmit(diagnosisMessage);
+        }
+    }, [selectedAgent, diagnosisMessage]);
 
     useEffect(() => {
         const fetchModelInfo = async () => {

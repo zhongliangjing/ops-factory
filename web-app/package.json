@@ -1,8 +1,9 @@
 {
-  "name": "goose-web",
+  "name": "home",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.17",
   "type": "module",
+  "description": "home",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -11,6 +12,7 @@
   },
   "dependencies": {
     "@goosed/sdk": "file:../typescript-sdk",
+    "archiver": "^7.0.1",
     "highlight.js": "^11.11.1",
     "i18next": "^25.8.13",
     "i18next-browser-languagedetector": "^8.2.1",

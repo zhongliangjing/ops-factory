@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
+import { HashRouter } from 'react-router-dom'
 import App from './App'
 import { UserProvider } from './contexts/UserContext'
 import { GoosedProvider } from './contexts/GoosedContext'
@@ -12,7 +12,7 @@ import './App.css'
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
         <ErrorBoundary>
-            <BrowserRouter>
+            <HashRouter>
                 <ToastProvider>
                     <UserProvider>
                         <GoosedProvider>
@@ -20,7 +20,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                         </GoosedProvider>
                     </UserProvider>
                 </ToastProvider>
-            </BrowserRouter>
+            </HashRouter>
         </ErrorBoundary>
     </React.StrictMode>,
 )
