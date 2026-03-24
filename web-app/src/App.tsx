@@ -8,12 +8,11 @@ import AgentConfigure from './pages/AgentConfigure'
 import ScheduledActions from './pages/ScheduledActions'
 import Monitoring from './pages/Monitoring'
 import Inbox from './pages/Inbox'
-import Login from './pages/Login'
 import FilePreview from './components/FilePreview'
 import { PreviewProvider, usePreview } from './contexts/PreviewContext'
 import { InboxProvider } from './contexts/InboxContext'
 import { SidebarProvider, useSidebar } from './contexts/SidebarContext'
-import { ProtectedRoute, AdminRoute } from './contexts/UserContext'
+import { AdminRoute } from './contexts/UserContext'
 
 const IS_EMBED = new URLSearchParams(window.location.search).get('embed') === 'true'
 
@@ -55,17 +54,14 @@ function AppContent() {
 export default function App() {
     return (
         <Routes>
-            <Route path="/login" element={<Login />} />
             <Route path="/*" element={
-                <ProtectedRoute>
-                    <SidebarProvider>
-                        <InboxProvider>
-                            <PreviewProvider>
-                                <AppContent />
-                            </PreviewProvider>
-                        </InboxProvider>
-                    </SidebarProvider>
-                </ProtectedRoute>
+                <SidebarProvider>
+                    <InboxProvider>
+                        <PreviewProvider>
+                            <AppContent />
+                        </PreviewProvider>
+                    </InboxProvider>
+                </SidebarProvider>
             } />
         </Routes>
     )

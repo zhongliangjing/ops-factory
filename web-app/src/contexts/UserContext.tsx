@@ -17,9 +17,10 @@ const UserContext = createContext<UserContextType | null>(null)
 
 export function getCookie(name: string) {
     const cookies = document.cookie;
-    for(let cookie of cookies) {
-        const [cookieName,cookieValue] = cookie.trim().split('=')
-        if(cookieName ===name) {
+    const cookieArray = cookies.split('; ');
+    for(let cookie of cookieArray) {
+        const [cookieName,cookieValue] = cookie.split('=')
+        if(cookieName === name) {
             return decodeURIComponent(cookieValue)
         }
     }
@@ -30,11 +31,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const [userId, setUserId] = useState<string | null>(() => {
         const params = new URLSearchParams(window.location.search)
         const urlUserId = getCookie('username') ? getCookie('username') : params.get('userId')
+        console.log(getCookie('username'),'getCookie(usernam)');
+        
         if (urlUserId) {
             localStorage.setItem(STORAGE_KEY, urlUserId)
             return urlUserId
         }
-        return localStorage.getItem(STORAGE_KEY)
+        console.log(localStorage.getItem(STORAGE_KEY),'localStorage.getItem(STORAGE_KEY)');
+        
+        return localStorage.getItem(STORAGE_KEY) || 'default'
     })
     const [role, setRole] = useState<UserRole | null>(null)
 
@@ -108,10 +113,6 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
 /** Redirect to / if not admin */
 export function AdminRoute({ children }: { children: ReactNode }) {
     const { userId, role } = useUser()
-
-    if (!userId) {
-        return <Navigate to="/login" replace />
-    }
 
     if (role !== null && !isAdminUser(userId, role)) {
         return <Navigate to="/" replace />
