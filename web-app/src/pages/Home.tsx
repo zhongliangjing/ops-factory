@@ -82,8 +82,15 @@ export default function Home() {
             console.log('诊断接口返回数据，发送消息:', diagnosisMessage);
             // 清空诊断消息，避免重复发送
             setDiagnosisMessage('');
+            const params = new URLSearchParams(window.location.search)
+             const startT = new Date(Number(params.get('startTime'))).toLocaleString('zh-CN', {timeZone:
+            'Asia/Shanghai'});
+           const endT= new Date(Number(params.get('endTime'))).toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'}); 
+            const timeStr = params.get('startTime') && params.get('endTime') ? `， 时间区间为[ ${startT}，${endT} ]` : ''
+            const str = '对环境：'+ params.get('envCode') + '进行健康度初步分析' + timeStr
             // 发送诊断结果作为消息
-            handleInputSubmit(diagnosisMessage);
+            handleInputSubmit(str);
+            // handleInputSubmit(diagnosisMessage);
         }
     }, [selectedAgent, diagnosisMessage]);
 
@@ -142,6 +149,7 @@ export default function Home() {
         <div className="home-container">
             <div className="home-hero">
                 <h1 className="home-title">{t('home.greeting')}</h1>
+                
                 <p className="home-description">
                     {t('home.description')}
                 </p>
