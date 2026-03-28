@@ -163,6 +163,25 @@ EOF
     date +%s | shasum | awk '{print $1}'
 }
 
+read_gateway_api_password() {
+    if [ ! -t 0 ] || [ ! -r /dev/tty ] || [ ! -w /dev/tty ]; then
+        return 2
+    fi
+
+    printf "Enter API password for gateway REST interface: " >/dev/tty
+    if ! IFS= read -r -s GATEWAY_API_PASSWORD </dev/tty; then
+        printf "\n" >/dev/tty
+        log_error "Failed to read API password"
+        return 1
+    fi
+    printf "\n" >/dev/tty
+
+    if [ -z "${GATEWAY_API_PASSWORD}" ]; then
+        log_error "Password cannot be empty"
+        return 1
+    fi
+}
+
 stop_port() {
     local port=$1 name=$2
     if lsof -ti:"${port}" >/dev/null 2>&1; then
@@ -350,11 +369,17 @@ do_startup() {
         fi
     fi
 
-    # Internal password used by goosed child processes when they call back into the
-    # gateway. Generate one automatically unless the caller explicitly provides it.
     if [ -z "${GATEWAY_API_PASSWORD:-}" ]; then
-        GATEWAY_API_PASSWORD="$(generate_gateway_api_password)"
-        log_info "Generated random internal gateway API password for child processes"
+        if read_gateway_api_password; then
+            log_info "Using user-provided gateway API password"
+        else
+            local password_status=$?
+            if [ "${password_status}" -ne 2 ]; then
+                return 1
+            fi
+            GATEWAY_API_PASSWORD="$(generate_gateway_api_password)"
+            log_info "Generated random internal gateway API password for child processes"
+        fi
     fi
 
     # Log gooseTls configuration for debugging
