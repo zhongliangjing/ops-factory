@@ -654,7 +654,7 @@
     "perfP95Latency": "P95 延迟"
   },
   "home": {
-    "greeting": "你好，我是 OpsClaw 🦞",
+    "greeting": "你好，我是 OpsClaw",
     "description": "你的 AI 智能运维助手。我可以帮你进行故障诊断、日志分析、性能优化、变更风险评估等运维工作。",
     "creatingSession": "正在创建会话...",
     "askAnything": "描述你的运维问题或场景...",

@@ -654,7 +654,7 @@
     "perfP95Latency": "P95 Latency"
   },
   "home": {
-    "greeting": "Hello, I'm OpsClaw 🦞",
+    "greeting": "Hello, I'm OpsClaw",
     "description": "Your AI-powered intelligent ops agent. I can help you with fault diagnosis, log analysis, performance optimization, change risk assessment, and more.",
     "creatingSession": "Creating session...",
     "askAnything": "Describe your ops question or scenario...",
