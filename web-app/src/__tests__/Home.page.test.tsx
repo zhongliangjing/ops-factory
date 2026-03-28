@@ -46,5 +46,6 @@ describe('Home page', () => {
         expect(screen.getByRole('heading', { name: '你好，我是 OpsClaw' })).toBeTruthy()
         expect(screen.getByTestId('home-title-icon')).toBeTruthy()
         expect(screen.queryByText('🦞')).toBeNull()
+        expect(screen.queryAllByRole('tab')).toHaveLength(0)
     })
 })
