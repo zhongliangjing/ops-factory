@@ -22,4 +22,20 @@ class FlywayMigrationResourceTest {
         assertThat(sql).contains("CREATE TABLE IF NOT EXISTS document_chunk");
         assertThat(sql).contains("CREATE TABLE IF NOT EXISTS ingestion_job");
     }
+
+    @Test
+    void shouldShipAllJavaMigrationClassesOnClasspath() {
+        assertThat(classExists("db.migration.common.V2__add_source_runtime_columns")).isTrue();
+        assertThat(classExists("db.migration.common.V3__add_job_progress_columns")).isTrue();
+        assertThat(classExists("db.migration.common.V4__drop_legacy_embedding_record")).isTrue();
+    }
+
+    private boolean classExists(String className) {
+        try {
+            Class.forName(className);
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
 }

@@ -176,4 +176,151 @@ describe('Knowledge page', () => {
         fireEvent.click(screen.getByText('knowledge.configure'))
         await screen.findByText('configure-page')
     })
+
+    it('shows error banner when the API fails to load sources', async () => {
+        vi.mocked(fetch).mockReset()
+        vi.stubGlobal('fetch', vi.fn(() =>
+            Promise.reject(new Error('Network Error'))
+        ))
+
+        render(
+            <MemoryRouter>
+                <Knowledge />
+            </MemoryRouter>
+        )
+
+        await screen.findByText('common.connectionError:Network Error')
+    })
+
+    it('shows inline error in the modal when source creation fails', async () => {
+        vi.mocked(fetch).mockReset()
+        vi.stubGlobal('fetch', vi.fn((input: string | URL | Request, init?: RequestInit) => {
+            const url = String(input)
+            const method = init?.method ?? 'GET'
+
+            if (method === 'GET' && url.includes('/ops-knowledge/sources?page=1&pageSize=100')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({ items: [], page: 1, pageSize: 100, total: 0 }),
+                } as Response)
+            }
+
+            if (method === 'POST' && url.endsWith('/ops-knowledge/sources')) {
+                return Promise.resolve({
+                    ok: false,
+                    status: 400,
+                    json: async () => ({ message: 'Source name already exists' }),
+                } as Response)
+            }
+
+            return Promise.resolve({
+                ok: false,
+                status: 404,
+                json: async () => ({ message: 'not found' }),
+            } as Response)
+        }))
+
+        render(
+            <MemoryRouter>
+                <Knowledge />
+            </MemoryRouter>
+        )
+
+        await waitFor(() => {
+            expect(screen.queryByText('common.loading')).not.toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByText('knowledge.createButton'))
+        fireEvent.change(screen.getByPlaceholderText('knowledge.namePlaceholder'), { target: { value: '重复名称' } })
+        fireEvent.click(screen.getByText('knowledge.createAction'))
+
+        await screen.findByText('Source name already exists')
+    })
+
+    it('filters sources by status when clicking the status filter', async () => {
+        vi.mocked(fetch).mockReset()
+        vi.stubGlobal('fetch', vi.fn((input: string | URL | Request, init?: RequestInit) => {
+            const url = String(input)
+            const method = init?.method ?? 'GET'
+
+            if (method === 'GET' && url.includes('/ops-knowledge/sources?page=1&pageSize=100')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({
+                        items: [
+                            {
+                                id: 'src_001',
+                                name: '活跃知识库',
+                                description: '',
+                                status: 'ACTIVE',
+                                storageMode: 'MANAGED',
+                                indexProfileId: 'ip_default',
+                                retrievalProfileId: 'rp_default',
+                                createdAt: '2026-03-24T10:00:00Z',
+                                updatedAt: '2026-03-24T10:00:00Z',
+                            },
+                            {
+                                id: 'src_002',
+                                name: '禁用知识库',
+                                description: '',
+                                status: 'DISABLED',
+                                storageMode: 'MANAGED',
+                                indexProfileId: 'ip_default',
+                                retrievalProfileId: 'rp_default',
+                                createdAt: '2026-03-24T10:00:00Z',
+                                updatedAt: '2026-03-24T10:00:00Z',
+                            },
+                        ],
+                        page: 1,
+                        pageSize: 100,
+                        total: 2,
+                    }),
+                } as Response)
+            }
+
+            if (method === 'GET' && url.includes('/ops-knowledge/sources/') && url.includes('/stats')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({
+                        documentCount: 1,
+                        chunkCount: 10,
+                        indexedDocumentCount: 1,
+                        failedDocumentCount: 0,
+                        processingDocumentCount: 0,
+                        userEditedChunkCount: 0,
+                        lastIngestionAt: null,
+                    }),
+                } as Response)
+            }
+
+            return Promise.resolve({
+                ok: false,
+                status: 404,
+                json: async () => ({ message: 'not found' }),
+            } as Response)
+        }))
+
+        render(
+            <MemoryRouter>
+                <Knowledge />
+            </MemoryRouter>
+        )
+
+        await screen.findByText('活跃知识库')
+        expect(screen.getByText('禁用知识库')).toBeInTheDocument()
+
+        const tablist = screen.getByRole('tablist', { name: 'Status filter' })
+        const filterButtons = tablist.querySelectorAll('button')
+
+        fireEvent.click(filterButtons[1])
+        expect(screen.getByText('活跃知识库')).toBeInTheDocument()
+        expect(screen.queryByText('禁用知识库')).not.toBeInTheDocument()
+
+        fireEvent.click(filterButtons[2])
+        expect(screen.queryByText('活跃知识库')).not.toBeInTheDocument()
+        expect(screen.getByText('禁用知识库')).toBeInTheDocument()
+
+        fireEvent.click(filterButtons[0])
+        expect(screen.getByText('活跃知识库')).toBeInTheDocument()
+        expect(screen.getByText('禁用知识库')).toBeInTheDocument()
+    })
 })

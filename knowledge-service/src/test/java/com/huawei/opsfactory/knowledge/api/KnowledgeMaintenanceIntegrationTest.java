@@ -8,55 +8,17 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Comparator;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-class KnowledgeMaintenanceIntegrationTest {
-
-    private static final Path RUNTIME_BASE_DIR = Path.of("target/test-runtime-maintenance").toAbsolutePath().normalize();
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-    @DynamicPropertySource
-    static void registerProperties(DynamicPropertyRegistry registry) {
-        registry.add("knowledge.runtime.base-dir", () -> RUNTIME_BASE_DIR.toString());
-    }
+class KnowledgeMaintenanceIntegrationTest extends KnowledgeApiIntegrationTestSupport {
 
     @BeforeEach
-    void resetState() throws IOException {
-        jdbcTemplate.execute("delete from document_chunk");
-        jdbcTemplate.execute("delete from maintenance_job_failure");
-        jdbcTemplate.execute("delete from knowledge_document");
-        jdbcTemplate.execute("delete from ingestion_job");
-        jdbcTemplate.execute("delete from source_profile_binding");
-        jdbcTemplate.execute("delete from knowledge_source");
-        recreateDirectory(RUNTIME_BASE_DIR.resolve("upload"));
-        recreateDirectory(RUNTIME_BASE_DIR.resolve("artifacts"));
-        recreateDirectory(RUNTIME_BASE_DIR.resolve("indexes"));
+    void setUp() throws IOException {
+        resetRuntimeState();
     }
 
     @Test
@@ -108,7 +70,7 @@ class KnowledgeMaintenanceIntegrationTest {
             sourceId
         );
 
-        MvcResult searchResult = mockMvc.perform(post("/ops-knowledge/search")
+        var searchResult = readJson(mockMvc.perform(post("/ops-knowledge/search")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -117,15 +79,16 @@ class KnowledgeMaintenanceIntegrationTest {
                     }
                     """.formatted(sourceId)))
             .andExpect(status().isConflict())
-            .andReturn();
-        assertThat(readJson(searchResult).path("code").asText()).isEqualTo("SOURCE_IN_MAINTENANCE");
+            .andReturn());
+        assertThat(searchResult.path("code").asText()).isEqualTo("SOURCE_IN_MAINTENANCE");
 
-        MockMultipartFile file = mockTextFile("maintenance-check.txt", "runbook maintenance check");
-        MvcResult ingestResult = mockMvc.perform(multipart("/ops-knowledge/sources/{sourceId}/documents:ingest", sourceId)
+        MockMultipartFile file = new MockMultipartFile("files", "maintenance-check.txt",
+            MediaType.TEXT_PLAIN_VALUE, "runbook maintenance check".getBytes());
+        var ingestResult = readJson(mockMvc.perform(multipart("/ops-knowledge/sources/{sourceId}/documents:ingest", sourceId)
                 .file(file))
             .andExpect(status().isConflict())
-            .andReturn();
-        assertThat(readJson(ingestResult).path("code").asText()).isEqualTo("SOURCE_IN_MAINTENANCE");
+            .andReturn());
+        assertThat(ingestResult.path("code").asText()).isEqualTo("SOURCE_IN_MAINTENANCE");
     }
 
     @Test
@@ -201,42 +164,24 @@ class KnowledgeMaintenanceIntegrationTest {
         assertThat(failures.path("items").get(0).path("errorCode").asText()).isEqualTo("INDEX_WRITE_FAILED");
     }
 
-    private String createSource() throws Exception {
-        JsonNode json = readJson(mockMvc.perform(post("/ops-knowledge/sources")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                    {
-                      "name": "maintenance-source",
-                      "description": "maintenance test source"
-                    }
-                    """))
-            .andExpect(status().isOk())
-            .andReturn());
-        return json.path("id").asText();
-    }
-
-    private void uploadRunbook(String sourceId) throws Exception {
-        MockMultipartFile file = mockTextFile(
-            "sample-runbook.txt",
-            """
-            # Sample Runbook
-
-            Restart the affected service, verify the topology, and confirm incident recovery.
-            """
-        );
-        mockMvc.perform(multipart("/ops-knowledge/sources/{sourceId}/documents:ingest", sourceId)
-                .file(file))
-            .andExpect(status().isOk());
-    }
-
-    private MockMultipartFile mockTextFile(String fileName, String content) {
-        return new MockMultipartFile("files", fileName, MediaType.TEXT_PLAIN_VALUE, content.getBytes());
-    }
-
     private JsonNode getSource(String sourceId) throws Exception {
         return readJson(mockMvc.perform(get("/ops-knowledge/sources/{sourceId}", sourceId))
             .andExpect(status().isOk())
             .andReturn());
+    }
+
+    private void uploadRunbook(String sourceId) throws Exception {
+        MockMultipartFile file = new MockMultipartFile("files", "sample-runbook.txt",
+            MediaType.TEXT_PLAIN_VALUE,
+            """
+            # Sample Runbook
+
+            Restart the affected service, verify the topology, and confirm incident recovery.
+            """.getBytes()
+        );
+        mockMvc.perform(multipart("/ops-knowledge/sources/{sourceId}/documents:ingest", sourceId)
+                .file(file))
+            .andExpect(status().isOk());
     }
 
     private JsonNode waitForJob(String jobId) throws Exception {
@@ -251,25 +196,5 @@ class KnowledgeMaintenanceIntegrationTest {
             Thread.sleep(100L);
         }
         throw new IllegalStateException("Timed out waiting for job " + jobId);
-    }
-
-    private JsonNode readJson(MvcResult result) throws Exception {
-        return objectMapper.readTree(result.getResponse().getContentAsString());
-    }
-
-    private void recreateDirectory(Path path) throws IOException {
-        if (Files.exists(path)) {
-            try (Stream<Path> walk = Files.walk(path)) {
-                walk.sorted(Comparator.reverseOrder())
-                    .forEach(current -> {
-                        try {
-                            Files.deleteIfExists(current);
-                        } catch (IOException e) {
-                            throw new IllegalStateException(e);
-                        }
-                    });
-            }
-        }
-        Files.createDirectories(path);
     }
 }

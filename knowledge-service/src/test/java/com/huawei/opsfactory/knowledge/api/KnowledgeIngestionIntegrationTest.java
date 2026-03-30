@@ -5,6 +5,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -12,6 +15,7 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 
 class KnowledgeIngestionIntegrationTest extends KnowledgeApiIntegrationTestSupport {
 
@@ -93,5 +97,43 @@ class KnowledgeIngestionIntegrationTest extends KnowledgeApiIntegrationTestSuppo
         assertThat(retrieval.path("evidences").isArray()).isTrue();
         assertThat(retrieval.path("evidences")).isNotEmpty();
         assertThat(retrieval.path("evidences").get(0).path("content").asText()).containsIgnoringCase("SLA");
+    }
+
+    @Test
+    void shouldRejectUnsupportedContentTypeWithBadRequest() throws Exception {
+        String sourceId = createSource();
+        MockMultipartFile unsupportedFile = new MockMultipartFile(
+            "files", "malware.exe", "application/x-msdownload", "MZ fake exe content".getBytes()
+        );
+
+        mockMvc.perform(multipart("/ops-knowledge/sources/{sourceId}/documents:ingest", sourceId)
+                .file(unsupportedFile))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("REQUEST_FAILED"))
+            .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Unsupported content type")));
+    }
+
+    @Test
+    void shouldDeduplicateIdenticalFileOnSecondUpload() throws Exception {
+        String sourceId = createSource();
+        MockMultipartFile file = new MockMultipartFile(
+            "files", "repeat.md", "text/markdown", "# Repeat\n\nSame content".getBytes()
+        );
+
+        JsonNode first = readJson(mockMvc.perform(multipart("/ops-knowledge/sources/{sourceId}/documents:ingest", sourceId)
+                .file(file))
+            .andExpect(status().isOk())
+            .andReturn());
+        assertThat(first.path("status").asText()).isEqualTo("SUCCEEDED");
+        assertThat(first.path("documentCount").asInt()).isEqualTo(1);
+
+        JsonNode second = readJson(mockMvc.perform(multipart("/ops-knowledge/sources/{sourceId}/documents:ingest", sourceId)
+                .file(file))
+            .andExpect(status().isOk())
+            .andReturn());
+        assertThat(second.path("skippedCount").asInt()).isEqualTo(1);
+
+        JsonNode docs = listDocuments(sourceId);
+        assertThat(docs.path("total").asInt()).isEqualTo(1);
     }
 }
