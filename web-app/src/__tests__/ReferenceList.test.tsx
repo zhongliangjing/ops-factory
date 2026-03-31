@@ -56,6 +56,9 @@ describe('ReferenceList', () => {
             />
         )
 
+        expect(screen.getByText('本轮检索过的资料 (1)')).toBeInTheDocument()
+        expect(screen.getByText('2 chunks · p.12, 13')).toBeInTheDocument()
+
         fireEvent.click(screen.getByRole('button', { name: /Runbook\.pdf/i }))
 
         await waitFor(() => {

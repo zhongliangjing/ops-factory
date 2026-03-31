@@ -241,6 +241,50 @@ export function extractSourceDocuments(messages: { content: MessageContentItem[]
     return Array.from(merged.values()).map((citation, index) => ({ ...citation, index: index + 1 }))
 }
 
+export function extractFetchedDocuments(messages: { content: MessageContentItem[] }[]): Citation[] {
+    const toolNames = new Map<string, string>()
+    const fetchHits = new Map<string, Citation>()
+
+    for (const msg of messages) {
+        for (const content of msg.content) {
+            if (content.type === 'toolRequest' && content.id) {
+                const name = content.toolCall?.value?.name || ''
+                toolNames.set(content.id, name)
+            }
+
+            if (content.type !== 'toolResponse' || !content.id) {
+                continue
+            }
+
+            const name = toolNames.get(content.id) || ''
+            if (!/fetch/i.test(name) || /search/i.test(name)) {
+                continue
+            }
+
+            const value = content.toolResult?.status === 'success' ? content.toolResult.value : null
+            if (!value) continue
+
+            const data = unwrapToolResult(value) as Record<string, unknown>
+            const chunkId = typeof data?.chunkId === 'string' ? data.chunkId : null
+            if (!chunkId) continue
+
+            const text = typeof data?.text === 'string' ? data.text : ''
+            fetchHits.set(chunkId, {
+                index: 0,
+                title: typeof data?.title === 'string' && data.title.trim() ? data.title : chunkId,
+                documentId: typeof data?.documentId === 'string' ? data.documentId : null,
+                chunkId,
+                sourceId: typeof data?.sourceId === 'string' ? data.sourceId : null,
+                pageLabel: buildPageLabel(data?.pageFrom, data?.pageTo),
+                snippet: text ? text.slice(0, 180).trim() : null,
+                url: null,
+            })
+        }
+    }
+
+    return Array.from(fetchHits.values()).map((citation, index) => ({ ...citation, index: index + 1 }))
+}
+
 function buildPageLabel(pageFrom: unknown, pageTo: unknown): string | null {
     const from = typeof pageFrom === 'number' ? pageFrom : null
     const to = typeof pageTo === 'number' ? pageTo : null

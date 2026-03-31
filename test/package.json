@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "vitest run --config vitest.config.ts",
+    "test:basic": "vitest run --config vitest.config.ts basic-smoke.test.ts",
     "test:watch": "vitest --config vitest.config.ts",
     "test:e2e": "npx playwright test --config playwright.config.ts",
     "test:e2e:headed": "npx playwright test --config playwright.config.ts --headed"

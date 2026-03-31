@@ -41,6 +41,10 @@ interface DirectPreviewRequest {
 
 type PreviewRequest = AgentPreviewRequest | DirectPreviewRequest
 
+function isAgentPreviewRequest(file: PreviewRequest): file is AgentPreviewRequest {
+    return 'agentId' in file
+}
+
 interface PreviewContextType {
     previewFile: PreviewFile | null
     isLoading: boolean
@@ -107,6 +111,10 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
                     previewKind,
                 })
                 return
+            }
+
+            if (!isAgentPreviewRequest(file)) {
+                throw new Error('Preview request is missing agentId')
             }
 
             const normalizedType = inferFileType(file)

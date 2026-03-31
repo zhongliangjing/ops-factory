@@ -2,7 +2,7 @@ import { useRef, useEffect, useMemo, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import Message from './Message'
 import { ChatState, type OutputFilesEvent } from '../hooks/useChat'
-import { extractSourceDocuments, type Citation } from '../utils/citationParser'
+import { extractFetchedDocuments, extractSourceDocuments, type Citation } from '../utils/citationParser'
 import { getReasoningContent, getThinkingContent, hasDisplayTextContent, hasTextContent, hasToolContent } from '../utils/messageContent'
 import { useUser } from '../contexts/UserContext'
 import { GATEWAY_URL, GATEWAY_SECRET_KEY } from '../config/runtime'
@@ -172,6 +172,10 @@ export default function MessageList({ messages, isLoading = false, chatState = C
         return extractSourceDocuments(visibleMessages)
     }, [visibleMessages])
 
+    const fetchedDocuments = useMemo<Citation[]>(() => {
+        return extractFetchedDocuments(visibleMessages)
+    }, [visibleMessages])
+
     const gatewayHeaders = useCallback((): Record<string, string> => {
         const h: Record<string, string> = { 'x-secret-key': GATEWAY_SECRET_KEY }
         if (userId) h['x-user-id'] = userId
@@ -297,6 +301,7 @@ export default function MessageList({ messages, isLoading = false, chatState = C
                         isStreaming={isLastAssistant}
                         onRetry={message.role === 'assistant' && index === visibleMessages.length - 1 ? onRetry : undefined}
                         sourceDocuments={isFinalAssistantResponse ? sourceDocuments : undefined}
+                        fetchedDocuments={isFinalAssistantResponse ? fetchedDocuments : undefined}
                         outputFiles={message.id ? messageOutputFiles.get(message.id) : undefined}
                         showFileCapsules={hasOutputFiles}
                     />

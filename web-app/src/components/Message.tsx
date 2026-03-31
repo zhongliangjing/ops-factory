@@ -18,6 +18,7 @@ interface MessageProps {
     isStreaming?: boolean
     onRetry?: () => void
     sourceDocuments?: Citation[]
+    fetchedDocuments?: Citation[]
     outputFiles?: DetectedFile[]
     showFileCapsules?: boolean
 }
@@ -133,6 +134,7 @@ function MessageInner({
     isStreaming = false,
     onRetry,
     sourceDocuments,
+    fetchedDocuments,
     outputFiles = [],
     showFileCapsules = true,
 }: MessageProps) {
@@ -432,12 +434,14 @@ function MessageInner({
     const parsedCitations: Citation[] = !isUser && rawDisplayText ? parseCitations(rawDisplayText) : []
     const citations = mergeCitationMetadata(parsedCitations, sourceDocuments || [])
     const citationMap = new Map(citations.map(c => [c.index, c]))
+    const retrievedDocuments = sourceDocuments || fetchedDocuments || []
 
     const displayText = citations.length > 0
         ? replaceCitationsWithPlaceholders(rawDisplayText)
             .replace(/```[ \t]*\[CITE_/g, '```\n\n[CITE_')
         : rawDisplayText
-    const shouldShowReferences = !isUser && !isStreaming && citations.length > 0
+    const shouldShowCitedReferences = !isUser && !isStreaming && citations.length > 0
+    const shouldShowRetrievedReferences = !isUser && !isStreaming && retrievedDocuments.length > 0
 
     return (
         <div className={`message ${isUser ? 'user' : 'assistant'} animate-slide-in`}>
@@ -586,8 +590,12 @@ function MessageInner({
                         </div>
                     )}
 
-                    {shouldShowReferences && displayText && (
-                        <ReferenceList citations={citations} />
+                    {shouldShowCitedReferences && displayText && (
+                        <ReferenceList citations={citations} label="本轮引用过的资料" />
+                    )}
+
+                    {shouldShowRetrievedReferences && displayText && (
+                        <ReferenceList citations={retrievedDocuments} label="本轮检索过的资料" />
                     )}
 
                     {isStreaming && (

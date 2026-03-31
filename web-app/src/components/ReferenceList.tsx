@@ -5,6 +5,7 @@ import type { Citation } from '../utils/citationParser'
 
 interface ReferenceListProps {
     citations: Citation[]
+    label?: string
 }
 
 interface ReferenceGroup {
@@ -19,7 +20,7 @@ function buildReferenceKey(citation: Citation): string {
     return `doc:${citation.documentId}`
 }
 
-export default function ReferenceList({ citations }: ReferenceListProps) {
+export default function ReferenceList({ citations, label = '本轮检索过的资料' }: ReferenceListProps) {
     if (citations.length === 0) return null
     const { openPreview } = usePreview()
     const [openingKey, setOpeningKey] = useState<string | null>(null)
@@ -92,7 +93,7 @@ export default function ReferenceList({ citations }: ReferenceListProps) {
                     <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
                     <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
                 </svg>
-                References ({groups.length})
+                {label} ({groups.length})
             </div>
             <div className="reference-capsules">
                 {groups.map((group) => (
@@ -106,7 +107,7 @@ export default function ReferenceList({ citations }: ReferenceListProps) {
                         <span className="reference-capsule-index">{group.citationCount}</span>
                         <span className="reference-capsule-title">{group.title}</span>
                         <span className="reference-capsule-meta">
-                            {group.citationCount} cites
+                            {group.citationCount} chunks
                             {group.pageLabels.length > 0 ? ` · p.${group.pageLabels.join(', ')}` : ''}
                         </span>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">

@@ -7,6 +7,7 @@
     "type": "module",
     "scripts": {
         "build": "tsc",
+        "test:basic": "node --test --import tsx tests/client.basic.test.ts",
         "test": "node --test --import tsx tests/*.test.ts",
         "test:integration": "npm run build && node integration-test.ts",
         "clean": "rm -rf dist"

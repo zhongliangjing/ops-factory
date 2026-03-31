@@ -491,7 +491,6 @@ function MaintenanceTab({
     failureItems,
     failuresLoading,
     onToggleFailures,
-    rebuildRequired,
     sourceUnavailable,
     isMaintenanceMode,
     isRuntimeError,
@@ -502,7 +501,6 @@ function MaintenanceTab({
     failureItems: KnowledgeMaintenanceFailure[]
     failuresLoading: boolean
     onToggleFailures: () => void
-    rebuildRequired: boolean
     sourceUnavailable: boolean
     isMaintenanceMode: boolean
     isRuntimeError: boolean
@@ -2423,7 +2421,6 @@ export default function KnowledgeConfigure() {
                             failureItems={expandedFailureJobId === maintenance?.lastCompletedJob?.id ? maintenanceFailures : []}
                             failuresLoading={maintenanceFailuresLoading}
                             onToggleFailures={handleToggleMaintenanceFailures}
-                            rebuildRequired={source.rebuildRequired}
                             sourceUnavailable={isSourceUnavailable}
                             isMaintenanceMode={isMaintenanceMode}
                             isRuntimeError={isRuntimeError}
