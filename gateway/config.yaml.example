@@ -39,8 +39,6 @@ residentInstances:
   entries:
     - userId: admin
       agentIds: ["*"]
-    - userId: robby
-      agentIds: ["*"]
 
 agents:
   - {id: universal-agent, name: Universal Agent}

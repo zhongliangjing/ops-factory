@@ -18,7 +18,6 @@ residentInstances:
   enabled: true
   entries:
     - {userId: admin, agentIds: ['*']}
-    - {userId: robby, agentIds: ['*']}
 officePreview: {enabled: true, onlyofficeUrl: 'http://127.0.0.1:8080', fileBaseUrl: 'http://host.docker.internal:3000'}
 agents:
 - {id: universal-agent, name: Universal Agent}

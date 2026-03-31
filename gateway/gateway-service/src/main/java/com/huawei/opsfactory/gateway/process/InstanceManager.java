@@ -272,6 +272,7 @@ public class InstanceManager {
      */
     public Mono<ManagedInstance> getOrSpawn(String agentId, String userId) {
         String key = ManagedInstance.buildKey(agentId, userId);
+        long requestStart = System.currentTimeMillis();
 
         // Quick non-blocking check: reuse instance if process is alive.
         // The blocking health probe runs on boundedElastic below.
@@ -285,14 +286,19 @@ public class InstanceManager {
             } else {
                 // Process alive — run blocking health probe off the reactor thread
                 return Mono.fromCallable(() -> {
+                    long probeStart = System.currentTimeMillis();
                     if (!isHealthy(existing.getPort())) {
                         log.warn("Instance {}:{} unresponsive on port={}, killing and respawning",
                                 agentId, userId, existing.getPort());
                         stopInstance(existing);
                         return doSpawn(agentId, userId);
                     }
+                    long probeMs = System.currentTimeMillis() - probeStart;
+                    long totalMs = System.currentTimeMillis() - requestStart;
                     log.debug("Reusing existing instance {}:{} port={} pid={}", agentId, userId,
                             existing.getPort(), existing.getPid());
+                    log.info("[INSTANCE] resolved existing instance {}:{} port={} pid={} probeMs={} totalMs={}",
+                            agentId, userId, existing.getPort(), existing.getPid(), probeMs, totalMs);
                     existing.touch();
                     existing.resetRestartCount();
                     return existing;
@@ -300,13 +306,17 @@ public class InstanceManager {
             }
         }
 
-        log.info("No running instance for {}:{}, spawning new one", agentId, userId);
+        log.info("[INSTANCE] no running instance for {}:{}, spawning new one", agentId, userId);
         return Mono.fromCallable(() -> doSpawn(agentId, userId))
+                .doOnNext(instance -> log.info("[INSTANCE] spawned new instance {}:{} port={} pid={} totalMs={}",
+                        agentId, userId, instance.getPort(), instance.getPid(),
+                        System.currentTimeMillis() - requestStart))
                 .subscribeOn(Schedulers.boundedElastic());
     }
 
     private ManagedInstance doSpawn(String agentId, String userId) throws Exception {
         String key = ManagedInstance.buildKey(agentId, userId);
+        long spawnStart = System.currentTimeMillis();
         ReentrantLock lock = spawnLocks.computeIfAbsent(key, k -> new ReentrantLock());
         lock.lock();
         try {
@@ -314,6 +324,9 @@ public class InstanceManager {
             ManagedInstance existing = instances.get(key);
             if (existing != null && existing.getStatus() == ManagedInstance.Status.RUNNING) {
                 existing.touch();
+                log.info("[INSTANCE] concurrent spawn reused existing instance {}:{} port={} pid={} totalMs={}",
+                        agentId, userId, existing.getPort(), existing.getPid(),
+                        System.currentTimeMillis() - spawnStart);
                 return existing;
             }
 
@@ -330,9 +343,11 @@ public class InstanceManager {
                 throw new IllegalStateException("Global instance limit reached (" + maxGlobal + ")");
             }
 
+            long prepareStart = System.currentTimeMillis();
             Path runtimeRoot = runtimePreparer.prepare(agentId, userId);
             resetStuckRunningSchedules(runtimeRoot);
             int port = portAllocator.allocate();
+            long prepareMs = System.currentTimeMillis() - prepareStart;
 
             log.info("Preparing to spawn goosed for {}:{} on port {}, runtimeRoot={}, goosedBin={}",
                     agentId, userId, port, runtimeRoot, properties.getGoosedBin());
@@ -345,10 +360,12 @@ public class InstanceManager {
             pb.environment().putAll(env);
             pb.redirectErrorStream(true);
 
+            long processStart = System.currentTimeMillis();
             log.info("Spawning goosed for {}:{} on port {}, command: {} agent, TLS={}",
                     agentId, userId, port, properties.getGoosedBin(), env.get("GOOSE_TLS"));
             Process process = pb.start();
             long pid = ProcessUtil.getPid(process);
+            long processStartMs = System.currentTimeMillis() - processStart;
             log.info("goosed process started for {}:{} on port {} with pid={}, GOOSE_TLS env={}",
                     agentId, userId, port, pid, env.get("GOOSE_TLS"));
 
@@ -376,11 +393,16 @@ public class InstanceManager {
             ManagedInstance instance = new ManagedInstance(agentId, userId, port, pid, process, instanceSecret);
             instances.put(key, instance);
 
+            long readyStart = System.currentTimeMillis();
             log.debug("Starting health check for {}:{} on port {} (pid={}), URL: {}",
                     agentId, userId, port, pid, goosedBaseUrl(port) + "/status");
             waitForReady(port, process);
+            long readyMs = System.currentTimeMillis() - readyStart;
             instance.setStatus(ManagedInstance.Status.RUNNING);
             log.info("Instance {}:{} ready on port {} (pid={})", agentId, userId, port, pid);
+            log.info("[INSTANCE] spawn ready {}:{} port={} pid={} prepareMs={} processStartMs={} waitReadyMs={} totalMs={}",
+                    agentId, userId, port, pid, prepareMs, processStartMs, readyMs,
+                    System.currentTimeMillis() - spawnStart);
 
             return instance;
         } catch (Exception e) {

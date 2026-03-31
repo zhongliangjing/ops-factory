@@ -56,6 +56,7 @@ public class SessionController {
                                      @RequestBody String body,
                                      ServerWebExchange exchange) {
         String userId = exchange.getAttribute(UserContextFilter.USER_ID_ATTR);
+        long requestStart = System.currentTimeMillis();
         // Inject working_dir into the request body (override any client-supplied value)
         String workingDir = agentConfigService.getUserAgentDir(userId, agentId)
                 .toAbsolutePath().normalize().toString();
@@ -70,24 +71,40 @@ public class SessionController {
                     .replace("\"", "\\\"") + "\"}";
         }
         String finalBody = modifiedBody;
+        boolean resident = agentConfigService.isResidentInstance(agentId, userId);
+        log.info("[SESSION-START] begin agentId={} userId={} resident={} bodyLen={}",
+                agentId, userId, resident, body.length());
         return instanceManager.getOrSpawn(agentId, userId)
-                .flatMap(instance -> goosedProxy.fetchJson(
+                .flatMap(instance -> {
+                    long afterInstanceMs = System.currentTimeMillis() - requestStart;
+                    log.info("[SESSION-START] instance resolved agentId={} userId={} resident={} port={} pid={} resolveMs={}",
+                            agentId, userId, resident, instance.getPort(), instance.getPid(), afterInstanceMs);
+                    long startCallStart = System.currentTimeMillis();
+                    return goosedProxy.fetchJson(
                         instance.getPort(), HttpMethod.POST, "/agent/start", finalBody, 120, instance.getSecretKey())
                         .flatMap(startResponse -> {
+                            long startCallMs = System.currentTimeMillis() - startCallStart;
                             // Follow goosed canonical flow: start → resume(load_model_and_extensions=true)
                             // Extensions must be loaded before the session is returned to the client.
                             // This matches Node.js legacy and Goose Desktop behavior.
                             String sessionId = extractSessionId(startResponse);
                             String resumeBody = "{\"session_id\":\"" + sessionId
                                     + "\",\"load_model_and_extensions\":true}";
+                            log.info("[SESSION-START] goosed start complete agentId={} userId={} sessionId={} port={} startCallMs={}",
+                                    agentId, userId, sessionId, instance.getPort(), startCallMs);
+                            long resumeStart = System.currentTimeMillis();
                             return goosedProxy.fetchJson(
                                     instance.getPort(), HttpMethod.POST, "/agent/resume", resumeBody, 120, instance.getSecretKey())
                                     .doOnNext(r -> {
+                                        long resumeMs = System.currentTimeMillis() - resumeStart;
                                         instance.markSessionResumed(sessionId);
-                                        log.info("Extensions loaded for session {}", sessionId);
+                                        log.info("[SESSION-START] session ready agentId={} userId={} sessionId={} resident={} port={} resumeMs={} totalMs={}",
+                                                agentId, userId, sessionId, resident, instance.getPort(), resumeMs,
+                                                System.currentTimeMillis() - requestStart);
                                     })
                                     .thenReturn(startResponse);
-                        }));
+                        });
+                });
     }
 
     private String extractSessionId(String startResponse) {
