@@ -1,0 +1,61 @@
+{
+  "id" : "0529346e-fd44-4bcd-8ced-a4c733d473ac",
+  "name" : "RCPA进程异常告警",
+  "description" : "RCPA进程异常告警之后需要去环境远程诊断",
+  "version" : "1.0",
+  "triggerCondition" : "RCPA进程异常告警是根因",
+  "nodes" : [ {
+    "id" : "node-1774851027517-0",
+    "name" : "进程重启判断",
+    "type" : "start",
+    "hostTags" : [ "RCPA" ],
+    "command" : "ps -ef|grep {{process_path}}|grep -v grep",
+    "variables" : [ {
+      "name" : "process_path",
+      "defaultValue" : " /rcpa/openas",
+      "description" : "",
+      "required" : false
+    } ],
+    "outputFormat" : "进程列表",
+    "analysisInstruction" : "根据进程运行时长判断是否发生重启。如果没有重启转入节点\"线程池使用量分析\"和\"longsql分析\"，否则转入节点\"报错日志分析\"",
+    "transitions" : [ {
+      "condition" : "未发生重启",
+      "nextNodeId" : "线程池使用量分析",
+      "nextNodes" : [ "线程池使用量分析", "longsql分析" ]
+    }, {
+      "condition" : "发生重启",
+      "nextNodeId" : "报错日志分析",
+      "nextNodes" : [ "报错日志分析" ]
+    } ]
+  }, {
+    "id" : "node-1774851028433-1",
+    "name" : "线程池使用量分析",
+    "type" : "analysis",
+    "hostTags" : [ "RCPA" ],
+    "command" : "cd /home/rcpa/openas/logs/stat;tail -n 50 pool.log",
+    "variables" : [ ],
+    "outputFormat" : "|日志级别|线程名|线程池名称|实际使用线程数|最大线程数|实际缓存队列大小|队列长度|",
+    "analysisInstruction" : "分析线程池实际使用量，如达到最大使用量将会出现等待或者超时失败情况",
+    "transitions" : [ ]
+  }, {
+    "id" : "node-1774851028840-2",
+    "name" : "longsql分析",
+    "type" : "analysis",
+    "hostTags" : [ "GMDB" ],
+    "command" : "cd /onip/app/rtbmdb/gmdb/log/debug;tail -n 500 dgmserver.log|grep \"Long SQL\"",
+    "variables" : [ ],
+    "outputFormat" : "Long SQL日志",
+    "analysisInstruction" : "根据命令来判断是否存在查询的select或者update语句的Duration耗时较长",
+    "transitions" : [ ]
+  }, {
+    "id" : "node-1774851029213-3",
+    "name" : "报错日志分析",
+    "type" : "analysis",
+    "hostTags" : [ "RCPA" ],
+    "command" : "cd /home/rcpa/openas/logs/run;tail -n 500 run.log|grep -v \"is not match\"|grep -v \"parameter format error\"",
+    "variables" : [ ],
+    "outputFormat" : "错误日志",
+    "analysisInstruction" : "根据日志内容做问题分析",
+    "transitions" : [ ]
+  } ]
+}
