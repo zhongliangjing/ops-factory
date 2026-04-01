@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import type { EChartsOption } from 'echarts'
 import { useTranslation } from 'react-i18next'
+import MonitoringChartCard from '../components/monitoring/MonitoringChartCard'
 import { useGoosed } from '../contexts/GoosedContext'
 import { useMonitoring, useMonitoringPlatform, type TimeRange, type DailyPoint, type TraceRow, type AgentInfo } from '../hooks/useMonitoring'
 import { useMetrics, type MetricsPoint, type AgentMetrics } from '../hooks/useMetrics'
@@ -57,9 +59,284 @@ function fmtMs2(ms: number): string {
   return `${(ms / 1000).toFixed(2)}s`
 }
 
+function fmtPct(value: number): string {
+  return `${(value * 100).toFixed(value >= 0.1 ? 0 : 1)}%`
+}
+
 function fmtTimeShort(epoch: number): string {
   const d = new Date(epoch)
   return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
+}
+
+const MON_COLORS = {
+  requests: '#2563eb',
+  throughput: '#06b6d4',
+  avgLatency: '#f59e0b',
+  p95Latency: '#dc2626',
+  ttft: '#fb7185',
+  errors: '#ef4444',
+  instances: '#10b981',
+  grid: 'rgba(148, 163, 184, 0.18)',
+  axis: '#94a3b8',
+  text: '#64748b',
+  textStrong: '#334155',
+  blueArea: 'rgba(37, 99, 235, 0.10)',
+  cyanArea: 'rgba(6, 182, 212, 0.08)',
+  amberArea: 'rgba(245, 158, 11, 0.10)',
+  roseArea: 'rgba(251, 113, 133, 0.08)',
+  greenArea: 'rgba(16, 185, 129, 0.08)',
+  redArea: 'rgba(239, 68, 68, 0.10)',
+  threshold: 'rgba(220, 38, 38, 0.55)',
+}
+
+function buildChartTooltip(params: any[], valueFormatter: (seriesName: string, value: number) => string): string {
+  const rows = params.map(item => {
+    const value = Array.isArray(item.value) ? Number(item.value[1]) : Number(item.value)
+    return `${item.marker}<span style="margin-left:4px">${item.seriesName}: ${valueFormatter(item.seriesName, value)}</span>`
+  })
+
+  return [
+    `<div style="font-weight:600;margin-bottom:6px;color:${MON_COLORS.textStrong}">${params[0]?.axisValueLabel || ''}</div>`,
+    ...rows,
+  ].join('<br/>')
+}
+
+function buildBaseChartOption(series: MetricsPoint[]): Pick<EChartsOption, 'grid' | 'tooltip' | 'xAxis'> {
+  return {
+    grid: {
+      left: 48,
+      right: 24,
+      top: 10,
+      bottom: 32,
+      containLabel: false,
+    },
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: 'rgba(255,255,255,0.96)',
+      borderColor: 'rgba(148, 163, 184, 0.22)',
+      borderWidth: 1,
+      textStyle: {
+        color: MON_COLORS.textStrong,
+        fontSize: 12,
+      },
+      extraCssText: 'box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12); border-radius: 12px;',
+      axisPointer: {
+        type: 'line',
+        lineStyle: {
+          color: 'rgba(100, 116, 139, 0.35)',
+          width: 1,
+        },
+      },
+    },
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      data: series.map(point => fmtTimeShort(point.t)),
+      axisLine: {
+        lineStyle: {
+          color: MON_COLORS.axis,
+        },
+      },
+      axisTick: {
+        show: false,
+      },
+      axisLabel: {
+        color: MON_COLORS.text,
+        fontSize: 11,
+        margin: 10,
+      },
+    },
+  }
+}
+
+function buildThroughputOption(series: MetricsPoint[], labels: { requests: string; throughput: string }): EChartsOption {
+  const base = buildBaseChartOption(series)
+
+  return {
+    ...base,
+    tooltip: {
+      ...base.tooltip,
+      formatter: params => buildChartTooltip(params as any[], (seriesName, value) => {
+        if (seriesName === labels.requests) return fmtNum(value)
+        return value > 0 ? value.toFixed(1) : '0'
+      }),
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: labels.requests,
+        nameTextStyle: {
+          color: MON_COLORS.text,
+          fontSize: 11,
+          padding: [0, 0, 0, -12],
+        },
+        splitLine: {
+          lineStyle: {
+            color: MON_COLORS.grid,
+            type: 'dashed',
+          },
+        },
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: {
+          color: MON_COLORS.text,
+          fontSize: 11,
+          formatter: (value: number) => fmtNum(value),
+        },
+      },
+      {
+        type: 'value',
+        splitLine: { show: false },
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: {
+          color: MON_COLORS.text,
+          fontSize: 11,
+          formatter: (value: number) => value > 0 ? value.toFixed(0) : '0',
+        },
+      },
+    ],
+    series: [
+      {
+        name: labels.requests,
+        type: 'line',
+        smooth: 0.28,
+        showSymbol: false,
+        symbol: 'circle',
+        lineStyle: {
+          width: 2.5,
+          color: MON_COLORS.requests,
+        },
+        areaStyle: {
+          color: MON_COLORS.blueArea,
+        },
+        emphasis: {
+          focus: 'series',
+        },
+        data: series.map(point => point.requests),
+      },
+      {
+        name: labels.throughput,
+        type: 'line',
+        yAxisIndex: 1,
+        smooth: 0.28,
+        showSymbol: false,
+        symbol: 'circle',
+        lineStyle: {
+          width: 2,
+          color: MON_COLORS.throughput,
+        },
+        areaStyle: {
+          color: MON_COLORS.cyanArea,
+        },
+        emphasis: {
+          focus: 'series',
+        },
+        data: series.map(point => point.tokensPerSec),
+      },
+    ],
+  }
+}
+
+function buildLatencyOption(
+  series: MetricsPoint[],
+  labels: { avgLatency: string; p95Latency: string; ttft: string; p95Threshold: string; ttftThreshold: string }
+): EChartsOption {
+  const base = buildBaseChartOption(series)
+
+  return {
+    ...base,
+    tooltip: {
+      ...base.tooltip,
+      formatter: params => buildChartTooltip(params as any[], (_seriesName, value) => fmtMs2(value)),
+    },
+    yAxis: {
+      type: 'value',
+      name: 'ms',
+      nameTextStyle: {
+        color: MON_COLORS.text,
+        fontSize: 11,
+        padding: [0, 0, 0, -8],
+      },
+      splitLine: {
+        lineStyle: {
+          color: MON_COLORS.grid,
+          type: 'dashed',
+        },
+      },
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: {
+        color: MON_COLORS.text,
+        fontSize: 11,
+        formatter: (value: number) => value >= 1000 ? `${(value / 1000).toFixed(value >= 10_000 ? 0 : 1)}s` : `${value}`
+      },
+    },
+    series: [
+      {
+        name: labels.avgLatency,
+        type: 'line',
+        smooth: 0.22,
+        showSymbol: false,
+        lineStyle: {
+          width: 2.5,
+          color: MON_COLORS.avgLatency,
+        },
+        areaStyle: {
+          color: MON_COLORS.amberArea,
+        },
+        data: series.map(point => point.avgLatency),
+      },
+      {
+        name: labels.p95Latency,
+        type: 'line',
+        smooth: 0.18,
+        showSymbol: false,
+        lineStyle: {
+          width: 2,
+          type: 'dashed',
+          color: MON_COLORS.p95Latency,
+        },
+        data: series.map(point => point.p95Latency),
+        markLine: {
+          symbol: 'none',
+          label: {
+            show: false,
+          },
+          lineStyle: {
+            color: MON_COLORS.threshold,
+            type: 'dashed',
+          },
+          data: [{ yAxis: 5000 }],
+        },
+      },
+      {
+        name: labels.ttft,
+        type: 'line',
+        smooth: 0.22,
+        showSymbol: false,
+        lineStyle: {
+          width: 2,
+          color: MON_COLORS.ttft,
+        },
+        areaStyle: {
+          color: MON_COLORS.roseArea,
+        },
+        data: series.map(point => point.avgTtft),
+        markLine: {
+          symbol: 'none',
+          label: {
+            show: false,
+          },
+          lineStyle: {
+            color: 'rgba(251, 113, 133, 0.55)',
+            type: 'dashed',
+          },
+          data: [{ yAxis: 2000 }],
+        },
+      },
+    ],
+  }
 }
 
 // --- Shared sub-components ------------------------------------------------
@@ -71,6 +348,76 @@ function KpiCard({ label, value, sub, accent }: { label: string; value: string; 
       <span className="mon-kpi-label">{label}</span>
       <span className="mon-kpi-value">{value}</span>
       {sub && <span className="mon-kpi-sub">{sub}</span>}
+    </div>
+  )
+}
+
+function StatusCard({
+  title,
+  description,
+  value,
+  tone,
+  trend,
+  metrics,
+}: {
+  title: string
+  description: string
+  value: string
+  tone?: 'error' | 'success'
+  trend?: { data: number[]; color: string }
+  metrics?: Array<{ label: string; value: string }>
+}) {
+  const cls = tone ? `mon-chart-block mon-status-card mon-status-card-${tone}` : 'mon-chart-block mon-status-card'
+
+  return (
+    <div className={cls}>
+      <div className="mon-status-card-head">
+        <div className="mon-chart-card-meta">
+          <span className="mon-chart-title">{title}</span>
+          <span className="mon-chart-subtitle">{description}</span>
+        </div>
+        <span className="mon-chart-summary">{value}</span>
+      </div>
+      {metrics && metrics.length > 0 && (
+        <div className="mon-status-metrics">
+          {metrics.map(metric => (
+            <div key={metric.label} className="mon-status-metric">
+              <span className="mon-status-metric-label">{metric.label}</span>
+              <span className="mon-status-metric-value">{metric.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {trend && trend.data.length > 1 && (
+        <div className="mon-status-sparkline" aria-hidden="true">
+          <svg viewBox="0 0 240 56" preserveAspectRatio="none">
+            {(() => {
+              const min = Math.min(...trend.data)
+              const max = Math.max(...trend.data)
+              const range = max - min || 1
+              const points = trend.data.map((entry, index) => {
+                const x = (index / Math.max(trend.data.length - 1, 1)) * 240
+                const y = 44 - ((entry - min) / range) * 28
+                return `${x},${y}`
+              }).join(' ')
+
+              return (
+                <>
+                  <polyline
+                    fill="none"
+                    stroke={trend.color}
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    points={points}
+                  />
+                  <line x1="0" y1="54" x2="240" y2="54" stroke="rgba(148, 163, 184, 0.22)" strokeDasharray="4 4" />
+                </>
+              )
+            })()}
+          </svg>
+        </div>
+      )}
     </div>
   )
 }
@@ -223,7 +570,7 @@ function PlatformTab() {
               accent={system.langfuse.configured ? 'success' : undefined}
             />
           </div>
-          <div className="mon-kpi-row" style={{ gridTemplateColumns: 'repeat(2, 1fr)', marginTop: 'var(--spacing-3)' }}>
+          <div className="mon-kpi-row" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
             <KpiCard label={t('monitoring.platformIdleTimeout')} value={fmtMs(system.idle.timeoutMs)} />
             <KpiCard
               label={t('monitoring.instancesRunning')}
@@ -362,83 +709,6 @@ function AgentsTab() {
 
 // --- Tab: Usage -----------------------------------------------------------
 
-function UsageSparkline({ data, valueKey, color, formatter }: {
-  data: MetricsPoint[]
-  valueKey: keyof MetricsPoint
-  color: string
-  formatter?: (v: number) => string
-}) {
-  const fmt = formatter || String
-  const values = data.map(d => d[valueKey] as number)
-  if (values.length < 2) return null
-
-  // Downsample if too many points
-  const maxPts = 60
-  const step = values.length > maxPts ? Math.ceil(values.length / maxPts) : 1
-  const sampled = values.filter((_, i) => i % step === 0)
-  const sampledData = data.filter((_, i) => i % step === 0)
-  if (sampled.length < 2) return null
-
-  const max = Math.max(...sampled)
-  const min = Math.min(...sampled)
-  const range = max - min || 1
-  const padY = 10
-  const w = 600
-  const h = 140
-  const chartH = h - 28
-  const stepX = sampled.length > 1 ? (w - 40) / (sampled.length - 1) : (w - 40)
-
-  const points = sampled.map((v, i) => ({
-    x: 20 + i * stepX,
-    y: padY + (1 - (v - min) / range) * (chartH - padY * 2),
-  }))
-
-  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ')
-  const areaPath = `${linePath} L${points[points.length - 1].x},${chartH} L${points[0].x},${chartH} Z`
-  const gradId = `grad-usage-${color.replace(/[^a-z0-9]/gi, '')}-${valueKey as string}`
-  const gridLines = [0.25, 0.5, 0.75].map(pct => padY + pct * (chartH - padY * 2))
-
-  // Show labels at first, quarter, half, three-quarter, last
-  const labelIndices = new Set([
-    0,
-    Math.floor(sampled.length / 4),
-    Math.floor(sampled.length / 2),
-    Math.floor(sampled.length * 3 / 4),
-    sampled.length - 1,
-  ])
-
-  return (
-    <svg className="mon-sparkline" viewBox={`0 0 ${w} ${h}`}>
-      <defs>
-        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.12" />
-          <stop offset="100%" stopColor={color} stopOpacity="0.01" />
-        </linearGradient>
-      </defs>
-      {gridLines.map((y, i) => (
-        <line key={i} x1="20" y1={y} x2={w - 20} y2={y}
-          stroke="var(--color-border)" strokeWidth="0.5" strokeDasharray="4 4" />
-      ))}
-      <path d={areaPath} fill={`url(#${gradId})`} />
-      <path d={linePath} fill="none" stroke={color} strokeWidth="2"
-        strokeLinecap="round" strokeLinejoin="round" />
-      {points.map((p, i) => (
-        <g key={i}>
-          {labelIndices.has(i) && (
-            <>
-              <circle cx={p.x} cy={p.y} r="4" fill="var(--color-bg-primary)" stroke={color} strokeWidth="2" />
-              <text x={p.x} y={p.y - 12} textAnchor="middle" fontSize="11" fontWeight="600"
-                fill="var(--color-text-secondary)">{fmt(sampled[i])}</text>
-              <text x={p.x} y={h - 4} textAnchor="middle" fontSize="10"
-                fill="var(--color-text-muted)">{fmtTimeShort(sampledData[i].t)}</text>
-            </>
-          )}
-        </g>
-      ))}
-    </svg>
-  )
-}
-
 function PerformanceTab() {
   const { t } = useTranslation()
   const { error: connectionError } = useGoosed()
@@ -453,49 +723,137 @@ function PerformanceTab() {
   if (!data) return null
 
   const { current, aggregate, series } = data
+  const hasTrend = series.length > 1
+  const hasTraffic = series.some(point =>
+    point.requests > 0 ||
+    point.tokensPerSec > 0 ||
+    point.avgLatency > 0 ||
+    point.avgTtft > 0 ||
+    point.p95Latency > 0 ||
+    point.errors > 0
+  )
+  const hasSeriesData = series.length > 0
+
+  const throughputOption = hasTrend ? buildThroughputOption(series, {
+    requests: t('monitoring.usageRequests'),
+    throughput: t('monitoring.perfTokensPerSec'),
+  }) : undefined
+
+  const latencyOption = hasTrend ? buildLatencyOption(series, {
+    avgLatency: t('monitoring.usageAvgLatency'),
+    p95Latency: t('monitoring.perfP95Latency'),
+    ttft: t('monitoring.usageAvgTtft'),
+    p95Threshold: t('monitoring.perfP95Threshold'),
+    ttftThreshold: t('monitoring.perfTtftThreshold'),
+  }) : undefined
+
+  const peakRequests = series.reduce((max, point) => Math.max(max, point.requests), 0)
+  const peakLatency = series.reduce((max, point) => Math.max(max, point.p95Latency), 0)
+  const hasErrorRequests = series.some(point => point.errors > 0)
+  const instanceValues = series.map(point => point.instances)
+  const instanceStable = instanceValues.length > 0 && instanceValues.every(value => value === instanceValues[0])
+  const errorRate = aggregate.totalRequests > 0 ? aggregate.totalErrors / aggregate.totalRequests : 0
+  const thresholdRatio = hasSeriesData ? series.filter(point => point.avgTtft > 2000 || point.p95Latency > 5000).length / series.length : 0
+  const latestSpike = [...series].reverse().find(point => point.avgTtft > 2000 || point.p95Latency > 5000)
 
   return (
     <>
+      <div className="mon-section-head">
+        <div>
+          <h2 className="mon-section-title">{t('monitoring.perfOverviewTitle')}</h2>
+          <p className="mon-section-subtitle">{t('monitoring.perfOverviewWindow')}</p>
+        </div>
+      </div>
       {/* KPI Row 1 */}
-      <div className="mon-kpi-row" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+      <div className="mon-kpi-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
         <KpiCard label={t('monitoring.usageActiveInstances')} value={current ? String(current.activeInstances) : '0'} />
-        <KpiCard label={t('monitoring.usageTotalTokens')} value={current ? fmtNum(current.totalTokens) : '0'} />
-        <KpiCard label={t('monitoring.usageRequests')} value={fmtNum(aggregate.totalRequests)} sub={t('monitoring.usageLast1h')} />
+        <KpiCard label={t('monitoring.usageRequests')} value={fmtNum(aggregate.totalRequests)} />
+        <KpiCard label={t('monitoring.perfErrorRate')} value={fmtPct(errorRate)} accent={errorRate > 0 ? 'error' : undefined} />
         <KpiCard label={t('monitoring.usageAvgLatency')} value={fmtMs2(aggregate.avgLatencyMs)} />
-        <KpiCard label={t('monitoring.usageAvgTtft')} value={fmtMs2(aggregate.avgTtftMs)} />
       </div>
       {/* KPI Row 2 */}
-      <div className="mon-kpi-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginTop: 'var(--spacing-3)' }}>
-        <KpiCard label={t('monitoring.usageTotalSessions')} value={current ? String(current.totalSessions) : '0'} />
-        <KpiCard label={t('monitoring.perfTokensPerSec')} value={aggregate.avgTokensPerSec > 0 ? `${aggregate.avgTokensPerSec.toFixed(1)}` : '\u2014'} />
-        <KpiCard
-          label={t('monitoring.usageErrors')}
-          value={String(aggregate.totalErrors)}
-          accent={aggregate.totalErrors > 0 ? 'error' : undefined}
-        />
+      <div className="mon-kpi-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
         <KpiCard label={t('monitoring.perfP95Latency')} value={fmtMs2(aggregate.p95LatencyMs)} />
+        <KpiCard label={t('monitoring.usageAvgTtft')} value={fmtMs2(aggregate.avgTtftMs)} />
+        <KpiCard label={t('monitoring.perfThresholdRatio')} value={fmtPct(thresholdRatio)} accent={thresholdRatio > 0 ? 'error' : undefined} />
+        <KpiCard label={t('monitoring.usageTotalSessions')} value={current ? String(current.totalSessions) : '0'} />
       </div>
 
       {/* Charts */}
-      {series.length > 1 && (
+      {hasTrend && (
         <div className="mon-section">
-          <div className="mon-chart-grid">
-            <div className="mon-chart-block">
-              <span className="mon-chart-title">{t('monitoring.usageTtftTrend')}</span>
-              <UsageSparkline data={series} valueKey="avgTtft" color="var(--color-success)" formatter={v => fmtMs2(v)} />
+          <div className="mon-section-head">
+            <div>
+              <h2 className="mon-section-title">{t('monitoring.perfTrendAnalysis')}</h2>
+              <p className="mon-section-subtitle">{t('monitoring.perfTrendDescription')}</p>
             </div>
-            <div className="mon-chart-block">
-              <span className="mon-chart-title">{t('monitoring.usageLatencyTrend')}</span>
-              <UsageSparkline data={series} valueKey="avgLatency" color="var(--color-warning)" formatter={v => fmtMs2(v)} />
-            </div>
-            <div className="mon-chart-block">
-              <span className="mon-chart-title">{t('monitoring.perfTokensPerSecTrend')}</span>
-              <UsageSparkline data={series} valueKey="tokensPerSec" color="var(--color-accent)" formatter={v => v > 0 ? v.toFixed(1) : '0'} />
-            </div>
-            <div className="mon-chart-block">
-              <span className="mon-chart-title">{t('monitoring.usageRequestsTrend')}</span>
-              <UsageSparkline data={series} valueKey="requests" color="#8b5cf6" formatter={v => String(Math.round(v))} />
-            </div>
+          </div>
+          <div className="mon-chart-grid mon-chart-grid-featured">
+            <MonitoringChartCard
+              title={t('monitoring.perfThroughputTrend')}
+              subtitle={t('monitoring.perfSamplingWindow')}
+              summary={`${t('monitoring.perfPeak')} ${fmtNum(peakRequests)}`}
+              legendItems={[
+                { label: t('monitoring.usageRequests'), color: MON_COLORS.requests },
+                { label: t('monitoring.perfTokensPerSec'), color: MON_COLORS.throughput },
+              ]}
+              option={throughputOption}
+              height={248}
+              isLoading={isLoading && !throughputOption}
+              isEmpty={!hasTraffic}
+              loadingText={t('monitoring.loading')}
+              emptyText={t('monitoring.perfNoTraffic')}
+            />
+            <MonitoringChartCard
+              title={t('monitoring.perfLatencyOverview')}
+              subtitle={latestSpike
+                ? `${t('monitoring.perfSamplingWindow')} · ${t('monitoring.perfThresholdLatestSpike', { time: fmtTimeShort(latestSpike.t) })}`
+                : t('monitoring.perfSamplingWindow')}
+              summary={`P95 ${fmtMs2(peakLatency)} · ${fmtPct(thresholdRatio)}`}
+              legendItems={[
+                { label: t('monitoring.usageAvgLatency'), color: MON_COLORS.avgLatency },
+                { label: t('monitoring.perfP95Latency'), color: MON_COLORS.p95Latency, dashed: true },
+                { label: t('monitoring.usageAvgTtft'), color: MON_COLORS.ttft },
+              ]}
+              option={latencyOption}
+              height={248}
+              isLoading={isLoading && !latencyOption}
+              isEmpty={!hasTraffic}
+              loadingText={t('monitoring.loading')}
+              emptyText={t('monitoring.perfNoTraffic')}
+            />
+          </div>
+          <div className="mon-chart-grid mon-chart-grid-secondary">
+            <StatusCard
+              title={t('monitoring.perfErrorState')}
+              description={hasSeriesData
+                ? hasErrorRequests
+                  ? t('monitoring.perfErrorStateDetected')
+                  : t('monitoring.perfNoErrors')
+                : t('monitoring.perfNoSeries')}
+              value={fmtPct(errorRate)}
+              tone={hasErrorRequests ? 'error' : 'success'}
+              metrics={[
+                { label: t('monitoring.usageErrors'), value: String(aggregate.totalErrors) },
+                { label: t('monitoring.usageRequests'), value: fmtNum(aggregate.totalRequests) },
+              ]}
+              trend={hasErrorRequests ? { data: series.map(point => point.errors), color: MON_COLORS.errors } : undefined}
+            />
+            <StatusCard
+              title={t('monitoring.perfInstancesState')}
+              description={hasSeriesData
+                ? instanceStable
+                  ? t('monitoring.perfInstancesStable', { count: current ? current.activeInstances : instanceValues[0] || 0 })
+                  : t('monitoring.perfInstancesChanged')
+                : t('monitoring.perfNoSeries')}
+              value={String(current ? current.activeInstances : 0)}
+              tone="success"
+              metrics={[
+                { label: t('monitoring.perfMinInstances'), value: String(instanceValues.length ? Math.min(...instanceValues) : 0) },
+                { label: t('monitoring.perfMaxInstances'), value: String(instanceValues.length ? Math.max(...instanceValues) : 0) },
+              ]}
+              trend={!instanceStable && hasSeriesData ? { data: instanceValues, color: MON_COLORS.instances } : undefined}
+            />
           </div>
         </div>
       )}
