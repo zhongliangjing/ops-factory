@@ -10,6 +10,11 @@ import { getAvatarForUser } from '../pages/Settings'
 import SettingsModal from '../pages/Settings'
 import { isAdminUser } from '../config/runtime'
 
+type NavGroupItem = {
+    key: string
+    element: JSX.Element
+}
+
 export default function Sidebar() {
     const { t } = useTranslation()
     const { getClient, agents } = useGoosed()
@@ -39,6 +44,211 @@ export default function Sidebar() {
             setIsCreatingSession(false)
         }
     }
+
+    const primaryNavItems: NavGroupItem[] = [
+        {
+            key: 'home',
+            element: (
+                <NavLink
+                    to="/"
+                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                    end
+                    title={isCollapsed ? t('sidebar.home') : undefined}
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>
+                    <span className="nav-label">{t('sidebar.home')}</span>
+                </NavLink>
+            ),
+        },
+        {
+            key: 'new-chat',
+            element: (
+                <button
+                    type="button"
+                    className="nav-link new-chat-nav"
+                    title={isCollapsed ? t('sidebar.newChat') : undefined}
+                    onClick={handleNewChat}
+                    disabled={isCreatingSession}
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    <span className="nav-label">{t('sidebar.newChat')}</span>
+                </button>
+            ),
+        },
+        {
+            key: 'history',
+            element: (
+                <NavLink
+                    to="/history"
+                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                    title={isCollapsed ? t('sidebar.history') : undefined}
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    <span className="nav-label">{t('sidebar.history')}</span>
+                </NavLink>
+            ),
+        },
+        {
+            key: 'inbox',
+            element: (
+                <NavLink
+                    to="/inbox"
+                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                    title={isCollapsed ? t('sidebar.inbox') : undefined}
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M22 12h-4l-3 4H9l-3-4H2" />
+                        <path d="M5 12V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7" />
+                    </svg>
+                    <span className="nav-label">{t('sidebar.inbox')}</span>
+                    {unreadCount > 0 && <span className="sidebar-badge">{unreadCount}</span>}
+                </NavLink>
+            ),
+        },
+        {
+            key: 'files',
+            element: (
+                <NavLink
+                    to="/files"
+                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                    title={isCollapsed ? t('sidebar.files') : undefined}
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                    </svg>
+                    <span className="nav-label">{t('sidebar.files')}</span>
+                </NavLink>
+            ),
+        },
+    ]
+
+    const businessNavItems: NavGroupItem[] = [
+        {
+            key: 'remote-diagnosis',
+            element: (
+                <NavLink
+                    to="/remote-diagnosis"
+                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                    title={isCollapsed ? t('sidebar.faultDiagnosis') : undefined}
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 12a9 9 0 1 1-3.2-6.9" />
+                        <path d="M21 3v6h-6" />
+                        <path d="M9.5 9.5l5 5" />
+                        <path d="M14.5 9.5l-5 5" />
+                    </svg>
+                    <span className="nav-label">{t('sidebar.faultDiagnosis')}</span>
+                </NavLink>
+            ),
+        },
+        {
+            key: 'business-intelligence',
+            element: (
+                <NavLink
+                    to="/business-intelligence"
+                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                    title={isCollapsed ? t('sidebar.businessIntelligence') : undefined}
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M3 3v18h18" />
+                        <rect x="7" y="11" width="3" height="6" rx="1" />
+                        <rect x="12" y="7" width="3" height="10" rx="1" />
+                        <rect x="17" y="4" width="3" height="13" rx="1" />
+                    </svg>
+                    <span className="nav-label">{t('sidebar.businessIntelligence')}</span>
+                </NavLink>
+            ),
+        },
+    ]
+
+    const configNavItems = [
+        isAdmin ? {
+            key: 'agents',
+            element: (
+                <NavLink
+                    to="/agents"
+                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                    title={isCollapsed ? t('sidebar.agents') : undefined}
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
+                    </svg>
+                    <span className="nav-label">{t('sidebar.agents')}</span>
+                </NavLink>
+            ),
+        } : null,
+        isAdmin ? {
+            key: 'knowledge',
+            element: (
+                <NavLink
+                    to="/knowledge"
+                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                    title={isCollapsed ? t('sidebar.knowledge') : undefined}
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                    </svg>
+                    <span className="nav-label">{t('sidebar.knowledge')}</span>
+                </NavLink>
+            ),
+        } : null,
+        isAdmin ? {
+            key: 'scheduler',
+            element: (
+                <NavLink
+                    to="/scheduled-actions"
+                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                    title={isCollapsed ? t('sidebar.scheduler') : undefined}
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M12 7v5l3 2" />
+                        <path d="M9 2v3M15 2v3M9 19v3M15 19v3" />
+                    </svg>
+                    <span className="nav-label">{t('sidebar.scheduler')}</span>
+                </NavLink>
+            ),
+        } : null,
+    ].filter((item): item is NavGroupItem => item !== null)
+
+    const monitoringNavItems = [
+        isAdmin ? {
+            key: 'monitoring',
+            element: (
+                <NavLink
+                    to="/monitoring"
+                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                    title={isCollapsed ? t('sidebar.monitoring') : undefined}
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                    </svg>
+                    <span className="nav-label">{t('sidebar.monitoring')}</span>
+                </NavLink>
+            ),
+        } : null,
+    ].filter((item): item is NavGroupItem => item !== null)
+
+    const navGroups = [
+        { key: 'primary', items: primaryNavItems },
+        { key: 'business', items: businessNavItems },
+        { key: 'config', items: configNavItems },
+        { key: 'monitoring', items: monitoringNavItems },
+    ].filter(group => group.items.length > 0)
 
     return (
         <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
@@ -70,133 +280,13 @@ export default function Sidebar() {
             </div>
 
             <nav className="sidebar-nav">
-                <NavLink
-                    to="/"
-                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                    end
-                    title={isCollapsed ? t('sidebar.home') : undefined}
-                >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                        <polyline points="9 22 9 12 15 12 15 22" />
-                    </svg>
-                    <span className="nav-label">{t('sidebar.home')}</span>
-                </NavLink>
-
-                <button
-                    type="button"
-                    className="nav-link new-chat-nav"
-                    title={isCollapsed ? t('sidebar.newChat') : undefined}
-                    onClick={handleNewChat}
-                    disabled={isCreatingSession}
-                >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="12" y1="5" x2="12" y2="19" />
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    <span className="nav-label">{t('sidebar.newChat')}</span>
-                </button>
-
-                <NavLink
-                    to="/history"
-                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                    title={isCollapsed ? t('sidebar.history') : undefined}
-                >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <polyline points="12 6 12 12 16 14" />
-                    </svg>
-                    <span className="nav-label">{t('sidebar.history')}</span>
-                </NavLink>
-
-                <NavLink
-                    to="/inbox"
-                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                    title={isCollapsed ? t('sidebar.inbox') : undefined}
-                >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M22 12h-4l-3 4H9l-3-4H2" />
-                        <path d="M5 12V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7" />
-                    </svg>
-                    <span className="nav-label">{t('sidebar.inbox')}</span>
-                    {unreadCount > 0 && <span className="sidebar-badge">{unreadCount}</span>}
-                </NavLink>
-
-                {isAdmin && <NavLink
-                    to="/agents"
-                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                    title={isCollapsed ? t('sidebar.agents') : undefined}
-                >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="3" />
-                        <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
-                    </svg>
-                    <span className="nav-label">{t('sidebar.agents')}</span>
-                </NavLink>}
-
-                {isAdmin && <NavLink
-                    to="/knowledge"
-                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                    title={isCollapsed ? t('sidebar.knowledge') : undefined}
-                >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                    </svg>
-                    <span className="nav-label">{t('sidebar.knowledge')}</span>
-                </NavLink>}
-
-                <NavLink
-                    to="/files"
-                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                    title={isCollapsed ? t('sidebar.files') : undefined}
-                >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                        <polyline points="14 2 14 8 20 8" />
-                        <line x1="16" y1="13" x2="8" y2="13" />
-                        <line x1="16" y1="17" x2="8" y2="17" />
-                    </svg>
-                    <span className="nav-label">{t('sidebar.files')}</span>
-                </NavLink>
-
-                {isAdmin && <NavLink
-                    to="/scheduled-actions"
-                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                    title={isCollapsed ? t('sidebar.scheduler') : undefined}
-                >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="9" />
-                        <path d="M12 7v5l3 2" />
-                        <path d="M9 2v3M15 2v3M9 19v3M15 19v3" />
-                    </svg>
-                    <span className="nav-label">{t('sidebar.scheduler')}</span>
-                </NavLink>}
-
-                {isAdmin && <NavLink
-                    to="/monitoring"
-                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                    title={isCollapsed ? t('sidebar.monitoring') : undefined}
-                >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-                    </svg>
-                    <span className="nav-label">{t('sidebar.monitoring')}</span>
-                </NavLink>}
-
-                <NavLink
-                    to="/remote-diagnosis"
-                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                    title={isCollapsed ? t('sidebar.faultDiagnosis') : undefined}
-                >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M21 12a9 9 0 1 1-3.2-6.9" />
-                        <path d="M21 3v6h-6" />
-                        <path d="M9.5 9.5l5 5" />
-                        <path d="M14.5 9.5l-5 5" />
-                    </svg>
-                    <span className="nav-label">{t('sidebar.faultDiagnosis')}</span>
-                </NavLink>
+                {navGroups.map(group => (
+                    <div key={group.key} className="sidebar-nav-group">
+                        {group.items.map(item => (
+                            <div key={item.key}>{item.element}</div>
+                        ))}
+                    </div>
+                ))}
             </nav>
 
             <div className="sidebar-user-section">

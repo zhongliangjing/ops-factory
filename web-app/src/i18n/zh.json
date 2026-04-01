@@ -40,6 +40,7 @@
     "files": "文件",
     "scheduler": "定时任务",
     "monitoring": "监控",
+    "businessIntelligence": "业务智能",
     "remoteDiagnosis": "远程诊断管理",
     "faultDiagnosis": "远程诊断",
     "hosts": "主机管理",
@@ -54,6 +55,12 @@
     "subtitle": "输入你的名字以开始使用",
     "placeholder": "你的名字",
     "submit": "进入"
+  },
+  "businessIntelligence": {
+    "title": "业务智能",
+    "subtitle": "面向业务分析与洞察的能力入口，功能即将开放。",
+    "placeholderTitle": "业务智能即将开放",
+    "placeholderDescription": "这里会承载业务分析、洞察与辅助决策相关能力，当前版本先预留入口。"
   },
   "chat": {
     "loadingSession": "正在加载对话...",

@@ -19,6 +19,12 @@
     --color-accent: #32353b;
     --color-accent-hover: #22252a;
     --color-accent-subtle: rgba(50, 53, 59, 0.08);
+    --color-info-accent: #339cff;
+    --color-info-accent-hover: #1f84e6;
+    --color-info-accent-subtle: rgba(51, 156, 255, 0.1);
+    --color-info-accent-emphasis: rgba(51, 156, 255, 0.14);
+    --color-info-accent-border: rgba(51, 156, 255, 0.24);
+    --color-info-accent-strong-border: rgba(51, 156, 255, 0.32);
 
     --color-success: #10b981;
     --color-warning: #f59e0b;
@@ -295,17 +301,30 @@ textarea {
     padding: var(--spacing-4);
     display: flex;
     flex-direction: column;
+    gap: var(--spacing-4);
+}
+
+.sidebar-nav-group {
+    display: flex;
+    flex-direction: column;
     gap: var(--spacing-2);
+}
+
+.sidebar-nav-group + .sidebar-nav-group {
+    padding-top: var(--spacing-4);
+    border-top: 1px solid var(--border-soft);
 }
 
 .nav-link {
     display: flex;
     align-items: center;
+    width: 100%;
     gap: var(--spacing-3);
     padding: var(--spacing-3) var(--spacing-4);
     border-radius: 10px;
     border: 1px solid transparent;
     color: var(--text-soft);
+    text-align: left;
     transition: all var(--transition-fast);
 }
 
@@ -336,7 +355,7 @@ textarea {
     height: 20px;
     padding: 0 6px;
     border-radius: var(--radius-full);
-    background: #2563eb;
+    background: var(--color-info-accent);
     color: #ffffff;
     font-size: var(--font-size-xs);
     font-weight: 700;
@@ -4052,8 +4071,8 @@ textarea {
 }
 
 .session-type-badge.scheduled {
-    background: rgba(59, 130, 246, 0.14);
-    color: #2563eb;
+    background: var(--color-info-accent-emphasis);
+    color: var(--color-info-accent-hover);
 }
 
 .session-schedule-id {
@@ -4673,7 +4692,7 @@ textarea {
     min-width: 16px;
     height: 16px;
     padding: 0 4px;
-    background: #3b82f6;
+    background: var(--color-info-accent);
     color: white;
     font-size: 10px;
     font-weight: 600;
@@ -8805,7 +8824,7 @@ textarea {
 }
 
 .knowledge-retrieval-hit-card {
-    --compare-accent-strong: #3b82f6;
+    --compare-accent-strong: var(--color-info-accent);
     width: 100%;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
@@ -8823,14 +8842,14 @@ textarea {
 }
 
 .knowledge-retrieval-hit-card:hover {
-    border-color: rgba(37, 99, 235, 0.24);
+    border-color: var(--color-info-accent-border);
     box-shadow: var(--shadow-sm);
 }
 
 .knowledge-retrieval-hit-card.selected {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.14);
-    background: rgba(59, 130, 246, 0.03);
+    border-color: var(--color-info-accent);
+    box-shadow: 0 0 0 1px rgba(51, 156, 255, 0.14);
+    background: rgba(51, 156, 255, 0.04);
 }
 
 .knowledge-retrieval-hit-card.has-compare-accent {
@@ -8838,14 +8857,14 @@ textarea {
 }
 
 .knowledge-retrieval-hit-card.has-compare-accent:hover {
-    border-color: rgba(37, 99, 235, 0.24);
+    border-color: var(--color-info-accent-border);
     box-shadow: var(--shadow-sm);
 }
 
 .knowledge-retrieval-hit-card.has-compare-accent.selected {
-    border-color: #3b82f6;
-    background: rgba(59, 130, 246, 0.03);
-    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.14);
+    border-color: var(--color-info-accent);
+    background: rgba(51, 156, 255, 0.04);
+    box-shadow: 0 0 0 1px rgba(51, 156, 255, 0.14);
 }
 
 .knowledge-retrieval-hit-rank {
@@ -9054,6 +9073,25 @@ textarea {
     max-height: 560px;
     overflow: auto;
     padding-right: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(51, 156, 255, 0.28) transparent;
+}
+
+.knowledge-retrieval-results-shell::-webkit-scrollbar {
+    width: 8px;
+}
+
+.knowledge-retrieval-results-shell::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.knowledge-retrieval-results-shell::-webkit-scrollbar-thumb {
+    background: rgba(51, 156, 255, 0.26);
+    border-radius: var(--radius-full);
+}
+
+.knowledge-retrieval-results-shell:hover::-webkit-scrollbar-thumb {
+    background: rgba(51, 156, 255, 0.42);
 }
 
 .knowledge-retrieval-results {
@@ -9104,9 +9142,9 @@ textarea {
     align-items: center;
     padding: 2px 6px;
     border-radius: 999px;
-    background: rgba(59, 130, 246, 0.08);
-    border: 1px solid rgba(59, 130, 246, 0.16);
-    color: #5b6474;
+    background: var(--color-info-accent-subtle);
+    border: 1px solid rgba(51, 156, 255, 0.18);
+    color: var(--color-info-accent-hover);
     font-size: 0.625rem;
     line-height: 1.3;
     white-space: nowrap;
@@ -9133,20 +9171,20 @@ textarea {
 
 .knowledge-retrieval-mode-tag {
     padding: 6px 10px;
-    background: rgba(59, 130, 246, 0.08);
-    color: #2563eb;
+    background: var(--color-info-accent-subtle);
+    color: var(--color-info-accent-hover);
 }
 
 .knowledge-retrieval-score-pill {
     min-width: 56px;
     padding: 6px 10px;
-    background: rgba(37, 99, 235, 0.12);
-    color: #1d4ed8;
+    background: var(--color-info-accent-emphasis);
+    color: var(--color-info-accent-hover);
 }
 
 .knowledge-retrieval-hit-card.has-compare-accent .knowledge-retrieval-score-pill {
-    background: rgba(37, 99, 235, 0.12);
-    color: #1d4ed8;
+    background: var(--color-info-accent-emphasis);
+    color: var(--color-info-accent-hover);
     border: none;
 }
 
@@ -9223,17 +9261,17 @@ textarea {
     width: 7px;
     height: 7px;
     border-radius: 999px;
-    background: rgba(37, 99, 235, 0.16);
+    background: rgba(51, 156, 255, 0.18);
 }
 
 .knowledge-retrieval-signal span.active {
-    background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
+    background: linear-gradient(180deg, #7fc7ff 0%, var(--color-info-accent-hover) 100%);
 }
 
 .knowledge-retrieval-bar {
     height: 6px;
     border-radius: var(--radius-full);
-    background: rgba(37, 99, 235, 0.08);
+    background: var(--color-info-accent-subtle);
     overflow: hidden;
 }
 
@@ -9241,15 +9279,15 @@ textarea {
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, #93c5fd 0%, #3b82f6 60%, #1d4ed8 100%);
+    background: linear-gradient(90deg, #a9daff 0%, var(--color-info-accent) 60%, var(--color-info-accent-hover) 100%);
 }
 
 .knowledge-retrieval-hit-card.has-compare-accent .knowledge-retrieval-bar {
-    background: rgba(37, 99, 235, 0.08);
+    background: var(--color-info-accent-subtle);
 }
 
 .knowledge-retrieval-hit-card.has-compare-accent .knowledge-retrieval-bar span {
-    background: linear-gradient(90deg, #93c5fd 0%, #3b82f6 60%, #1d4ed8 100%);
+    background: linear-gradient(90deg, #a9daff 0%, var(--color-info-accent) 60%, var(--color-info-accent-hover) 100%);
 }
 
 .knowledge-retrieval-modal-subtitle {
