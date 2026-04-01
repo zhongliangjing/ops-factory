@@ -119,17 +119,15 @@ extensions:
     bundled: true
     available_tools: []
   sop-executor:
-    enabled: true
+    enabled: false
     type: stdio
     name: sop-executor
     description: ''
     cmd: node
     args:
-    - D:/ss/code/ops-factory-main/ops-factory-main/gateway/agents/qos-agent/config/mcp/sop-executor/dist/index.js
-    envs:
-      GATEWAY_URL: http://127.0.0.1:3000
-      GATEWAY_SECRET_KEY: test
+    - D:/ss/code/TMP/ops-factory-main/gateway/agents/qos-agent/config/mcp/sop-executor/dist/index.js
+    envs: {}
     env_keys: []
-    timeout: null
+    timeout: 300
     bundled: null
     available_tools: []
