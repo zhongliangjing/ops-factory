@@ -138,8 +138,8 @@ log_ok()    { echo -e "${GREEN}[OK]${NC}    $1"; }
 log_fail()  { echo -e "${RED}[FAIL]${NC}  $1"; }
 
 LOG_DIR="${SERVICE_DIR}/logs"
-GATEWAY_HEALTH_PATH="/ops-gateway/status"
-GATEWAY_AGENTS_PATH="/ops-gateway/agents"
+GATEWAY_HEALTH_PATH="/gateway/status"
+GATEWAY_AGENTS_PATH="/gateway/agents"
 
 # --- Utilities ---
 check_port() { lsof -ti:"$1" >/dev/null 2>&1; }

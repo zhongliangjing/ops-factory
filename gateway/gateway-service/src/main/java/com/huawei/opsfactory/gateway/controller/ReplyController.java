@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 @RestController
-@RequestMapping("/ops-gateway/agents/{agentId}")
+@RequestMapping("/gateway/agents/{agentId}")
 public class ReplyController {
 
     private static final Logger log = LogManager.getLogger(ReplyController.class);

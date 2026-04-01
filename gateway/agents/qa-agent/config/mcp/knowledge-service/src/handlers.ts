@@ -3,7 +3,7 @@ const KNOWLEDGE_DEFAULT_SOURCE_ID = process.env.KNOWLEDGE_DEFAULT_SOURCE_ID || '
 const KNOWLEDGE_REQUEST_TIMEOUT_MS = parseInt(process.env.KNOWLEDGE_REQUEST_TIMEOUT_MS || '15000', 10)
 const KNOWLEDGE_FETCH_MAX_NEIGHBOR_WINDOW = 2
 
-const API_PREFIX = '/ops-knowledge'
+const API_PREFIX = '/knowledge'
 
 interface SearchArgs {
   query?: string

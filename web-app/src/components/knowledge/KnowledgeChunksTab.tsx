@@ -278,7 +278,7 @@ export default function KnowledgeChunksTab({
                     pageSize: String(pageSizeValue),
                 })
 
-                return `${KNOWLEDGE_SERVICE_URL}/ops-knowledge/documents?${params.toString()}`
+                return `${KNOWLEDGE_SERVICE_URL}/documents?${params.toString()}`
             })
 
             setDocuments(items)
@@ -306,7 +306,7 @@ export default function KnowledgeChunksTab({
                     params.set('documentId', documentFilter)
                 }
 
-                return `${KNOWLEDGE_SERVICE_URL}/ops-knowledge/chunks?${params.toString()}`
+                return `${KNOWLEDGE_SERVICE_URL}/chunks?${params.toString()}`
             })
 
             setChunks(items)
@@ -323,7 +323,7 @@ export default function KnowledgeChunksTab({
         setDetailError(null)
 
         try {
-            const detail = await requestJson<KnowledgeChunkDetail>(`${KNOWLEDGE_SERVICE_URL}/ops-knowledge/chunks/${chunkId}`)
+            const detail = await requestJson<KnowledgeChunkDetail>(`${KNOWLEDGE_SERVICE_URL}/chunks/${chunkId}`)
             setSelectedChunkDetail(detail)
             setDraft({
                 documentId: detail.documentId,
@@ -540,7 +540,7 @@ export default function KnowledgeChunksTab({
                     .reduce((maxOrdinal, chunk) => Math.max(maxOrdinal, chunk.ordinal), 0) + 1
                 const derivedTitle = deriveChunkTitle(text)
                 const response = await requestJson<KnowledgeChunkMutationResponse>(
-                    `${KNOWLEDGE_SERVICE_URL}/ops-knowledge/documents/${documentId}/chunks`,
+                    `${KNOWLEDGE_SERVICE_URL}/documents/${documentId}/chunks`,
                     {
                         method: 'POST',
                         headers: {
@@ -570,7 +570,7 @@ export default function KnowledgeChunksTab({
             if (!selectedChunkId) return
 
             await requestJson<KnowledgeChunkMutationResponse>(
-                `${KNOWLEDGE_SERVICE_URL}/ops-knowledge/chunks/${selectedChunkId}`,
+                `${KNOWLEDGE_SERVICE_URL}/chunks/${selectedChunkId}`,
                 {
                     method: 'PATCH',
                     headers: {
@@ -617,7 +617,7 @@ export default function KnowledgeChunksTab({
 
         try {
             await requestJson<{ chunkId: string; deleted: boolean }>(
-                `${KNOWLEDGE_SERVICE_URL}/ops-knowledge/chunks/${deleteTarget.id}`,
+                `${KNOWLEDGE_SERVICE_URL}/chunks/${deleteTarget.id}`,
                 {
                     method: 'DELETE',
                 }

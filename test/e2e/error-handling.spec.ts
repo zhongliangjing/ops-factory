@@ -13,8 +13,8 @@
  */
 import { test, expect, type Page } from '@playwright/test'
 
-const GATEWAY_PATTERN = '**/localhost:3000/ops-gateway/**'
-const GATEWAY_PATTERN_ALT = '**/127.0.0.1:3000/ops-gateway/**'
+const GATEWAY_PATTERN = '**/localhost:3000/gateway/**'
+const GATEWAY_PATTERN_ALT = '**/127.0.0.1:3000/gateway/**'
 
 /**
  * Block all gateway requests so the frontend behaves as if the gateway is down.

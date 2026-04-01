@@ -87,21 +87,21 @@ class KnowledgeRealHttpIntegrationTest {
     void shouldBehaveLikeARealClientUsingHttpAndMultipartUpload() throws Exception {
         String sourceId = createSourceOverHttp();
         uploadFilesOverHttp(sourceId, inputFiles());
-        int expectedImportedCount = getJson("/ops-knowledge/documents?sourceId=" + sourceId).path("total").asInt();
+        int expectedImportedCount = getJson("/knowledge/documents?sourceId=" + sourceId).path("total").asInt();
 
-        JsonNode sourceStats = getJson("/ops-knowledge/sources/" + sourceId + "/stats");
+        JsonNode sourceStats = getJson("/knowledge/sources/" + sourceId + "/stats");
         assertThat(sourceStats.path("documentCount").asInt()).isEqualTo(expectedImportedCount);
         assertThat(sourceStats.path("chunkCount").asInt()).isGreaterThan(0);
 
-        JsonNode documentList = getJson("/ops-knowledge/documents?sourceId=" + sourceId);
+        JsonNode documentList = getJson("/knowledge/documents?sourceId=" + sourceId);
         assertThat(documentList.path("total").asInt()).isEqualTo(expectedImportedCount);
 
         JsonNode firstDocument = documentList.path("items").get(0);
         String documentId = firstDocument.path("id").asText();
-        JsonNode chunks = getJson("/ops-knowledge/documents/" + documentId + "/chunks");
+        JsonNode chunks = getJson("/knowledge/documents/" + documentId + "/chunks");
         assertThat(chunks.path("total").asInt()).isGreaterThan(0);
 
-        JsonNode searchResponse = postJson("/ops-knowledge/search", """
+        JsonNode searchResponse = postJson("/knowledge/search", """
             {
               "query": "incident",
               "sourceIds": ["%s"],
@@ -110,7 +110,7 @@ class KnowledgeRealHttpIntegrationTest {
             """.formatted(sourceId));
         assertThat(searchResponse.path("total").asInt()).isGreaterThan(0);
 
-        JsonNode compareResponse = postJson("/ops-knowledge/search/compare", """
+        JsonNode compareResponse = postJson("/knowledge/search/compare", """
             {
               "query": "incident",
               "sourceIds": ["%s"]
@@ -122,13 +122,13 @@ class KnowledgeRealHttpIntegrationTest {
         assertThat(compareResponse.path("lexical").path("hits").isArray()).isTrue();
 
         String hitChunkId = searchResponse.path("hits").get(0).path("chunkId").asText();
-        JsonNode fetchResponse = getJson("/ops-knowledge/fetch/" + hitChunkId + "?includeNeighbors=true&neighborWindow=1");
+        JsonNode fetchResponse = getJson("/knowledge/fetch/" + hitChunkId + "?includeNeighbors=true&neighborWindow=1");
         assertThat(fetchResponse.path("text").asText()).isNotBlank();
 
         for (JsonNode item : documentList.path("items")) {
             String currentDocumentId = item.path("id").asText();
             String fileName = item.path("name").asText();
-            ResponseEntity<String> markdownResponse = restTemplate.getForEntity(url("/ops-knowledge/documents/" + currentDocumentId + "/artifacts/markdown"), String.class);
+            ResponseEntity<String> markdownResponse = restTemplate.getForEntity(url("/knowledge/documents/" + currentDocumentId + "/artifacts/markdown"), String.class);
             assertThat(markdownResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
             String markdown = markdownResponse.getBody();
             assertThat(markdown).isNotBlank();
@@ -150,7 +150,7 @@ class KnowledgeRealHttpIntegrationTest {
             运维智能体平台部署在 EulerOS 2 SP12 x86 环境。
             """);
 
-        JsonNode compareResponse = postJson("/ops-knowledge/search/compare", """
+        JsonNode compareResponse = postJson("/knowledge/search/compare", """
             {
               "query": "ITSM",
               "sourceIds": ["%s"]
@@ -180,7 +180,7 @@ class KnowledgeRealHttpIntegrationTest {
         Integer maxDimension = jdbcTemplate.queryForObject("select max(dimension) from embedding_cache", Integer.class);
         assertThat(maxDimension).isEqualTo(1024);
 
-        JsonNode compareResponse = postJson("/ops-knowledge/search/compare", """
+        JsonNode compareResponse = postJson("/knowledge/search/compare", """
             {
               "query": "ITSM",
               "sourceIds": ["%s"]
@@ -198,12 +198,12 @@ class KnowledgeRealHttpIntegrationTest {
             Shared embedding content for cache reuse.
             """);
 
-        JsonNode documents = getJson("/ops-knowledge/documents?sourceId=" + sourceId);
+        JsonNode documents = getJson("/knowledge/documents?sourceId=" + sourceId);
         String documentId = documents.path("items").get(0).path("id").asText();
 
         int initialCacheCount = jdbcTemplate.queryForObject("select count(*) from embedding_cache", Integer.class);
 
-        JsonNode firstChunk = postJson("/ops-knowledge/documents/" + documentId + "/chunks", """
+        JsonNode firstChunk = postJson("/knowledge/documents/" + documentId + "/chunks", """
             {
               "ordinal": 900,
               "title": "Shared chunk",
@@ -217,7 +217,7 @@ class KnowledgeRealHttpIntegrationTest {
             """);
         int afterFirstInsert = jdbcTemplate.queryForObject("select count(*) from embedding_cache", Integer.class);
 
-        JsonNode secondChunk = postJson("/ops-knowledge/documents/" + documentId + "/chunks", """
+        JsonNode secondChunk = postJson("/knowledge/documents/" + documentId + "/chunks", """
             {
               "ordinal": 901,
               "title": "Shared chunk",
@@ -272,7 +272,7 @@ class KnowledgeRealHttpIntegrationTest {
         vectorIndexService.rebuildOnStartup();
 
         int cacheCountAfterRebuild = jdbcTemplate.queryForObject("select count(*) from embedding_cache", Integer.class);
-        JsonNode compareResponse = postJson("/ops-knowledge/search/compare", """
+        JsonNode compareResponse = postJson("/knowledge/search/compare", """
             {
               "query": "incident deployment topology",
               "sourceIds": ["%s"]
@@ -292,7 +292,7 @@ class KnowledgeRealHttpIntegrationTest {
     }
 
     private String createSourceOverHttp(String sourceName) throws Exception {
-        JsonNode json = postJson("/ops-knowledge/sources", """
+        JsonNode json = postJson("/knowledge/sources", """
             {
               "name": "%s",
               "description": "real http integration test source"
@@ -316,7 +316,7 @@ class KnowledgeRealHttpIntegrationTest {
         byteArrays.add(("--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
 
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(url("/ops-knowledge/sources/" + sourceId + "/documents:ingest")))
+            .uri(URI.create(url("/knowledge/sources/" + sourceId + "/documents:ingest")))
             .header("Content-Type", "multipart/form-data; boundary=" + boundary)
             .POST(HttpRequest.BodyPublishers.ofByteArrays(byteArrays))
             .build();
@@ -343,7 +343,7 @@ class KnowledgeRealHttpIntegrationTest {
         ).getBytes(StandardCharsets.UTF_8);
 
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(url("/ops-knowledge/sources/" + sourceId + "/documents:ingest")))
+            .uri(URI.create(url("/knowledge/sources/" + sourceId + "/documents:ingest")))
             .header("Content-Type", "multipart/form-data; boundary=" + boundary)
             .POST(HttpRequest.BodyPublishers.ofByteArray(payload))
             .build();

@@ -19,7 +19,7 @@ async function openKnowledgeTab(page: Page, sourceId: string, tab: string) {
 
 async function createSource(request: APIRequestContext, name: string, description: string) {
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const response = await request.post(`${KNOWLEDGE_URL}/ops-knowledge/sources`, {
+    const response = await request.post(`${KNOWLEDGE_URL}/knowledge/sources`, {
       data: { name, description },
     })
 
@@ -41,7 +41,7 @@ async function patchSource(
   sourceId: string,
   payload: Record<string, unknown>,
 ) {
-  const response = await request.patch(`${KNOWLEDGE_URL}/ops-knowledge/sources/${sourceId}`, {
+  const response = await request.patch(`${KNOWLEDGE_URL}/knowledge/sources/${sourceId}`, {
     data: payload,
   })
   expect(response.ok()).toBeTruthy()
@@ -49,7 +49,7 @@ async function patchSource(
 }
 
 async function getSource(request: APIRequestContext, sourceId: string) {
-  const response = await request.get(`${KNOWLEDGE_URL}/ops-knowledge/sources/${sourceId}`)
+  const response = await request.get(`${KNOWLEDGE_URL}/knowledge/sources/${sourceId}`)
   expect(response.ok()).toBeTruthy()
   return await response.json() as { id: string; rebuildRequired: boolean; runtimeStatus: string }
 }
@@ -57,7 +57,7 @@ async function getSource(request: APIRequestContext, sourceId: string) {
 async function findSourceByName(request: APIRequestContext, name: string) {
   const deadline = Date.now() + 10_000
   while (Date.now() < deadline) {
-    const response = await request.get(`${KNOWLEDGE_URL}/ops-knowledge/sources?page=1&pageSize=100`)
+    const response = await request.get(`${KNOWLEDGE_URL}/knowledge/sources?page=1&pageSize=100`)
     expect(response.ok()).toBeTruthy()
     const data = await response.json() as { items: Array<{ id: string; name: string }> }
     const item = data.items.find(entry => entry.name === name)
@@ -75,7 +75,7 @@ async function uploadFile(
   sourceId: string,
   file: { name: string; mimeType: string; body: string },
 ) {
-  const response = await request.post(`${KNOWLEDGE_URL}/ops-knowledge/sources/${sourceId}/documents:ingest`, {
+  const response = await request.post(`${KNOWLEDGE_URL}/knowledge/sources/${sourceId}/documents:ingest`, {
     multipart: {
       files: {
         name: file.name,
@@ -90,7 +90,7 @@ async function uploadFile(
 
 async function deleteSourceBestEffort(request: APIRequestContext, sourceId: string) {
   try {
-    await request.delete(`${KNOWLEDGE_URL}/ops-knowledge/sources/${sourceId}`)
+    await request.delete(`${KNOWLEDGE_URL}/knowledge/sources/${sourceId}`)
   } catch {
     // Best-effort cleanup only.
   }

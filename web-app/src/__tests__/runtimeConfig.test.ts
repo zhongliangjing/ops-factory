@@ -25,9 +25,9 @@ describe('runtime config', () => {
         await runtime.initializeRuntimeConfig()
 
         expect(globalThis.fetch).toHaveBeenCalledWith('/config.json', { cache: 'no-store' })
-        expect(runtime.GATEWAY_URL).toBe('https://127.0.0.1:3000/ops-gateway')
+        expect(runtime.GATEWAY_URL).toBe('https://127.0.0.1:3000/gateway')
         expect(runtime.GATEWAY_SECRET_KEY).toBe('secret')
-        expect(runtime.KNOWLEDGE_SERVICE_URL).toBe('https://127.0.0.1:8092')
+        expect(runtime.KNOWLEDGE_SERVICE_URL).toBe('https://127.0.0.1:8092/knowledge')
     })
 
     it('builds gateway headers with configured secret key and user id', async () => {

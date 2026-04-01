@@ -54,7 +54,7 @@ public class MonitoringControllerTest {
         when(agentConfigService.getRegistry()).thenReturn(List.of());
         when(instanceManager.getAllInstances()).thenReturn(List.of());
 
-        webTestClient.get().uri("/ops-gateway/monitoring/system")
+        webTestClient.get().uri("/gateway/monitoring/system")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "admin")
                 .exchange()
@@ -69,7 +69,7 @@ public class MonitoringControllerTest {
 
     @Test
     public void testSystem_nonAdminForbidden() {
-        webTestClient.get().uri("/ops-gateway/monitoring/system")
+        webTestClient.get().uri("/gateway/monitoring/system")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "regular-user")
                 .exchange()
@@ -84,7 +84,7 @@ public class MonitoringControllerTest {
         when(agentConfigService.findAgent("agent1")).thenReturn(
                 new com.huawei.opsfactory.gateway.common.model.AgentRegistryEntry("agent1", "Agent One"));
 
-        webTestClient.get().uri("/ops-gateway/monitoring/instances")
+        webTestClient.get().uri("/gateway/monitoring/instances")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "admin")
                 .exchange()
@@ -105,7 +105,7 @@ public class MonitoringControllerTest {
         when(langfuseService.isConfigured()).thenReturn(true);
         when(langfuseService.checkReachable()).thenReturn(Mono.just(true));
 
-        webTestClient.get().uri("/ops-gateway/monitoring/status")
+        webTestClient.get().uri("/gateway/monitoring/status")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "admin")
                 .exchange()
@@ -118,7 +118,7 @@ public class MonitoringControllerTest {
 
     @Test
     public void testInstances_nonAdminForbidden() {
-        webTestClient.get().uri("/ops-gateway/monitoring/instances")
+        webTestClient.get().uri("/gateway/monitoring/instances")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "regular-user")
                 .exchange()
@@ -127,7 +127,7 @@ public class MonitoringControllerTest {
 
     @Test
     public void testLangfuseStatus_nonAdminForbidden() {
-        webTestClient.get().uri("/ops-gateway/monitoring/status")
+        webTestClient.get().uri("/gateway/monitoring/status")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "regular-user")
                 .exchange()
@@ -138,7 +138,7 @@ public class MonitoringControllerTest {
     public void testInstances_empty() {
         when(instanceManager.getAllInstances()).thenReturn(List.of());
 
-        webTestClient.get().uri("/ops-gateway/monitoring/instances")
+        webTestClient.get().uri("/gateway/monitoring/instances")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "admin")
                 .exchange()
@@ -157,7 +157,7 @@ public class MonitoringControllerTest {
         inst2.setStatus(ManagedInstance.Status.STOPPED);
         when(instanceManager.getAllInstances()).thenReturn(List.of(inst1, inst2));
 
-        webTestClient.get().uri("/ops-gateway/monitoring/instances")
+        webTestClient.get().uri("/gateway/monitoring/instances")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "admin")
                 .exchange()
@@ -172,7 +172,7 @@ public class MonitoringControllerTest {
     public void testLangfuseStatus_notConfigured() {
         when(langfuseService.isConfigured()).thenReturn(false);
 
-        webTestClient.get().uri("/ops-gateway/monitoring/status")
+        webTestClient.get().uri("/gateway/monitoring/status")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "admin")
                 .exchange()
@@ -193,7 +193,7 @@ public class MonitoringControllerTest {
                 "daily", List.of()
         )));
 
-        webTestClient.get().uri("/ops-gateway/monitoring/overview?from=2024-01-01&to=2024-01-02")
+        webTestClient.get().uri("/gateway/monitoring/overview?from=2024-01-01&to=2024-01-02")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "admin")
                 .exchange()
@@ -206,7 +206,7 @@ public class MonitoringControllerTest {
 
     @Test
     public void testOverview_nonAdminForbidden() {
-        webTestClient.get().uri("/ops-gateway/monitoring/overview?from=2024-01-01&to=2024-01-02")
+        webTestClient.get().uri("/gateway/monitoring/overview?from=2024-01-01&to=2024-01-02")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "regular-user")
                 .exchange()
@@ -222,7 +222,7 @@ public class MonitoringControllerTest {
         ManagedInstance inst = new ManagedInstance("a1", "u1", 8080, 1234L, null, "test-secret");
         when(instanceManager.getAllInstances()).thenReturn(List.of(inst));
 
-        webTestClient.get().uri("/ops-gateway/monitoring/system")
+        webTestClient.get().uri("/gateway/monitoring/system")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "admin")
                 .exchange()
@@ -239,7 +239,7 @@ public class MonitoringControllerTest {
     public void testMetrics_empty() {
         when(metricsBuffer.getSnapshots(120)).thenReturn(List.of());
 
-        webTestClient.get().uri("/ops-gateway/monitoring/metrics")
+        webTestClient.get().uri("/gateway/monitoring/metrics")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "admin")
                 .exchange()
@@ -284,7 +284,7 @@ public class MonitoringControllerTest {
 
         when(metricsBuffer.getSnapshots(120)).thenReturn(List.of(s1, s2));
 
-        webTestClient.get().uri("/ops-gateway/monitoring/metrics")
+        webTestClient.get().uri("/gateway/monitoring/metrics")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "admin")
                 .exchange()
@@ -307,7 +307,7 @@ public class MonitoringControllerTest {
 
     @Test
     public void testMetrics_nonAdminForbidden() {
-        webTestClient.get().uri("/ops-gateway/monitoring/metrics")
+        webTestClient.get().uri("/gateway/monitoring/metrics")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "regular-user")
                 .exchange()
@@ -335,7 +335,7 @@ public class MonitoringControllerTest {
 
         // Weighted avg = (10000*1 + 100*99) / 100 = 19900/100 = 199
         // NOT naive avg = (10000 + 100) / 2 = 5050
-        webTestClient.get().uri("/ops-gateway/monitoring/metrics")
+        webTestClient.get().uri("/gateway/monitoring/metrics")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "admin")
                 .exchange()

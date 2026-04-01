@@ -28,7 +28,7 @@ class KnowledgeMaintenanceIntegrationTest extends KnowledgeApiIntegrationTestSup
         String indexProfileId = before.path("indexProfileId").asText();
         String retrievalProfileId = before.path("retrievalProfileId").asText();
 
-        mockMvc.perform(patch("/ops-knowledge/profiles/retrieval/{profileId}", retrievalProfileId)
+        mockMvc.perform(patch("/knowledge/profiles/retrieval/{profileId}", retrievalProfileId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -44,7 +44,7 @@ class KnowledgeMaintenanceIntegrationTest extends KnowledgeApiIntegrationTestSup
         JsonNode afterRetrievalChange = getSource(sourceId);
         assertThat(afterRetrievalChange.path("rebuildRequired").asBoolean()).isFalse();
 
-        mockMvc.perform(patch("/ops-knowledge/profiles/index/{profileId}", indexProfileId)
+        mockMvc.perform(patch("/knowledge/profiles/index/{profileId}", indexProfileId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -70,7 +70,7 @@ class KnowledgeMaintenanceIntegrationTest extends KnowledgeApiIntegrationTestSup
             sourceId
         );
 
-        var searchResult = readJson(mockMvc.perform(post("/ops-knowledge/search")
+        var searchResult = readJson(mockMvc.perform(post("/knowledge/search")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -84,7 +84,7 @@ class KnowledgeMaintenanceIntegrationTest extends KnowledgeApiIntegrationTestSup
 
         MockMultipartFile file = new MockMultipartFile("files", "maintenance-check.txt",
             MediaType.TEXT_PLAIN_VALUE, "runbook maintenance check".getBytes());
-        var ingestResult = readJson(mockMvc.perform(multipart("/ops-knowledge/sources/{sourceId}/documents:ingest", sourceId)
+        var ingestResult = readJson(mockMvc.perform(multipart("/knowledge/sources/{sourceId}/documents:ingest", sourceId)
                 .file(file))
             .andExpect(status().isConflict())
             .andReturn());
@@ -98,7 +98,7 @@ class KnowledgeMaintenanceIntegrationTest extends KnowledgeApiIntegrationTestSup
         JsonNode sourceBefore = getSource(sourceId);
         String indexProfileId = sourceBefore.path("indexProfileId").asText();
 
-        mockMvc.perform(patch("/ops-knowledge/profiles/index/{profileId}", indexProfileId)
+        mockMvc.perform(patch("/knowledge/profiles/index/{profileId}", indexProfileId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -112,7 +112,7 @@ class KnowledgeMaintenanceIntegrationTest extends KnowledgeApiIntegrationTestSup
             .andExpect(status().isOk());
         assertThat(getSource(sourceId).path("rebuildRequired").asBoolean()).isTrue();
 
-        JsonNode rebuildResponse = readJson(mockMvc.perform(post("/ops-knowledge/sources/{sourceId}:rebuild", sourceId))
+        JsonNode rebuildResponse = readJson(mockMvc.perform(post("/knowledge/sources/{sourceId}:rebuild", sourceId))
             .andExpect(status().isOk())
             .andReturn());
         assertThat(rebuildResponse.path("status").asText()).isEqualTo("RUNNING");
@@ -149,14 +149,14 @@ class KnowledgeMaintenanceIntegrationTest extends KnowledgeApiIntegrationTestSup
             "mjf_001", jobId, sourceId, null, "broken.pdf", "INDEXING", "INDEX_WRITE_FAILED", "索引写入失败", "2026-03-30T05:09:00Z"
         );
 
-        JsonNode overview = readJson(mockMvc.perform(get("/ops-knowledge/sources/{sourceId}/maintenance", sourceId))
+        JsonNode overview = readJson(mockMvc.perform(get("/knowledge/sources/{sourceId}/maintenance", sourceId))
             .andExpect(status().isOk())
             .andReturn());
         assertThat(overview.path("currentJob").isNull()).isTrue();
         assertThat(overview.path("lastCompletedJob").path("id").asText()).isEqualTo(jobId);
         assertThat(overview.path("lastCompletedJob").path("failedDocuments").asInt()).isEqualTo(1);
 
-        JsonNode failures = readJson(mockMvc.perform(get("/ops-knowledge/jobs/{jobId}/failures", jobId))
+        JsonNode failures = readJson(mockMvc.perform(get("/knowledge/jobs/{jobId}/failures", jobId))
             .andExpect(status().isOk())
             .andReturn());
         assertThat(failures.path("items").size()).isEqualTo(1);
@@ -165,7 +165,7 @@ class KnowledgeMaintenanceIntegrationTest extends KnowledgeApiIntegrationTestSup
     }
 
     private JsonNode getSource(String sourceId) throws Exception {
-        return readJson(mockMvc.perform(get("/ops-knowledge/sources/{sourceId}", sourceId))
+        return readJson(mockMvc.perform(get("/knowledge/sources/{sourceId}", sourceId))
             .andExpect(status().isOk())
             .andReturn());
     }
@@ -179,14 +179,14 @@ class KnowledgeMaintenanceIntegrationTest extends KnowledgeApiIntegrationTestSup
             Restart the affected service, verify the topology, and confirm incident recovery.
             """.getBytes()
         );
-        mockMvc.perform(multipart("/ops-knowledge/sources/{sourceId}/documents:ingest", sourceId)
+        mockMvc.perform(multipart("/knowledge/sources/{sourceId}/documents:ingest", sourceId)
                 .file(file))
             .andExpect(status().isOk());
     }
 
     private JsonNode waitForJob(String jobId) throws Exception {
         for (int attempt = 0; attempt < 40; attempt++) {
-            JsonNode job = readJson(mockMvc.perform(get("/ops-knowledge/jobs/{jobId}", jobId))
+            JsonNode job = readJson(mockMvc.perform(get("/knowledge/jobs/{jobId}", jobId))
                 .andExpect(status().isOk())
                 .andReturn());
             String status = job.path("status").asText();

@@ -20,7 +20,7 @@ import java.util.Set;
  * Admin-only routes: everything else (schedules, config/prompts, etc.)
  */
 @RestController
-@RequestMapping(value = "/ops-gateway")
+@RequestMapping(value = "/gateway")
 @Order(999)
 public class CatchAllProxyController {
 
@@ -41,11 +41,11 @@ public class CatchAllProxyController {
         String path = exchange.getRequest().getURI().getPath();
         String query = exchange.getRequest().getURI().getRawQuery();
 
-        // Remove /ops-gateway prefix if present
-        // Full path format: /ops-gateway/agents/{agentId}/{remainder}
+        // Remove /gateway prefix if present
+        // Full path format: /gateway/agents/{agentId}/{remainder}
         // or: /agents/{agentId}/{remainder} (for direct method calls in tests)
-        String pathToParse = path.startsWith("/ops-gateway")
-                ? path.substring("/ops-gateway".length())
+        String pathToParse = path.startsWith("/gateway")
+                ? path.substring("/gateway".length())
                 : path;
 
         // Extract agentId and the remainder path

@@ -86,11 +86,11 @@ describe('KnowledgeConfigure page', () => {
             const url = String(input)
             const method = init?.method ?? 'GET'
 
-            if (method === 'GET' && url.endsWith('/ops-knowledge/sources/src_001')) {
+            if (method === 'GET' && url.endsWith('/knowledge/sources/src_001')) {
                 return { ok: true, json: async () => sourceState } as Response
             }
 
-            if (method === 'PATCH' && url.endsWith('/ops-knowledge/sources/src_001')) {
+            if (method === 'PATCH' && url.endsWith('/knowledge/sources/src_001')) {
                 const payload = JSON.parse(String(init?.body || '{}')) as Record<string, string>
                 sourceState = {
                     ...sourceState,
@@ -101,11 +101,11 @@ describe('KnowledgeConfigure page', () => {
                 return { ok: true, json: async () => sourceState } as Response
             }
 
-            if (method === 'DELETE' && url.endsWith('/ops-knowledge/sources/src_001')) {
+            if (method === 'DELETE' && url.endsWith('/knowledge/sources/src_001')) {
                 return { ok: true, json: async () => ({ sourceId: 'src_001', deleted: true }) } as Response
             }
 
-            if (method === 'GET' && url.endsWith('/ops-knowledge/sources/src_001/stats')) {
+            if (method === 'GET' && url.endsWith('/knowledge/sources/src_001/stats')) {
                 return {
                     ok: true,
                     json: async () => ({
@@ -121,7 +121,7 @@ describe('KnowledgeConfigure page', () => {
                 } as Response
             }
 
-            if (method === 'GET' && url.endsWith('/ops-knowledge/capabilities')) {
+            if (method === 'GET' && url.endsWith('/knowledge/capabilities')) {
                 return {
                     ok: true,
                     json: async () => ({
@@ -140,7 +140,7 @@ describe('KnowledgeConfigure page', () => {
                 } as Response
             }
 
-            if (method === 'GET' && url.endsWith('/ops-knowledge/system/defaults')) {
+            if (method === 'GET' && url.endsWith('/knowledge/system/defaults')) {
                 return {
                     ok: true,
                     json: async () => ({
@@ -174,7 +174,7 @@ describe('KnowledgeConfigure page', () => {
                 } as Response
             }
 
-            if (method === 'GET' && url.endsWith('/ops-knowledge/profiles/index/ip_default')) {
+            if (method === 'GET' && url.endsWith('/knowledge/profiles/index/ip_default')) {
                 return {
                     ok: true,
                     json: async () => ({
@@ -189,12 +189,12 @@ describe('KnowledgeConfigure page', () => {
                 } as Response
             }
 
-            if (method === 'PATCH' && url.endsWith('/ops-knowledge/profiles/index/ip_default')) {
+            if (method === 'PATCH' && url.endsWith('/knowledge/profiles/index/ip_default')) {
                 sourceState = { ...sourceState, rebuildRequired: true }
                 return { ok: true, json: async () => ({ id: 'ip_default', updatedAt: '2026-03-25T13:00:00Z' }) } as Response
             }
 
-            if (method === 'GET' && url.endsWith('/ops-knowledge/profiles/retrieval/rp_default')) {
+            if (method === 'GET' && url.endsWith('/knowledge/profiles/retrieval/rp_default')) {
                 return {
                     ok: true,
                     json: async () => ({
@@ -208,11 +208,11 @@ describe('KnowledgeConfigure page', () => {
                 } as Response
             }
 
-            if (method === 'GET' && url.includes('/ops-knowledge/documents?sourceId=src_001&page=1&pageSize=100')) {
+            if (method === 'GET' && url.includes('/knowledge/documents?sourceId=src_001&page=1&pageSize=100')) {
                 return { ok: true, json: async () => ({ items: documents, page: 1, pageSize: 100, total: documents.length }) } as Response
             }
 
-            if (method === 'PATCH' && url.endsWith('/ops-knowledge/documents/doc_001')) {
+            if (method === 'PATCH' && url.endsWith('/knowledge/documents/doc_001')) {
                 const payload = JSON.parse(String(init?.body || '{}')) as Record<string, string>
                 documents = documents.map(document => document.id === 'doc_001'
                     ? { ...document, title: payload.title || document.title }
@@ -220,7 +220,7 @@ describe('KnowledgeConfigure page', () => {
                 return { ok: true, json: async () => ({ documentId: 'doc_001', updated: true }) } as Response
             }
 
-            if (method === 'POST' && url.endsWith('/ops-knowledge/sources/src_001/documents:ingest')) {
+            if (method === 'POST' && url.endsWith('/knowledge/sources/src_001/documents:ingest')) {
                 documents = [
                     ...documents,
                     {
@@ -241,7 +241,7 @@ describe('KnowledgeConfigure page', () => {
                 return { ok: true, json: async () => ({ jobId: 'job_001', sourceId: 'src_001', status: 'SUCCEEDED', documentCount: 1 }) } as Response
             }
 
-            if (method === 'GET' && url.endsWith('/ops-knowledge/documents/doc_001/original')) {
+            if (method === 'GET' && url.endsWith('/knowledge/documents/doc_001/original')) {
                 return {
                     ok: true,
                     headers: new Headers({ 'Content-Disposition': 'attachment; filename="runbook.pdf"' }),
@@ -249,7 +249,7 @@ describe('KnowledgeConfigure page', () => {
                 } as Response
             }
 
-            if (method === 'GET' && url.endsWith('/ops-knowledge/documents/doc_001/preview')) {
+            if (method === 'GET' && url.endsWith('/knowledge/documents/doc_001/preview')) {
                 return {
                     ok: true,
                     json: async () => ({
@@ -259,7 +259,7 @@ describe('KnowledgeConfigure page', () => {
                 } as Response
             }
 
-            if (method === 'GET' && url.endsWith('/ops-knowledge/sources/src_001/maintenance')) {
+            if (method === 'GET' && url.endsWith('/knowledge/sources/src_001/maintenance')) {
                 return {
                     ok: true,
                     json: async () => ({
@@ -287,7 +287,7 @@ describe('KnowledgeConfigure page', () => {
                 } as Response
             }
 
-            if (method === 'GET' && url.endsWith('/ops-knowledge/jobs/job_000/failures')) {
+            if (method === 'GET' && url.endsWith('/knowledge/jobs/job_000/failures')) {
                 return {
                     ok: true,
                     json: async () => ({
@@ -306,12 +306,12 @@ describe('KnowledgeConfigure page', () => {
                 } as Response
             }
 
-            if (method === 'POST' && url.endsWith('/ops-knowledge/sources/src_001:rebuild')) {
+            if (method === 'POST' && url.endsWith('/knowledge/sources/src_001:rebuild')) {
                 sourceState = { ...sourceState, runtimeStatus: 'MAINTENANCE', currentJobId: 'job_001' }
                 return { ok: true, json: async () => ({ jobId: 'job_001', sourceId: 'src_001', status: 'RUNNING' }) } as Response
             }
 
-            if (url.includes('/ops-knowledge/chunks') || url.includes('/ops-knowledge/search')) {
+            if (url.includes('/knowledge/chunks') || url.includes('/knowledge/search')) {
                 return { ok: true, json: async () => ({ items: [], page: 1, pageSize: 100, total: 0, hits: [], hybrid: { hits: [], total: 0 }, semantic: { hits: [], total: 0 }, lexical: { hits: [], total: 0 } }) } as Response
             }
 

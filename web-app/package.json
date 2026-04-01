@@ -8,8 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest",
-    "test:basic": "vitest run src/__tests__/App.test.tsx src/__tests__/runtimeConfig.test.ts src/__tests__/filePreview.test.ts src/__tests__/PreviewContext.test.tsx",
-    "verify:basic": "./scripts/verify-basic.sh"
+    "test:basic": "vitest run src/__tests__/App.test.tsx src/__tests__/runtimeConfig.test.ts src/__tests__/filePreview.test.ts src/__tests__/PreviewContext.test.tsx"
   },
   "dependencies": {
     "@goosed/sdk": "file:../typescript-sdk",

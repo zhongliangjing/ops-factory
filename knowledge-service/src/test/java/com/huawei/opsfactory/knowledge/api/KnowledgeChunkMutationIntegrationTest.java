@@ -33,7 +33,7 @@ class KnowledgeChunkMutationIntegrationTest extends KnowledgeApiIntegrationTestS
         String documentId = documents.path("items").get(0).path("id").asText();
         int initialEmbeddingCache = jdbcTemplate.queryForObject("select count(*) from embedding_cache", Integer.class);
 
-        JsonNode createdChunk = readJson(mockMvc.perform(post("/ops-knowledge/documents/{documentId}/chunks", documentId)
+        JsonNode createdChunk = readJson(mockMvc.perform(post("/knowledge/documents/{documentId}/chunks", documentId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -60,7 +60,7 @@ class KnowledgeChunkMutationIntegrationTest extends KnowledgeApiIntegrationTestS
             }
             """).path("hits").get(0).path("chunkId").asText()).isEqualTo(chunkId);
 
-        JsonNode updatedChunk = readJson(mockMvc.perform(patch("/ops-knowledge/chunks/{chunkId}", chunkId)
+        JsonNode updatedChunk = readJson(mockMvc.perform(patch("/knowledge/chunks/{chunkId}", chunkId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -75,7 +75,7 @@ class KnowledgeChunkMutationIntegrationTest extends KnowledgeApiIntegrationTestS
 
         int afterTextEditCache = jdbcTemplate.queryForObject("select count(*) from embedding_cache", Integer.class);
         assertThat(afterTextEditCache).isEqualTo(afterCreateCache + 1);
-        JsonNode updatedDetail = readJson(mockMvc.perform(get("/ops-knowledge/chunks/{chunkId}", chunkId))
+        JsonNode updatedDetail = readJson(mockMvc.perform(get("/knowledge/chunks/{chunkId}", chunkId))
             .andExpect(status().isOk())
             .andReturn());
         assertThat(updatedDetail.path("text").asText()).contains("updated-only-term");
@@ -86,7 +86,7 @@ class KnowledgeChunkMutationIntegrationTest extends KnowledgeApiIntegrationTestS
             }
             """).path("hits").get(0).path("chunkId").asText()).isEqualTo(chunkId);
 
-        JsonNode keywordsUpdate = readJson(mockMvc.perform(patch("/ops-knowledge/chunks/{chunkId}/keywords", chunkId)
+        JsonNode keywordsUpdate = readJson(mockMvc.perform(patch("/knowledge/chunks/{chunkId}/keywords", chunkId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -105,17 +105,17 @@ class KnowledgeChunkMutationIntegrationTest extends KnowledgeApiIntegrationTestS
             }
             """).path("hits").get(0).path("chunkId").asText()).isEqualTo(chunkId);
 
-        JsonNode documentStats = readJson(mockMvc.perform(get("/ops-knowledge/documents/{documentId}/stats", documentId))
+        JsonNode documentStats = readJson(mockMvc.perform(get("/knowledge/documents/{documentId}/stats", documentId))
             .andExpect(status().isOk())
             .andReturn());
         assertThat(documentStats.path("userEditedChunkCount").asInt()).isGreaterThan(0);
 
-        JsonNode reindex = readJson(mockMvc.perform(post("/ops-knowledge/chunks/{chunkId}:reindex", chunkId))
+        JsonNode reindex = readJson(mockMvc.perform(post("/knowledge/chunks/{chunkId}:reindex", chunkId))
             .andExpect(status().isOk())
             .andReturn());
         assertThat(reindex.path("reindexed").asBoolean()).isTrue();
 
-        readJson(mockMvc.perform(delete("/ops-knowledge/chunks/{chunkId}", chunkId))
+        readJson(mockMvc.perform(delete("/knowledge/chunks/{chunkId}", chunkId))
                 .andExpect(status().isOk())
                 .andReturn());
         assertThat(search(sourceId, "updated-only-term", null, 10, null, """

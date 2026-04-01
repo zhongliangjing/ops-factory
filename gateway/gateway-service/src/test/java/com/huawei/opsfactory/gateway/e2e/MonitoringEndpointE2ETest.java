@@ -30,7 +30,7 @@ public class MonitoringEndpointE2ETest extends BaseE2ETest {
                 new AgentRegistryEntry("agent-a", "Agent A")));
         when(instanceManager.getAllInstances()).thenReturn(Collections.emptyList());
 
-        webClient.get().uri("/ops-gateway/monitoring/system")
+        webClient.get().uri("/gateway/monitoring/system")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()
@@ -45,7 +45,7 @@ public class MonitoringEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void system_nonAdmin_returns403() {
-        webClient.get().uri("/ops-gateway/monitoring/system")
+        webClient.get().uri("/gateway/monitoring/system")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .exchange()
@@ -54,7 +54,7 @@ public class MonitoringEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void system_unauthenticated_returns401() {
-        webClient.get().uri("/ops-gateway/monitoring/system")
+        webClient.get().uri("/gateway/monitoring/system")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
@@ -69,7 +69,7 @@ public class MonitoringEndpointE2ETest extends BaseE2ETest {
         when(agentConfigService.findAgent("agent-a")).thenReturn(
                 new AgentRegistryEntry("agent-a", "Agent A"));
 
-        webClient.get().uri("/ops-gateway/monitoring/instances")
+        webClient.get().uri("/gateway/monitoring/instances")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()
@@ -92,7 +92,7 @@ public class MonitoringEndpointE2ETest extends BaseE2ETest {
     public void instances_emptyList_returnsEmptyResult() {
         when(instanceManager.getAllInstances()).thenReturn(Collections.emptyList());
 
-        webClient.get().uri("/ops-gateway/monitoring/instances")
+        webClient.get().uri("/gateway/monitoring/instances")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()
@@ -105,7 +105,7 @@ public class MonitoringEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void instances_nonAdmin_returns403() {
-        webClient.get().uri("/ops-gateway/monitoring/instances")
+        webClient.get().uri("/gateway/monitoring/instances")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "bob")
                 .exchange()
@@ -123,7 +123,7 @@ public class MonitoringEndpointE2ETest extends BaseE2ETest {
 
         when(instanceManager.getAllInstances()).thenReturn(List.of(inst1, inst2, inst3));
 
-        webClient.get().uri("/ops-gateway/monitoring/instances")
+        webClient.get().uri("/gateway/monitoring/instances")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()
@@ -141,7 +141,7 @@ public class MonitoringEndpointE2ETest extends BaseE2ETest {
         when(langfuseService.isConfigured()).thenReturn(true);
         when(langfuseService.checkReachable()).thenReturn(Mono.just(true));
 
-        webClient.get().uri("/ops-gateway/monitoring/status")
+        webClient.get().uri("/gateway/monitoring/status")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()
@@ -156,7 +156,7 @@ public class MonitoringEndpointE2ETest extends BaseE2ETest {
     public void langfuseStatus_notConfigured_returnsFalse() {
         when(langfuseService.isConfigured()).thenReturn(false);
 
-        webClient.get().uri("/ops-gateway/monitoring/status")
+        webClient.get().uri("/gateway/monitoring/status")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()
@@ -167,7 +167,7 @@ public class MonitoringEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void langfuseStatus_nonAdmin_returns403() {
-        webClient.get().uri("/ops-gateway/monitoring/status")
+        webClient.get().uri("/gateway/monitoring/status")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .exchange()
@@ -188,7 +188,7 @@ public class MonitoringEndpointE2ETest extends BaseE2ETest {
                 "daily", List.of()
         )));
 
-        webClient.get().uri("/ops-gateway/monitoring/overview?from=2024-01-01&to=2024-01-02")
+        webClient.get().uri("/gateway/monitoring/overview?from=2024-01-01&to=2024-01-02")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()
@@ -201,7 +201,7 @@ public class MonitoringEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void overview_nonAdmin_returns403() {
-        webClient.get().uri("/ops-gateway/monitoring/overview?from=2024-01-01&to=2024-01-02")
+        webClient.get().uri("/gateway/monitoring/overview?from=2024-01-01&to=2024-01-02")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .exchange()
@@ -219,7 +219,7 @@ public class MonitoringEndpointE2ETest extends BaseE2ETest {
                         "observationCount", 2, "hasError", false
                 ))));
 
-        webClient.get().uri("/ops-gateway/monitoring/traces?from=2024-01-01&to=2024-01-02")
+        webClient.get().uri("/gateway/monitoring/traces?from=2024-01-01&to=2024-01-02")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()
@@ -236,7 +236,7 @@ public class MonitoringEndpointE2ETest extends BaseE2ETest {
                         "id", "t2", "name", "error-trace", "hasError", true
                 ))));
 
-        webClient.get().uri("/ops-gateway/monitoring/traces?from=2024-01-01&to=2024-01-02&limit=5&errorsOnly=true")
+        webClient.get().uri("/gateway/monitoring/traces?from=2024-01-01&to=2024-01-02&limit=5&errorsOnly=true")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()
@@ -247,7 +247,7 @@ public class MonitoringEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void traces_nonAdmin_returns403() {
-        webClient.get().uri("/ops-gateway/monitoring/traces?from=2024-01-01&to=2024-01-02")
+        webClient.get().uri("/gateway/monitoring/traces?from=2024-01-01&to=2024-01-02")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .exchange()
@@ -264,7 +264,7 @@ public class MonitoringEndpointE2ETest extends BaseE2ETest {
                                 "p95Latency", 2.0, "totalTokens", 100, "totalCost", 0.05)
                 ))));
 
-        webClient.get().uri("/ops-gateway/monitoring/observations?from=2024-01-01&to=2024-01-02")
+        webClient.get().uri("/gateway/monitoring/observations?from=2024-01-01&to=2024-01-02")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()
@@ -276,7 +276,7 @@ public class MonitoringEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void observations_nonAdmin_returns403() {
-        webClient.get().uri("/ops-gateway/monitoring/observations?from=2024-01-01&to=2024-01-02")
+        webClient.get().uri("/gateway/monitoring/observations?from=2024-01-01&to=2024-01-02")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "bob")
                 .exchange()
@@ -302,7 +302,7 @@ public class MonitoringEndpointE2ETest extends BaseE2ETest {
 
         when(metricsBuffer.getSnapshots(120)).thenReturn(List.of(s));
 
-        webClient.get().uri("/ops-gateway/monitoring/metrics")
+        webClient.get().uri("/gateway/monitoring/metrics")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()
@@ -329,7 +329,7 @@ public class MonitoringEndpointE2ETest extends BaseE2ETest {
     public void metrics_empty_returnsEmptyResult() {
         when(metricsBuffer.getSnapshots(120)).thenReturn(List.of());
 
-        webClient.get().uri("/ops-gateway/monitoring/metrics")
+        webClient.get().uri("/gateway/monitoring/metrics")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()
@@ -343,7 +343,7 @@ public class MonitoringEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void metrics_nonAdmin_returns403() {
-        webClient.get().uri("/ops-gateway/monitoring/metrics")
+        webClient.get().uri("/gateway/monitoring/metrics")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .exchange()
@@ -352,7 +352,7 @@ public class MonitoringEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void metrics_unauthenticated_returns401() {
-        webClient.get().uri("/ops-gateway/monitoring/metrics")
+        webClient.get().uri("/gateway/monitoring/metrics")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }

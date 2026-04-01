@@ -888,7 +888,7 @@ function RetrievalDetailPanel({
         setSaving(true)
 
         try {
-            const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/ops-knowledge/chunks/${hit.chunkId}`, {
+            const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/chunks/${hit.chunkId}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1160,7 +1160,7 @@ export default function KnowledgeRetrievalTab({
     const [detailError, setDetailError] = useState<string | null>(null)
 
     const loadChunkDetail = useCallback(async (chunkId: string): Promise<KnowledgeChunkDetail> => {
-        const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/ops-knowledge/chunks/${chunkId}`)
+        const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/chunks/${chunkId}`)
         const data = await response.json().catch(() => null) as KnowledgeChunkDetail | { message?: string } | null
 
         if (!response.ok) {
@@ -1224,7 +1224,7 @@ export default function KnowledgeRetrievalTab({
 
         const loadDocumentNames = async () => {
             try {
-                const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/ops-knowledge/documents?sourceId=${source.id}&page=1&pageSize=100`)
+                const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/documents?sourceId=${source.id}&page=1&pageSize=100`)
                 const data = await response.json().catch(() => null) as PagedResponse<KnowledgeDocumentSummary> | { message?: string } | null
 
                 if (!response.ok) {
@@ -1327,7 +1327,7 @@ export default function KnowledgeRetrievalTab({
             modes,
         }
 
-        const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/ops-knowledge/search/compare`, {
+        const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/search/compare`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1338,7 +1338,7 @@ export default function KnowledgeRetrievalTab({
 
         if (response.status === 404 || response.status === 405) {
             const modeResponses = await Promise.all(modes.map(async mode => {
-                const legacyResponse = await fetch(`${KNOWLEDGE_SERVICE_URL}/ops-knowledge/search`, {
+                const legacyResponse = await fetch(`${KNOWLEDGE_SERVICE_URL}/search`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

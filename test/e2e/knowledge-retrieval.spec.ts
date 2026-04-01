@@ -15,7 +15,7 @@ async function openKnowledgePage(page: Page, sourceId: string) {
 
 async function createSource(request: APIRequestContext): Promise<string> {
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const response = await request.post(`${KNOWLEDGE_URL}/ops-knowledge/sources`, {
+    const response = await request.post(`${KNOWLEDGE_URL}/knowledge/sources`, {
       data: {
         name: `e2e-knowledge-${Date.now()}-${attempt}`,
         description: 'retrieval e2e',
@@ -37,7 +37,7 @@ async function createSource(request: APIRequestContext): Promise<string> {
 }
 
 async function uploadMarkdown(request: APIRequestContext, sourceId: string) {
-  const response = await request.post(`${KNOWLEDGE_URL}/ops-knowledge/sources/${sourceId}/documents:ingest`, {
+  const response = await request.post(`${KNOWLEDGE_URL}/knowledge/sources/${sourceId}/documents:ingest`, {
     multipart: {
       files: {
         name: 'itsm-deployment.md',
@@ -56,7 +56,7 @@ ITSM 部署在 itsm-01 和 itsm-02 两台服务器上。
 }
 
 async function deleteSource(request: APIRequestContext, sourceId: string) {
-  await request.delete(`${KNOWLEDGE_URL}/ops-knowledge/sources/${sourceId}`)
+  await request.delete(`${KNOWLEDGE_URL}/knowledge/sources/${sourceId}`)
 }
 
 test.describe('Knowledge retrieval compare', () => {
@@ -81,7 +81,7 @@ test.describe('Knowledge retrieval compare', () => {
       await expect(page.getByText(/Comparison|结果对比/)).toBeVisible()
       await expect(page.getByText(/当前条件下没有召回结果。|No retrieval results under the current conditions./)).toHaveCount(0)
 
-      expect(consoleErrors.filter(text => text.includes('/ops-knowledge/search/compare 404'))).toHaveLength(0)
+      expect(consoleErrors.filter(text => text.includes('/knowledge/search/compare 404'))).toHaveLength(0)
     } finally {
       try {
         await deleteSource(request, sourceId)

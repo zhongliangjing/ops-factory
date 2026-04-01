@@ -773,7 +773,7 @@ textarea {
 }
 
 .scheduled-card {
-    min-height: 250px;
+    min-height: 280px;
 }
 
 .scheduled-cron {
@@ -783,19 +783,23 @@ textarea {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-.scheduled-source {
-    max-width: 230px;
-    font-size: var(--font-size-xs);
-    color: var(--color-text-muted);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.scheduled-card-code {
+    font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, monospace;
+    font-size: 0.75rem;
 }
 
-.scheduled-actions {
-    margin-top: auto;
+.scheduled-card-footer {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-3);
+}
+
+.scheduled-card-actions {
     display: flex;
     flex-wrap: wrap;
+    justify-content: flex-end;
     gap: var(--spacing-2);
 }
 
@@ -804,6 +808,40 @@ textarea {
     font-size: 0.8rem;
     color: var(--color-text-tertiary, #999);
     font-style: italic;
+}
+
+.scheduled-detail-header {
+    margin-bottom: var(--spacing-5);
+}
+
+.scheduled-detail-back {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    padding: 6px 14px;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    border-radius: var(--radius-2xl);
+    margin-bottom: var(--spacing-4);
+    transition: all var(--transition-base);
+}
+
+.scheduled-detail-back:hover {
+    background: var(--color-bg-hover);
+    color: var(--color-text-primary);
+}
+
+.scheduled-detail-title-group {
+    min-width: 0;
+}
+
+.scheduled-detail-title {
+    margin-bottom: var(--spacing-2);
+}
+
+.scheduled-detail-subtitle {
+    margin-bottom: 0;
 }
 
 .scheduled-modal {
@@ -1012,6 +1050,15 @@ textarea {
     .scheduled-runs-header {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .scheduled-card-footer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .scheduled-card-actions {
+        justify-content: flex-start;
     }
 
     .scheduled-run-item {
@@ -2846,15 +2893,6 @@ textarea {
     user-select: none;
 }
 
-.citation-mark.clickable {
-    cursor: pointer;
-}
-
-.citation-mark.clickable:hover {
-    background: rgba(79, 110, 210, 0.18);
-    color: rgba(59, 86, 178, 0.92);
-}
-
 /* ========================================
    Citation — Hover Card
    ======================================== */
@@ -3057,6 +3095,13 @@ textarea {
     font-size: 10px;
     font-weight: 600;
     line-height: 1;
+}
+
+.reference-capsule-indices {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .reference-capsule-title {

@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/ops-knowledge/jobs")
+@RequestMapping("/knowledge/jobs")
 public class JobController {
 
     private final KnowledgeServiceFacade facade;

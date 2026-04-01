@@ -49,7 +49,7 @@ vi.mock('../hooks/useMcp', () => ({
 }))
 
 vi.mock('../config/runtime', () => ({
-    GATEWAY_URL: 'http://127.0.0.1:8088/ops-gateway',
+    GATEWAY_URL: 'http://127.0.0.1:8088/gateway',
     gatewayHeaders: () => ({ 'Content-Type': 'application/json' }),
     slugify: (value: string) => value.toLowerCase().replace(/\s+/g, '-'),
 }))

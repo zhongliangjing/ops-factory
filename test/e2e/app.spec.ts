@@ -8,7 +8,6 @@
  *   cd test && npx playwright test --config playwright.config.ts
  *
  * Covered:
- *   - Login flow
  *   - Sidebar navigation (role-aware)
  *   - RBAC: admin vs regular user sidebar visibility
  *   - RBAC: admin-only page access guards
@@ -24,12 +23,15 @@ import { test, expect, type Page } from '@playwright/test'
 
 const REGULAR_USER = 'e2e-test-user'
 const ADMIN_USER = 'admin'
+const USER_STORAGE_KEY = 'opsfactory:userId'
 
-// Helper: login as a specific user
+// Helper: seed the current user directly. The dedicated /login route is no longer part of the flow.
 async function loginAs(page: Page, username: string) {
-  await page.goto('/login')
-  await page.fill('input[placeholder="Your name"]', username)
-  await page.click('button:has-text("Enter")')
+  await page.goto('/')
+  await page.evaluate(([storageKey, userId]) => {
+    localStorage.setItem(storageKey, userId)
+  }, [USER_STORAGE_KEY, username])
+  await page.goto('/')
   await page.waitForURL('/')
   // Wait for role to be fetched from /me
   await page.waitForTimeout(500)
@@ -41,26 +43,7 @@ async function login(page: Page) {
 }
 
 // =====================================================
-// 1. Login
-// =====================================================
-test.describe('Login', () => {
-  test('can login and reach home page', async ({ page }) => {
-    await login(page)
-    await expect(page.locator('.sidebar')).toBeVisible()
-    await expect(page.locator('text=Home').first()).toBeVisible()
-  })
-
-  test('redirects to login when not authenticated', async ({ page }) => {
-    await page.goto('/')
-    await page.evaluate(() => localStorage.clear())
-    await page.goto('/')
-    await page.waitForURL('/login')
-    await expect(page.locator('.login-title')).toHaveText('Ops Factory')
-  })
-})
-
-// =====================================================
-// 2. Sidebar Navigation — Regular User
+// 1. Sidebar Navigation — Regular User
 // =====================================================
 test.describe('Sidebar navigation — regular user', () => {
   test.beforeEach(async ({ page }) => {
@@ -95,7 +78,7 @@ test.describe('Sidebar navigation — regular user', () => {
 })
 
 // =====================================================
-// 3. Sidebar Navigation — Admin User
+// 2. Sidebar Navigation — Admin User
 // =====================================================
 test.describe('Sidebar navigation — admin user', () => {
   test.beforeEach(async ({ page }) => {
@@ -123,7 +106,7 @@ test.describe('Sidebar navigation — admin user', () => {
 })
 
 // =====================================================
-// 4. RBAC — Admin-Only Page Guards
+// 3. RBAC — Admin-Only Page Guards
 // =====================================================
 test.describe('RBAC — page access guards', () => {
   test('regular user redirected from /agents/:id/configure', async ({ page }) => {
@@ -167,7 +150,7 @@ test.describe('RBAC — page access guards', () => {
 })
 
 // =====================================================
-// 5. Agents Page — Role-Based Content
+// 4. Agents Page — Role-Based Content
 // =====================================================
 test.describe('Agents page', () => {
   test('regular user can access /agents but has no Configure button', async ({ page }) => {
@@ -210,7 +193,7 @@ test.describe('Agents page', () => {
 })
 
 // =====================================================
-// 6. Agent Configure Page (admin only)
+// 5. Agent Configure Page (admin only)
 // =====================================================
 test.describe('Agent configure page', () => {
   test.beforeEach(async ({ page }) => {
@@ -252,7 +235,7 @@ test.describe('Agent configure page', () => {
 })
 
 // =====================================================
-// 7. History Page
+// 6. History Page
 // =====================================================
 test.describe('History page', () => {
   test.beforeEach(async ({ page }) => {
@@ -267,7 +250,7 @@ test.describe('History page', () => {
 })
 
 // =====================================================
-// 8. Files Page
+// 7. Files Page
 // =====================================================
 test.describe('Files page', () => {
   test.beforeEach(async ({ page }) => {
@@ -282,7 +265,7 @@ test.describe('Files page', () => {
 })
 
 // =====================================================
-// 9. Chat Page
+// 8. Chat Page
 // =====================================================
 test.describe('Chat page', () => {
   test.beforeEach(async ({ page }) => {
@@ -303,7 +286,7 @@ test.describe('Chat page', () => {
 })
 
 // =====================================================
-// 10. Chat — session working_dir & multi-user
+// 9. Chat — session working_dir & multi-user
 // =====================================================
 test.describe('Chat — session working_dir isolation', () => {
   const USER_A = 'e2e-alice'
@@ -368,7 +351,7 @@ test.describe('Chat — session working_dir isolation', () => {
 })
 
 // =====================================================
-// 11. Settings Page
+// 10. Settings Page
 // =====================================================
 test.describe('Settings modal', () => {
   test.beforeEach(async ({ page }) => {
@@ -387,20 +370,10 @@ test.describe('Settings modal', () => {
     await expect(page.locator('.settings-logout-btn')).toBeVisible()
   })
 
-  test('logout redirects to login page', async ({ page }) => {
-    const settingsBtn = page.locator('.sidebar-user-btn').first()
-    await settingsBtn.click()
-    await expect(page.locator('.settings-modal')).toBeVisible({ timeout: 5000 })
-    const userTab = page.locator('.settings-nav-item:has-text("User")')
-    await userTab.click()
-    await page.click('.settings-logout-btn')
-    await page.waitForURL('/login')
-    await expect(page.locator('.login-title')).toHaveText('Ops Factory')
-  })
 })
 
 // =====================================================
-// 12. Embed Mode
+// 11. Embed Mode
 // =====================================================
 test.describe('Embed mode', () => {
   const EMBED_USER = 'e2e-embed-user'
@@ -420,11 +393,10 @@ test.describe('Embed mode', () => {
 
   test('auto-authenticates via userId URL param', async ({ page }) => {
     // Clear any existing auth
-    await page.goto('/login')
+    await page.goto('/')
     await page.evaluate(() => localStorage.clear())
-    // Navigate with embed params — should NOT redirect to /login
+    // Navigate with embed params — should remain inside the app shell.
     await page.goto(`/files?embed=true&userId=${EMBED_USER}`)
-    await expect(page).not.toHaveURL('/login')
     await expect(page.locator('.main-content')).toBeVisible()
   })
 

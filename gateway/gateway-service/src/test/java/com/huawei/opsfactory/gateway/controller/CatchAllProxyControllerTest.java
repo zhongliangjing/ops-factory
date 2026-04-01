@@ -69,7 +69,7 @@ public class CatchAllProxyControllerTest {
 
     @Test
     public void testUserAccessToOpsGatewayPrefixedSystemInfo_allowed() {
-        MockServerHttpRequest request = MockServerHttpRequest.get("/ops-gateway/agents/test-agent/system_info").build();
+        MockServerHttpRequest request = MockServerHttpRequest.get("/gateway/agents/test-agent/system_info").build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
         exchange.getAttributes().put(UserContextFilter.USER_ROLE_ATTR, UserRole.USER);
         exchange.getAttributes().put(UserContextFilter.USER_ID_ATTR, "alice");
@@ -148,7 +148,7 @@ public class CatchAllProxyControllerTest {
 
     @Test
     public void testOpsGatewayPrefixedQueryStringForwarding() {
-        MockServerHttpRequest request = MockServerHttpRequest.get("/ops-gateway/agents/test-agent/schedules/list?limit=5").build();
+        MockServerHttpRequest request = MockServerHttpRequest.get("/gateway/agents/test-agent/schedules/list?limit=5").build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
         exchange.getAttributes().put(UserContextFilter.USER_ROLE_ATTR, UserRole.ADMIN);
         exchange.getAttributes().put(UserContextFilter.USER_ID_ATTR, "admin");

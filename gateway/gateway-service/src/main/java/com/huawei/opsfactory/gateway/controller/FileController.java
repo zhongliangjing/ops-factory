@@ -32,7 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/ops-gateway/agents/{agentId}/files")
+@RequestMapping("/gateway/agents/{agentId}/files")
 public class FileController {
 
     private final InstanceManager instanceManager;
@@ -64,11 +64,11 @@ public class FileController {
         String userId = exchange.getAttribute(UserContextFilter.USER_ID_ATTR);
         Path workingDir = agentConfigService.getUserAgentDir(userId, agentId);
 
-        // Extract the file path after /ops-gateway/agents/{agentId}/files/
+        // Extract the file path after /gateway/agents/{agentId}/files/
         // getPath().value() returns the raw percent-encoded URI; decode so that
         // non-ASCII filenames (e.g. Chinese characters) resolve correctly on disk.
         String fullPath = exchange.getRequest().getPath().value();
-        String prefix = "/ops-gateway/agents/" + agentId + "/files/";
+        String prefix = "/gateway/agents/" + agentId + "/files/";
         String relativePath = URLDecoder.decode(fullPath.substring(prefix.length()), StandardCharsets.UTF_8);
 
         // Check for path traversal — return 403
@@ -107,7 +107,7 @@ public class FileController {
         Path workingDir = agentConfigService.getUserAgentDir(userId, agentId);
 
         String fullPath = exchange.getRequest().getPath().value();
-        String prefix = "/ops-gateway/agents/" + agentId + "/files/";
+        String prefix = "/gateway/agents/" + agentId + "/files/";
         String relativePath = URLDecoder.decode(fullPath.substring(prefix.length()), StandardCharsets.UTF_8);
 
         if (!PathSanitizer.isSafe(workingDir, relativePath)) {

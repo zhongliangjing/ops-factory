@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Validated
 @RestController
-@RequestMapping("/ops-knowledge/sources")
+@RequestMapping("/knowledge/sources")
 public class SourceController {
 
     private final KnowledgeServiceFacade facade;

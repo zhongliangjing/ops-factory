@@ -691,7 +691,7 @@ function formatFileSize(bytes: number): string {
 }
 
 function getDocumentDownloadUrl(documentId: string): string {
-    return `${KNOWLEDGE_SERVICE_URL}/ops-knowledge/documents/${documentId}/original`
+    return `${KNOWLEDGE_SERVICE_URL}/documents/${documentId}/original`
 }
 
 function getFilenameFromDisposition(disposition: string | null, fallback: string): string {
@@ -1393,7 +1393,7 @@ function UploadDocumentsModal({
         }
 
         try {
-            const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/ops-knowledge/sources/${sourceId}/documents:ingest`, {
+            const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/sources/${sourceId}/documents:ingest`, {
                 method: 'POST',
                 body: formData,
             })
@@ -1895,7 +1895,7 @@ export default function KnowledgeConfigure() {
         setDocumentsError(null)
 
         try {
-            const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/ops-knowledge/documents?sourceId=${sourceId}&page=1&pageSize=100`)
+            const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/documents?sourceId=${sourceId}&page=1&pageSize=100`)
             const data = await response.json() as PagedResponse<KnowledgeDocumentSummary> | { message?: string }
 
             if (!response.ok) {
@@ -1907,7 +1907,7 @@ export default function KnowledgeConfigure() {
 
             const artifactEntries = await Promise.all(items.map(async document => {
                 try {
-                    const artifactsResponse = await fetch(`${KNOWLEDGE_SERVICE_URL}/ops-knowledge/documents/${document.id}/artifacts`)
+                    const artifactsResponse = await fetch(`${KNOWLEDGE_SERVICE_URL}/documents/${document.id}/artifacts`)
                     const artifactsData = await artifactsResponse.json() as KnowledgeDocumentArtifacts
                     if (!artifactsResponse.ok) {
                         throw new Error(artifactsResponse.statusText)
@@ -1936,7 +1936,7 @@ export default function KnowledgeConfigure() {
         setDeleteDocumentError(null)
         setDeletingDocumentId(deleteDocumentTarget.id)
         try {
-            const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/ops-knowledge/documents/${deleteDocumentTarget.id}`, {
+            const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/documents/${deleteDocumentTarget.id}`, {
                 method: 'DELETE',
             })
             const data = await response.json().catch(() => null) as { message?: string } | null
@@ -1961,7 +1961,7 @@ export default function KnowledgeConfigure() {
         setRenamingDocumentId(renameDocumentTarget.id)
         const nextTitle = title.trim()
         try {
-            const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/ops-knowledge/documents/${renameDocumentTarget.id}`, {
+            const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/documents/${renameDocumentTarget.id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -2027,7 +2027,7 @@ export default function KnowledgeConfigure() {
 
     const handlePreviewDocument = useCallback(async (knowledgeDocument: KnowledgeDocumentSummary) => {
         try {
-            const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/ops-knowledge/documents/${knowledgeDocument.id}/preview`)
+            const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/documents/${knowledgeDocument.id}/preview`)
             const data = await response.json().catch(() => null) as KnowledgeDocumentPreview | { message?: string } | null
 
             if (!response.ok) {
@@ -2059,7 +2059,7 @@ export default function KnowledgeConfigure() {
         setIsRebuildingSource(true)
 
         try {
-            const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/ops-knowledge/sources/${source.id}:rebuild`, {
+            const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/sources/${source.id}:rebuild`, {
                 method: 'POST',
             })
             const data = await response.json().catch(() => null) as KnowledgeJobResponse | { message?: string } | null

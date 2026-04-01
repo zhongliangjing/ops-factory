@@ -102,7 +102,7 @@ export default function CitationMark({ citation }: CitationMarkProps) {
         }
 
         let cancelled = false
-        fetch(`${KNOWLEDGE_SERVICE_URL}/ops-knowledge/sources/${citation.sourceId}`)
+        fetch(`${KNOWLEDGE_SERVICE_URL}/sources/${citation.sourceId}`)
             .then(async response => {
                 if (!response.ok) throw new Error(String(response.status))
                 return response.json() as Promise<{ name?: string }>

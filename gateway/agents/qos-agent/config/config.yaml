@@ -1,9 +1,5 @@
 GOOSE_PROVIDER: custom_op-qwen3.5-35b-a3b
 GOOSE_MODEL: qwen/Qwen3.5-35B-A3B
-
-#GOOSE_PROVIDER: custom_glm
-#GOOSE_MODEL: GLM-4.7
-
 GOOSE_MODE: auto
 GOOSE_DISABLE_KEYRING: '1'
 GOOSE_TELEMETRY_ENABLED: false
@@ -49,7 +45,7 @@ extensions:
     bundled: true
     available_tools: []
   autovisualiser:
-    enabled: true
+    enabled: false
     type: builtin
     name: autovisualiser
     description: Data visualization and UI generation tools
@@ -58,7 +54,7 @@ extensions:
     bundled: true
     available_tools: []
   memory:
-    enabled: true
+    enabled: false
     type: builtin
     name: memory
     description: Teach goose your preferences as you go.
@@ -113,4 +109,27 @@ extensions:
     description: 'Analyze code structure with tree-sitter: directory overviews, file details, symbol call graphs'
     display_name: Analyze
     bundled: true
+    available_tools: []
+  skills:
+    enabled: true
+    type: platform
+    name: skills
+    description: Load and use skills from relevant directories
+    display_name: Skills
+    bundled: true
+    available_tools: []
+  sop-executor:
+    enabled: true
+    type: stdio
+    name: sop-executor
+    description: ''
+    cmd: node
+    args:
+    - D:/ss/code/ops-factory-main/ops-factory-main/gateway/agents/qos-agent/config/mcp/sop-executor/dist/index.js
+    envs:
+      GATEWAY_URL: http://127.0.0.1:3000
+      GATEWAY_SECRET_KEY: test
+    env_keys: []
+    timeout: null
+    bundled: null
     available_tools: []

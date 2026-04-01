@@ -177,6 +177,7 @@ describe('MessageList tool chain rendering', () => {
         expect(screen.getByText('本轮检索过的资料 (1)')).toBeInTheDocument()
         expect(screen.getByText('系统定义.pdf')).toBeInTheDocument()
         expect(screen.getByText('1 chunks · p.2')).toBeInTheDocument()
+        expect(screen.queryByText('检索')).not.toBeInTheDocument()
     })
 
     it('shows both cited and retrieved document groups when inline citations are present', () => {
@@ -279,7 +280,7 @@ describe('MessageList tool chain rendering', () => {
 
         render(<MessageList messages={messages} />)
 
-        expect(screen.getByText('本轮引用过的资料 (1)')).toBeInTheDocument()
+        expect(screen.getByText('回答中引用的资料 (1)')).toBeInTheDocument()
         expect(screen.getByText('本轮检索过的资料 (2)')).toBeInTheDocument()
         expect(screen.getAllByText('系统定义.pdf')).toHaveLength(2)
         expect(screen.getByText('扩展资料.pdf')).toBeInTheDocument()

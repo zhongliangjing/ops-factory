@@ -57,7 +57,7 @@ public class AgentControllerTest {
                 Map.of("name", "brainstorming", "description", "Brainstorm ideas", "path", "skills/brainstorming")));
         when(agentConfigService.listSkills("agent2")).thenReturn(Collections.emptyList());
 
-        webTestClient.get().uri("/ops-gateway/agents")
+        webTestClient.get().uri("/gateway/agents")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "alice")
                 .exchange()
@@ -77,7 +77,7 @@ public class AgentControllerTest {
     public void testListAgents_empty() {
         when(agentConfigService.getRegistry()).thenReturn(List.of());
 
-        webTestClient.get().uri("/ops-gateway/agents")
+        webTestClient.get().uri("/gateway/agents")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "alice")
                 .exchange()
@@ -95,7 +95,7 @@ public class AgentControllerTest {
         agent.put("model", "gpt-4o");
         when(agentConfigService.createAgent(eq("new-agent"), eq("New Agent"))).thenReturn(agent);
 
-        webTestClient.post().uri("/ops-gateway/agents")
+        webTestClient.post().uri("/gateway/agents")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "admin")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -109,7 +109,7 @@ public class AgentControllerTest {
 
     @Test
     public void testCreateAgent_nonAdminForbidden() {
-        webTestClient.post().uri("/ops-gateway/agents")
+        webTestClient.post().uri("/gateway/agents")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "regular-user")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -120,7 +120,7 @@ public class AgentControllerTest {
 
     @Test
     public void testCreateAgent_missingId() {
-        webTestClient.post().uri("/ops-gateway/agents")
+        webTestClient.post().uri("/gateway/agents")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "admin")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -134,7 +134,7 @@ public class AgentControllerTest {
         Mockito.doNothing().when(instanceManager).stopAllForAgent("agent1");
         Mockito.doNothing().when(agentConfigService).deleteAgent("agent1");
 
-        webTestClient.delete().uri("/ops-gateway/agents/agent1")
+        webTestClient.delete().uri("/gateway/agents/agent1")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "admin")
                 .exchange()
@@ -145,7 +145,7 @@ public class AgentControllerTest {
 
     @Test
     public void testDeleteAgent_nonAdminForbidden() {
-        webTestClient.delete().uri("/ops-gateway/agents/agent1")
+        webTestClient.delete().uri("/gateway/agents/agent1")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "regular-user")
                 .exchange()
@@ -158,7 +158,7 @@ public class AgentControllerTest {
                 Map.of("name", "brainstorming", "description", "Brainstorm ideas", "path", "skills/brainstorming"),
                 Map.of("name", "analysis", "description", "Analyze data", "path", "skills/analysis")));
 
-        webTestClient.get().uri("/ops-gateway/agents/agent1/skills")
+        webTestClient.get().uri("/gateway/agents/agent1/skills")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "admin")
                 .exchange()
@@ -181,7 +181,7 @@ public class AgentControllerTest {
         when(agentConfigService.loadAgentConfigYaml("agent1")).thenReturn(config);
         when(agentConfigService.getAgentsDir()).thenReturn(java.nio.file.Path.of("/tmp/agents"));
 
-        webTestClient.get().uri("/ops-gateway/agents/agent1/config")
+        webTestClient.get().uri("/gateway/agents/agent1/config")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "admin")
                 .exchange()
@@ -198,7 +198,7 @@ public class AgentControllerTest {
                 .thenReturn(new AgentRegistryEntry("agent1", "Agent One"));
         Mockito.doNothing().when(agentConfigService).writeAgentsMd("agent1", "# Updated\n");
 
-        webTestClient.put().uri("/ops-gateway/agents/agent1/config")
+        webTestClient.put().uri("/gateway/agents/agent1/config")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "admin")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -211,7 +211,7 @@ public class AgentControllerTest {
 
     @Test
     public void testUpdateConfig_nonAdminForbidden() {
-        webTestClient.put().uri("/ops-gateway/agents/agent1/config")
+        webTestClient.put().uri("/gateway/agents/agent1/config")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "regular-user")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -222,7 +222,7 @@ public class AgentControllerTest {
 
     @Test
     public void testCreateAgent_missingName() {
-        webTestClient.post().uri("/ops-gateway/agents")
+        webTestClient.post().uri("/gateway/agents")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "admin")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -233,7 +233,7 @@ public class AgentControllerTest {
 
     @Test
     public void testCreateAgent_blankId() {
-        webTestClient.post().uri("/ops-gateway/agents")
+        webTestClient.post().uri("/gateway/agents")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "admin")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -247,7 +247,7 @@ public class AgentControllerTest {
         when(agentConfigService.createAgent(eq("dup-agent"), eq("Dup Agent")))
                 .thenThrow(new IllegalArgumentException("Agent already exists"));
 
-        webTestClient.post().uri("/ops-gateway/agents")
+        webTestClient.post().uri("/gateway/agents")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "admin")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -258,7 +258,7 @@ public class AgentControllerTest {
 
     @Test
     public void testGetSkills_nonAdminForbidden() {
-        webTestClient.get().uri("/ops-gateway/agents/agent1/skills")
+        webTestClient.get().uri("/gateway/agents/agent1/skills")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "regular-user")
                 .exchange()
@@ -267,7 +267,7 @@ public class AgentControllerTest {
 
     @Test
     public void testGetConfig_nonAdminForbidden() {
-        webTestClient.get().uri("/ops-gateway/agents/agent1/config")
+        webTestClient.get().uri("/gateway/agents/agent1/config")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "regular-user")
                 .exchange()
@@ -279,7 +279,7 @@ public class AgentControllerTest {
         // listAgents does not require admin, just auth
         when(agentConfigService.getRegistry()).thenReturn(List.of());
 
-        webTestClient.get().uri("/ops-gateway/agents")
+        webTestClient.get().uri("/gateway/agents")
                 .header("x-secret-key", "test")
                 .header("x-user-id", "regular-user")
                 .exchange()

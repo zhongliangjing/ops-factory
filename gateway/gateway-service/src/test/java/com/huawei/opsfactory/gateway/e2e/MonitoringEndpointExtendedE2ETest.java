@@ -14,7 +14,7 @@ public class MonitoringEndpointExtendedE2ETest extends BaseE2ETest {
 
     @Test
     public void overview_missingFromAndTo_returns400() {
-        webClient.get().uri("/ops-gateway/monitoring/overview")
+        webClient.get().uri("/gateway/monitoring/overview")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()
@@ -23,7 +23,7 @@ public class MonitoringEndpointExtendedE2ETest extends BaseE2ETest {
 
     @Test
     public void overview_missingTo_returns400() {
-        webClient.get().uri("/ops-gateway/monitoring/overview?from=2024-01-01")
+        webClient.get().uri("/gateway/monitoring/overview?from=2024-01-01")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()
@@ -32,7 +32,7 @@ public class MonitoringEndpointExtendedE2ETest extends BaseE2ETest {
 
     @Test
     public void overview_missingFrom_returns400() {
-        webClient.get().uri("/ops-gateway/monitoring/overview?to=2024-01-02")
+        webClient.get().uri("/gateway/monitoring/overview?to=2024-01-02")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()
@@ -43,7 +43,7 @@ public class MonitoringEndpointExtendedE2ETest extends BaseE2ETest {
 
     @Test
     public void traces_missingFromAndTo_returns400() {
-        webClient.get().uri("/ops-gateway/monitoring/traces")
+        webClient.get().uri("/gateway/monitoring/traces")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()
@@ -52,7 +52,7 @@ public class MonitoringEndpointExtendedE2ETest extends BaseE2ETest {
 
     @Test
     public void traces_missingTo_returns400() {
-        webClient.get().uri("/ops-gateway/monitoring/traces?from=2024-01-01")
+        webClient.get().uri("/gateway/monitoring/traces?from=2024-01-01")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()
@@ -61,7 +61,7 @@ public class MonitoringEndpointExtendedE2ETest extends BaseE2ETest {
 
     @Test
     public void traces_missingFrom_returns400() {
-        webClient.get().uri("/ops-gateway/monitoring/traces?to=2024-01-02")
+        webClient.get().uri("/gateway/monitoring/traces?to=2024-01-02")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()
@@ -72,7 +72,7 @@ public class MonitoringEndpointExtendedE2ETest extends BaseE2ETest {
 
     @Test
     public void observations_missingFromAndTo_returns400() {
-        webClient.get().uri("/ops-gateway/monitoring/observations")
+        webClient.get().uri("/gateway/monitoring/observations")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()
@@ -81,7 +81,7 @@ public class MonitoringEndpointExtendedE2ETest extends BaseE2ETest {
 
     @Test
     public void observations_missingTo_returns400() {
-        webClient.get().uri("/ops-gateway/monitoring/observations?from=2024-01-01")
+        webClient.get().uri("/gateway/monitoring/observations?from=2024-01-01")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()
@@ -90,7 +90,7 @@ public class MonitoringEndpointExtendedE2ETest extends BaseE2ETest {
 
     @Test
     public void observations_missingFrom_returns400() {
-        webClient.get().uri("/ops-gateway/monitoring/observations?to=2024-01-02")
+        webClient.get().uri("/gateway/monitoring/observations?to=2024-01-02")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()

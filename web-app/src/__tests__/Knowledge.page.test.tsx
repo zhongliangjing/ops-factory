@@ -33,7 +33,7 @@ describe('Knowledge page', () => {
             const url = String(input)
             const method = init?.method ?? 'GET'
 
-            if (method === 'GET' && url.includes('/ops-knowledge/sources?page=1&pageSize=100')) {
+            if (method === 'GET' && url.includes('/knowledge/sources?page=1&pageSize=100')) {
                 return Promise.resolve({
                     ok: true,
                     json: async () => ({
@@ -57,7 +57,7 @@ describe('Knowledge page', () => {
                 } as Response)
             }
 
-            if (method === 'GET' && url.includes('/ops-knowledge/sources/src_001/stats')) {
+            if (method === 'GET' && url.includes('/knowledge/sources/src_001/stats')) {
                 return Promise.resolve({
                     ok: true,
                     json: async () => ({
@@ -73,7 +73,7 @@ describe('Knowledge page', () => {
                 } as Response)
             }
 
-            if (method === 'POST' && url.endsWith('/ops-knowledge/sources')) {
+            if (method === 'POST' && url.endsWith('/knowledge/sources')) {
                 return Promise.resolve({
                     ok: true,
                     json: async () => ({
@@ -83,7 +83,7 @@ describe('Knowledge page', () => {
                 } as Response)
             }
 
-            if (method === 'DELETE' && url.endsWith('/ops-knowledge/sources/src_001')) {
+            if (method === 'DELETE' && url.endsWith('/knowledge/sources/src_001')) {
                 return Promise.resolve({
                     ok: true,
                     json: async () => ({
@@ -137,7 +137,7 @@ describe('Knowledge page', () => {
 
         const fetchMock = vi.mocked(fetch)
         expect(fetchMock).toHaveBeenCalledWith(
-            'http://127.0.0.1:8092/ops-knowledge/sources',
+            'http://127.0.0.1:8092/knowledge/sources',
             expect.objectContaining({
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -198,14 +198,14 @@ describe('Knowledge page', () => {
             const url = String(input)
             const method = init?.method ?? 'GET'
 
-            if (method === 'GET' && url.includes('/ops-knowledge/sources?page=1&pageSize=100')) {
+            if (method === 'GET' && url.includes('/knowledge/sources?page=1&pageSize=100')) {
                 return Promise.resolve({
                     ok: true,
                     json: async () => ({ items: [], page: 1, pageSize: 100, total: 0 }),
                 } as Response)
             }
 
-            if (method === 'POST' && url.endsWith('/ops-knowledge/sources')) {
+            if (method === 'POST' && url.endsWith('/knowledge/sources')) {
                 return Promise.resolve({
                     ok: false,
                     status: 400,
@@ -242,7 +242,7 @@ describe('Knowledge page', () => {
             const url = String(input)
             const method = init?.method ?? 'GET'
 
-            if (method === 'GET' && url.includes('/ops-knowledge/sources?page=1&pageSize=100')) {
+            if (method === 'GET' && url.includes('/knowledge/sources?page=1&pageSize=100')) {
                 return Promise.resolve({
                     ok: true,
                     json: async () => ({
@@ -277,7 +277,7 @@ describe('Knowledge page', () => {
                 } as Response)
             }
 
-            if (method === 'GET' && url.includes('/ops-knowledge/sources/') && url.includes('/stats')) {
+            if (method === 'GET' && url.includes('/knowledge/sources/') && url.includes('/stats')) {
                 return Promise.resolve({
                     ok: true,
                     json: async () => ({

@@ -7,6 +7,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useInbox } from '../contexts/InboxContext'
 import { useUser } from '../contexts/UserContext'
 import { slugify } from '../config/runtime'
+import ResourceCard, { type ResourceStatusTone } from '../components/ResourceCard'
 
 interface FormState {
     name: string
@@ -59,6 +60,12 @@ function loadDrafts(storageKey: string): ScheduleDraftMap {
 function saveDrafts(storageKey: string, drafts: ScheduleDraftMap): void {
     if (typeof window === 'undefined') return
     window.localStorage.setItem(storageKey, JSON.stringify(drafts))
+}
+
+function getScheduleStatusTone(job: ScheduledJob): ResourceStatusTone {
+    if (job.currently_running) return 'warning'
+    if (job.paused) return 'neutral'
+    return 'success'
 }
 
 export default function ScheduledActions() {
@@ -297,54 +304,68 @@ export default function ScheduledActions() {
         navigate(`/chat?sessionId=${sessionId}&agent=${selectedAgent}`)
     }
 
+    const getScheduleStatusLabel = (job: ScheduledJob) => {
+        if (job.paused) return t('scheduler.paused')
+        if (job.currently_running) return t('scheduler.running')
+        return t('scheduler.active')
+    }
+
     return (
         <div className="page-container sidebar-top-page scheduled-page">
-            <div className="page-header">
-                <h1 className="page-title">{t('scheduler.title')}</h1>
-                <p className="page-subtitle">{t('scheduler.subtitle')}</p>
-            </div>
+            {viewingJobId ? (
+                <div className="scheduled-detail-header">
+                    <button
+                        type="button"
+                        className="scheduled-detail-back"
+                        onClick={() => {
+                            setViewingJobId(null)
+                            setRuns([])
+                        }}
+                    >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" aria-hidden="true">
+                            <path d="M15 18l-6-6 6-6" />
+                        </svg>
+                        {t('common.back')}
+                    </button>
+
+                    <div className="scheduled-detail-title-group">
+                        <h2 className="page-title scheduled-detail-title">{t('scheduler.runs', { id: viewingJobId })}</h2>
+                        <p className="page-subtitle scheduled-detail-subtitle">{t('scheduler.runsSubtitle')}</p>
+                    </div>
+                </div>
+            ) : (
+                <>
+                    <div className="page-header">
+                        <h1 className="page-title">{t('scheduler.title')}</h1>
+                        <p className="page-subtitle">{t('scheduler.subtitle')}</p>
+                    </div>
+
+                    <div className="scheduled-toolbar">
+                        <label className="scheduled-agent-select-wrap">
+                            <span>{t('scheduler.agent')}</span>
+                            <select
+                                className="scheduled-agent-select"
+                                value={selectedAgent}
+                                onChange={(e) => setSelectedAgent(e.target.value)}
+                            >
+                                {agents.map(agent => (
+                                    <option key={agent.id} value={agent.id}>{agent.name}</option>
+                                ))}
+                            </select>
+                        </label>
+
+                        <button type="button" className="btn btn-primary" onClick={openCreateModal} disabled={!selectedAgent}>
+                            {t('scheduler.createAction')}
+                        </button>
+                    </div>
+                </>
+            )}
 
             {error && <div className="conn-banner conn-banner-error">{t('common.connectionError', { error })}</div>}
             {!isConnected && !error && <div className="conn-banner conn-banner-warning">{t('common.connectingGateway')}</div>}
 
-            <div className="scheduled-toolbar">
-                <label className="scheduled-agent-select-wrap">
-                    <span>{t('scheduler.agent')}</span>
-                    <select
-                        className="scheduled-agent-select"
-                        value={selectedAgent}
-                        onChange={(e) => setSelectedAgent(e.target.value)}
-                    >
-                        {agents.map(agent => (
-                            <option key={agent.id} value={agent.id}>{agent.name}</option>
-                        ))}
-                    </select>
-                </label>
-
-                <button type="button" className="btn btn-primary" onClick={openCreateModal} disabled={!selectedAgent}>
-                    {t('scheduler.createAction')}
-                </button>
-            </div>
-
             {viewingJobId ? (
                 <div className="scheduled-runs-panel">
-                    <div className="scheduled-runs-header">
-                        <button
-                            type="button"
-                            className="btn btn-secondary"
-                            onClick={() => {
-                                setViewingJobId(null)
-                                setRuns([])
-                            }}
-                        >
-                            {t('common.back')}
-                        </button>
-                        <div>
-                            <h3 className="scheduled-runs-title">{t('scheduler.runs', { id: viewingJobId })}</h3>
-                            <p className="scheduled-runs-subtitle">{t('scheduler.runsSubtitle')}</p>
-                        </div>
-                    </div>
-
                     {runsLoading ? (
                         <div className="empty-state">
                             <h3 className="empty-state-title">{t('scheduler.loadingRuns')}</h3>
@@ -390,55 +411,55 @@ export default function ScheduledActions() {
                     <p className="empty-state-description">{t('scheduler.noSchedulesHint')}</p>
                 </div>
             ) : (
-                <div className="agents-grid scheduled-grid">
+                <div className="resource-grid scheduled-grid">
                     {jobs.map(job => (
-                        <div key={job.id} className="agent-card scheduled-card">
-                            <div className="agent-card-header">
-                                <div className="agent-card-title">
-                                    <div>
-                                        <div className="agent-name">{job.id}</div>
-                                        <div className="scheduled-cron">{job.cron}</div>
+                        <ResourceCard
+                            key={job.id}
+                            className="scheduled-card"
+                            title={job.id}
+                            statusLabel={getScheduleStatusLabel(job)}
+                            statusTone={getScheduleStatusTone(job)}
+                            summary={(
+                                <div className="resource-card-summary-stack">
+                                    <p className="resource-card-summary-text resource-card-summary-code" title={job.cron}>
+                                        {job.cron}
+                                    </p>
+                                    <p className={['resource-card-summary-text', !drafts[selectedAgent]?.[job.id]?.instruction ? 'resource-card-summary-placeholder' : ''].filter(Boolean).join(' ')}>
+                                        {drafts[selectedAgent]?.[job.id]?.instruction || t('scheduler.summaryUnavailable')}
+                                    </p>
+                                </div>
+                            )}
+                            metrics={[
+                                { label: t('scheduler.cron'), value: job.cron, valueClassName: 'scheduled-card-code' },
+                                { label: t('scheduler.lastRun'), value: job.last_run ? new Date(job.last_run).toLocaleString() : t('scheduler.never') },
+                                { label: t('common.status'), value: getScheduleStatusLabel(job) },
+                            ]}
+                            footer={(
+                                <div className="scheduled-card-footer">
+                                    <button type="button" className="resource-card-danger-action" onClick={() => handleDelete(job)}>
+                                        {t('common.delete')}
+                                    </button>
+                                    <div className="scheduled-card-actions">
+                                        <button type="button" className="btn btn-secondary" onClick={() => handleViewRuns(job)}>
+                                            {t('scheduler.viewRuns')}
+                                        </button>
+                                        {!job.currently_running ? (
+                                            <>
+                                                <button type="button" className="btn btn-secondary" onClick={() => openEditModal(job)}>{t('common.edit')}</button>
+                                                {job.paused ? (
+                                                    <button type="button" className="btn btn-secondary" onClick={() => handleUnpause(job)}>{t('scheduler.resume')}</button>
+                                                ) : (
+                                                    <button type="button" className="btn btn-secondary" onClick={() => handlePause(job)}>{t('scheduler.pause')}</button>
+                                                )}
+                                                <button type="button" className="resource-card-primary-action" onClick={() => handleRunNow(job)}>{t('scheduler.runNow')}</button>
+                                            </>
+                                        ) : (
+                                            <button type="button" className="btn btn-secondary" onClick={() => handleKill(job)}>{t('scheduler.kill')}</button>
+                                        )}
                                     </div>
                                 </div>
-                                <span className={`status-pill ${job.paused ? 'status-stopped' : 'status-running'}`}>
-                                    {job.paused ? t('scheduler.paused') : (job.currently_running ? t('scheduler.running') : t('scheduler.active'))}
-                                </span>
-                            </div>
-
-                            <div className="agent-meta">
-                                <div className="agent-meta-row">
-                                    <span className="agent-meta-label">{t('scheduler.lastRun')}</span>
-                                    <span className="agent-meta-value">
-                                        {job.last_run ? new Date(job.last_run).toLocaleString() : t('scheduler.never')}
-                                    </span>
-                                </div>
-                                <div className="agent-meta-row">
-                                    <span className="agent-meta-label">{t('scheduler.source')}</span>
-                                    <span className="agent-meta-value scheduled-source">{job.source}</span>
-                                </div>
-                            </div>
-
-                            <div className="scheduled-actions">
-                                {!job.currently_running ? (
-                                    <>
-                                        <button type="button" className="btn btn-secondary" onClick={() => openEditModal(job)}>{t('common.edit')}</button>
-                                        {job.paused ? (
-                                            <button type="button" className="btn btn-secondary" onClick={() => handleUnpause(job)}>{t('scheduler.resume')}</button>
-                                        ) : (
-                                            <button type="button" className="btn btn-secondary" onClick={() => handlePause(job)}>{t('scheduler.pause')}</button>
-                                        )}
-                                        <button type="button" className="btn btn-secondary" onClick={() => handleRunNow(job)}>{t('scheduler.runNow')}</button>
-                                    </>
-                                ) : (
-                                    <button type="button" className="btn btn-secondary agent-delete-button" onClick={() => handleKill(job)}>{t('scheduler.kill')}</button>
-                                )}
-                                <button type="button" className="btn btn-secondary" onClick={() => handleViewRuns(job)}>{t('scheduler.viewRuns')}</button>
-                                <button type="button" className="btn btn-secondary agent-delete-button" onClick={() => handleDelete(job)}>{t('common.delete')}</button>
-                            </div>
-                            {job.currently_running && (
-                                <div className="scheduled-running-hint">{t('scheduler.cannotModifyRunning')}</div>
                             )}
-                        </div>
+                        />
                     ))}
                 </div>
             )}

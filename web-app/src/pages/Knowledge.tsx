@@ -89,7 +89,7 @@ function CreateKnowledgeModal({
 
         setCreating(true)
         try {
-            const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/ops-knowledge/sources`, {
+            const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/sources`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -188,7 +188,7 @@ function DeleteKnowledgeModal({
         setError(null)
         setDeleting(true)
         try {
-            const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/ops-knowledge/sources/${source.id}`, {
+            const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/sources/${source.id}`, {
                 method: 'DELETE',
             })
             const data = await response.json().catch(() => null)
@@ -257,7 +257,7 @@ export default function Knowledge() {
         setIsLoading(true)
         setError(null)
         try {
-            const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/ops-knowledge/sources?page=1&pageSize=100`)
+            const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/sources?page=1&pageSize=100`)
             const data = await response.json() as SourceListResponse
             if (!response.ok) {
                 throw new Error((data as { message?: string }).message || response.statusText)
@@ -267,7 +267,7 @@ export default function Knowledge() {
             const statsEntries = await Promise.all(
                 (data.items || []).map(async source => {
                     try {
-                        const statsResponse = await fetch(`${KNOWLEDGE_SERVICE_URL}/ops-knowledge/sources/${source.id}/stats`)
+                        const statsResponse = await fetch(`${KNOWLEDGE_SERVICE_URL}/sources/${source.id}/stats`)
                         const statsData = await statsResponse.json() as SourceStats
                         if (!statsResponse.ok) {
                             throw new Error(statsResponse.statusText)

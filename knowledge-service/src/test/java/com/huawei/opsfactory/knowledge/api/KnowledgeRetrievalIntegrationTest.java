@@ -90,7 +90,7 @@ class KnowledgeRetrievalIntegrationTest extends KnowledgeApiIntegrationTestSuppo
         assertThat(htmlSearch.path("total").asInt()).isGreaterThan(0);
         String hitChunkId = htmlSearch.path("hits").get(0).path("chunkId").asText();
 
-        JsonNode explain = readJson(mockMvc.perform(post("/ops-knowledge/explain")
+        JsonNode explain = readJson(mockMvc.perform(post("/knowledge/explain")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -119,7 +119,7 @@ class KnowledgeRetrievalIntegrationTest extends KnowledgeApiIntegrationTestSuppo
         List<String> keywords,
         String text
     ) throws Exception {
-        return readJson(mockMvc.perform(post("/ops-knowledge/documents/{documentId}/chunks", documentId)
+        return readJson(mockMvc.perform(post("/knowledge/documents/{documentId}/chunks", documentId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {

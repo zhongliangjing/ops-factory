@@ -53,11 +53,13 @@ describe('ReferenceList', () => {
                         url: null,
                     },
                 ]}
+                label="回答中引用的资料"
+                variant="cited"
             />
         )
 
-        expect(screen.getByText('本轮检索过的资料 (1)')).toBeInTheDocument()
-        expect(screen.getByText('2 chunks · p.12, 13')).toBeInTheDocument()
+        expect(screen.getByText('回答中引用的资料 (1)')).toBeInTheDocument()
+        expect(screen.getByText('2 处引用 · p.12, 13')).toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: /Runbook\.pdf/i }))
 

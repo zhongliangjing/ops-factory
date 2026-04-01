@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/ops-knowledge")
+@RequestMapping("/knowledge")
 public class SystemController {
 
     private final KnowledgeProperties properties;

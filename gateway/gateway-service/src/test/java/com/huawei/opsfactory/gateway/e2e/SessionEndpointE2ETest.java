@@ -52,7 +52,7 @@ public class SessionEndpointE2ETest extends BaseE2ETest {
         when(goosedProxy.fetchJson(eq(9999), eq(HttpMethod.POST), eq("/agent/resume"), anyString(), anyInt(), anyString()))
                 .thenReturn(Mono.just("{\"session\":{\"id\":\"session-123\"},\"extension_results\":[]}"));
 
-        webClient.post().uri("/ops-gateway/agents/test-agent/agent/start")
+        webClient.post().uri("/gateway/agents/test-agent/agent/start")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -77,7 +77,7 @@ public class SessionEndpointE2ETest extends BaseE2ETest {
         when(goosedProxy.fetchJson(eq(9999), eq(HttpMethod.POST), eq("/agent/resume"), anyString(), anyInt(), anyString()))
                 .thenReturn(Mono.error(new RuntimeException("Extension loading failed")));
 
-        webClient.post().uri("/ops-gateway/agents/test-agent/agent/start")
+        webClient.post().uri("/gateway/agents/test-agent/agent/start")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -95,7 +95,7 @@ public class SessionEndpointE2ETest extends BaseE2ETest {
         when(goosedProxy.fetchJson(eq(9999), eq(HttpMethod.POST), eq("/agent/resume"), anyString(), anyInt(), anyString()))
                 .thenReturn(Mono.just("{\"session\":{\"id\":\"abc-def-456\"},\"extension_results\":[]}"));
 
-        webClient.post().uri("/ops-gateway/agents/test-agent/agent/start")
+        webClient.post().uri("/gateway/agents/test-agent/agent/start")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -118,7 +118,7 @@ public class SessionEndpointE2ETest extends BaseE2ETest {
         when(goosedProxy.fetchJson(eq(9999), eq(HttpMethod.POST), eq("/agent/resume"), anyString(), anyInt(), anyString()))
                 .thenReturn(Mono.just("{\"session\":{\"id\":\"session-123\"},\"extension_results\":[{\"name\":\"developer\",\"success\":true}]}"));
 
-        webClient.post().uri("/ops-gateway/agents/test-agent/agent/start")
+        webClient.post().uri("/gateway/agents/test-agent/agent/start")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -134,7 +134,7 @@ public class SessionEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void startSession_unauthenticated_returns401() {
-        webClient.post().uri("/ops-gateway/agents/test-agent/agent/start")
+        webClient.post().uri("/gateway/agents/test-agent/agent/start")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("{}")
                 .exchange()
@@ -147,7 +147,7 @@ public class SessionEndpointE2ETest extends BaseE2ETest {
     public void listAllSessions_noInstances_returnsEmptyArray() {
         when(instanceManager.getAllInstances()).thenReturn(Collections.emptyList());
 
-        webClient.get().uri("/ops-gateway/sessions")
+        webClient.get().uri("/gateway/sessions")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .exchange()
@@ -173,7 +173,7 @@ public class SessionEndpointE2ETest extends BaseE2ETest {
         when(sessionService.getSessionsFromInstance(sysInstance))
                 .thenReturn(Mono.just("{\"sessions\":[{\"id\":\"s2\"}]}"));
 
-        webClient.get().uri("/ops-gateway/sessions")
+        webClient.get().uri("/gateway/sessions")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .exchange()
@@ -188,7 +188,7 @@ public class SessionEndpointE2ETest extends BaseE2ETest {
         when(instanceManager.getAllInstances())
                 .thenReturn(List.of(stoppedInstance));
 
-        webClient.get().uri("/ops-gateway/sessions")
+        webClient.get().uri("/gateway/sessions")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .exchange()
@@ -198,7 +198,7 @@ public class SessionEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void listAllSessions_unauthenticated_returns401() {
-        webClient.get().uri("/ops-gateway/sessions")
+        webClient.get().uri("/gateway/sessions")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
@@ -212,7 +212,7 @@ public class SessionEndpointE2ETest extends BaseE2ETest {
         when(goosedProxy.proxy(any(), any(), eq(9999), eq("/sessions"), any()))
                 .thenReturn(Mono.empty());
 
-        webClient.get().uri("/ops-gateway/agents/test-agent/sessions")
+        webClient.get().uri("/gateway/agents/test-agent/sessions")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .exchange()
@@ -230,7 +230,7 @@ public class SessionEndpointE2ETest extends BaseE2ETest {
         when(goosedProxy.fetchJson(eq(9999), eq("/sessions/session-123"), anyString()))
                 .thenReturn(Mono.just("{\"id\":\"session-123\",\"conversation\":[]}"));
 
-        webClient.get().uri("/ops-gateway/agents/test-agent/sessions/session-123")
+        webClient.get().uri("/gateway/agents/test-agent/sessions/session-123")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .exchange()
@@ -242,7 +242,7 @@ public class SessionEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void getSession_unauthenticated_returns401() {
-        webClient.get().uri("/ops-gateway/agents/test-agent/sessions/session-123")
+        webClient.get().uri("/gateway/agents/test-agent/sessions/session-123")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
@@ -256,7 +256,7 @@ public class SessionEndpointE2ETest extends BaseE2ETest {
         when(goosedProxy.proxy(any(), any(), eq(9999), eq("/sessions/session-456"), any()))
                 .thenReturn(Mono.empty());
 
-        webClient.delete().uri("/ops-gateway/agents/test-agent/sessions/session-456")
+        webClient.delete().uri("/gateway/agents/test-agent/sessions/session-456")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .exchange()
@@ -267,7 +267,7 @@ public class SessionEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void deleteSession_unauthenticated_returns401() {
-        webClient.delete().uri("/ops-gateway/agents/test-agent/sessions/session-456")
+        webClient.delete().uri("/gateway/agents/test-agent/sessions/session-456")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }

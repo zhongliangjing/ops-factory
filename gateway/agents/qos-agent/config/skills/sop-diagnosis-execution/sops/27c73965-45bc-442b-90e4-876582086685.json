@@ -1,0 +1,32 @@
+{
+  "id" : "27c73965-45bc-442b-90e4-876582086685",
+  "name" : "MS-Z异常分析",
+  "description" : "MS-Z异常的情况下启用这个SOP",
+  "version" : "1.0",
+  "triggerCondition" : "MS-Z异常",
+  "nodes" : [ {
+    "id" : "node-1774859023430-0",
+    "name" : "初步分析",
+    "type" : "start",
+    "hostTags" : [ "MS-Z" ],
+    "command" : "tail -n 50 /home/sunsong/ms-z.log",
+    "variables" : [ ],
+    "outputFormat" : "时间戳 [级别] [线程名称] [进程名称] 日志内容",
+    "analysisInstruction" : "分析查到的报错日志",
+    "transitions" : [ {
+      "condition" : "出现报错码137关键字",
+      "nextNodeId" : "分析详细日志",
+      "nextNodes" : [ "分析详细日志" ]
+    } ]
+  }, {
+    "id" : "node-1774867732966-1",
+    "name" : "分析详细日志",
+    "type" : "analysis",
+    "hostTags" : [ "gateway" ],
+    "command" : "tail 50 /home/sunsong/detail.log",
+    "variables" : [ ],
+    "outputFormat" : "# 时间戳 | 主机名 | 进程/内核 | 详细描述",
+    "analysisInstruction" : "根据描述分析导致问题的可能原因",
+    "transitions" : [ ]
+  } ]
+}

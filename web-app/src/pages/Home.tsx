@@ -16,7 +16,7 @@ interface ModelInfo {
 
 const UNIVERSAL_AGENT_ID = 'universal-agent'
 
-// 诊断接口不需要 ops-gateway 后缀的网关地址
+// 诊断接口不需要 gateway 前缀的网关地址
 const DIAGNOSIS_GATEWAY_URL = `${import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3000'}`
 
 export default function Home() {
@@ -33,7 +33,7 @@ export default function Home() {
     // 诊断接口调用
     const handleDiagnosis = async (sceneCode: string) => {
         try {
-            // 使用不带 ops-gateway 后缀的网关地址
+            // 使用不带 gateway 前缀的网关地址
             const res = await fetch(`${DIAGNOSIS_GATEWAY_URL}/itom/api/diagnosis/getDiagnosisQuery?sceneCode=${sceneCode}`, {
                 headers: gatewayHeaders(userId),
             });

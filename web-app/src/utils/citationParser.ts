@@ -23,18 +23,26 @@ function sanitizeField(value: string | undefined): string | null {
     return trimmed.length > 0 ? trimmed : null
 }
 
-function parseCitationBody(body: string, fallbackIndex: number): Citation | null {
+interface ParsedCitationToken {
+    citation: Citation
+    identityKey: string
+}
+
+function parseCitationBody(body: string, fallbackIndex: number): ParsedCitationToken | null {
     const trimmed = body.trim()
     if (/^chk_[a-zA-Z0-9]+$/.test(trimmed)) {
         return {
-            index: fallbackIndex,
-            title: trimmed,
-            documentId: null,
-            chunkId: trimmed,
-            sourceId: null,
-            pageLabel: null,
-            snippet: null,
-            url: null,
+            identityKey: `chunk:${trimmed}`,
+            citation: {
+                index: fallbackIndex,
+                title: trimmed,
+                documentId: null,
+                chunkId: trimmed,
+                sourceId: null,
+                pageLabel: null,
+                snippet: null,
+                url: null,
+            },
         }
     }
 
@@ -45,32 +53,52 @@ function parseCitationBody(body: string, fallbackIndex: number): Citation | null
     if (!Number.isFinite(index)) return null
 
     return {
-        index,
-        title: parts[1] || `Citation ${index}`,
-        documentId: null,
-        chunkId: sanitizeField(parts[2]),
-        sourceId: sanitizeField(parts[3]),
-        pageLabel: sanitizeField(parts[4]),
-        snippet: sanitizeField(parts[5]),
-        url: sanitizeField(parts[6]),
+        identityKey: `index:${index}`,
+        citation: {
+            index,
+            title: parts[1] || `Citation ${index}`,
+            documentId: null,
+            chunkId: sanitizeField(parts[2]),
+            sourceId: sanitizeField(parts[3]),
+            pageLabel: sanitizeField(parts[4]),
+            snippet: sanitizeField(parts[5]),
+            url: sanitizeField(parts[6]),
+        },
     }
 }
 
+function getDisplayCitation(
+    token: ParsedCitationToken,
+    displayCitations: Map<string, Citation>,
+): Citation {
+    const existing = displayCitations.get(token.identityKey)
+    if (existing) {
+        return existing
+    }
+
+    const displayCitation = {
+        ...token.citation,
+        index: displayCitations.size + 1,
+    }
+    displayCitations.set(token.identityKey, displayCitation)
+    return displayCitation
+}
+
 export function parseCitations(text: string): Citation[] {
-    const map = new Map<number, Citation>()
+    const displayCitations = new Map<string, Citation>()
     let match: RegExpExecArray | null
     const re = new RegExp(CITE_REGEX.source, CITE_REGEX.flags)
     let fallbackIndex = 1
 
     while ((match = re.exec(text)) !== null) {
-        const citation = parseCitationBody(match[1], fallbackIndex)
-        if (citation && !map.has(citation.index)) {
-            map.set(citation.index, citation)
-            fallbackIndex = Math.max(fallbackIndex, citation.index + 1)
+        const token = parseCitationBody(match[1], fallbackIndex)
+        if (token) {
+            getDisplayCitation(token, displayCitations)
+            fallbackIndex = Math.max(fallbackIndex, token.citation.index + 1)
         }
     }
 
-    return Array.from(map.values()).sort((a, b) => a.index - b.index)
+    return Array.from(displayCitations.values())
 }
 
 export function hasCitations(text: string): boolean {
@@ -85,16 +113,18 @@ export function splitByCitations(text: string): TextSegment[] {
     let lastIndex = 0
     let match: RegExpExecArray | null
     let fallbackIndex = 1
+    const displayCitations = new Map<string, Citation>()
 
     while ((match = re.exec(text)) !== null) {
         if (match.index > lastIndex) {
             segments.push({ type: 'text', value: text.slice(lastIndex, match.index) })
         }
 
-        const citation = parseCitationBody(match[1], fallbackIndex)
-        if (citation) {
+        const token = parseCitationBody(match[1], fallbackIndex)
+        if (token) {
+            const citation = getDisplayCitation(token, displayCitations)
             segments.push({ type: 'cite', citation })
-            fallbackIndex = Math.max(fallbackIndex, citation.index + 1)
+            fallbackIndex = Math.max(fallbackIndex, token.citation.index + 1)
         }
 
         lastIndex = re.lastIndex
@@ -113,12 +143,15 @@ export function stripCitations(text: string): string {
 
 export function replaceCitationsWithPlaceholders(text: string): string {
     let fallbackIndex = 1
+    const displayCitations = new Map<string, Citation>()
     return text.replace(new RegExp(CITE_REGEX.source, CITE_REGEX.flags), (_, body: string) => {
-        const citation = parseCitationBody(body, fallbackIndex)
-        if (citation) {
-            fallbackIndex = Math.max(fallbackIndex, citation.index + 1)
+        const token = parseCitationBody(body, fallbackIndex)
+        if (token) {
+            const citation = getDisplayCitation(token, displayCitations)
+            fallbackIndex = Math.max(fallbackIndex, token.citation.index + 1)
+            return `[CITE_${citation.index}](#cite-${citation.index})`
         }
-        return citation ? `[CITE_${citation.index}](#cite-${citation.index})` : ''
+        return ''
     })
 }
 
@@ -297,24 +330,68 @@ function buildPageLabel(pageFrom: unknown, pageTo: unknown): string | null {
 }
 
 export function mergeCitationMetadata(citations: Citation[], sourceDocuments: Citation[]): Citation[] {
-    const sourceByChunkId = new Map(
-        sourceDocuments
-            .filter(citation => citation.chunkId)
-            .map(citation => [citation.chunkId as string, citation]),
-    )
-
     return citations.map(citation => {
-        if (!citation.chunkId) return citation
-        const source = sourceByChunkId.get(citation.chunkId)
+        const source = resolveCitationEvidence(citation, sourceDocuments)
         if (!source) return citation
         return {
             ...citation,
-            documentId: citation.documentId || source.documentId || null,
-            title: citation.title === citation.chunkId && source.title ? source.title : citation.title,
-            sourceId: citation.sourceId || source.sourceId,
-            pageLabel: citation.pageLabel || source.pageLabel,
-            snippet: citation.snippet || source.snippet,
-            url: citation.url || source.url,
+            documentId: source.documentId || citation.documentId || null,
+            chunkId: source.chunkId || citation.chunkId || null,
+            title: source.title || citation.title,
+            sourceId: source.sourceId || citation.sourceId,
+            pageLabel: source.pageLabel || citation.pageLabel,
+            snippet: source.snippet || citation.snippet,
+            url: source.url || citation.url,
         }
     })
+}
+
+function resolveCitationEvidence(citation: Citation, sourceDocuments: Citation[]): Citation | null {
+    if (sourceDocuments.length === 0) return null
+
+    const normalizedCitationTitle = normalizeCitationText(citation.title)
+    const normalizedCitationSnippet = normalizeCitationText(citation.snippet)
+    const hasTitle = normalizedCitationTitle.length > 0
+    const hasSnippet = normalizedCitationSnippet.length > 0
+
+    return sourceDocuments.find(source => {
+        const sameChunkId = citation.chunkId && source.chunkId === citation.chunkId
+        if (sameChunkId) return true
+
+        const sourceTitle = normalizeCitationText(source.title)
+        const sourceSnippet = normalizeCitationText(source.snippet)
+        const sameTitle = hasTitle && normalizedCitationTitle === sourceTitle
+        const samePage = matchesPageLabel(citation.pageLabel, source.pageLabel)
+
+        if (sameTitle && samePage && hasSnippet && normalizedCitationSnippet === sourceSnippet) {
+            return true
+        }
+
+        if (sameTitle && snippetsOverlap(normalizedCitationSnippet, sourceSnippet)) {
+            return true
+        }
+
+        if (citation.documentId && citation.documentId === source.documentId && samePage) {
+            return true
+        }
+
+        return sameTitle && samePage
+    }) || null
+}
+
+function normalizeCitationText(value: string | null | undefined): string {
+    return (value || '')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .toLowerCase()
+}
+
+function matchesPageLabel(left: string | null, right: string | null): boolean {
+    if (!left || !right) return false
+    return left === right
+}
+
+function snippetsOverlap(left: string, right: string): boolean {
+    if (!left || !right) return false
+    return left.includes(right) || right.includes(left)
 }

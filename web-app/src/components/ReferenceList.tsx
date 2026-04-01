@@ -6,6 +6,7 @@ import type { Citation } from '../utils/citationParser'
 interface ReferenceListProps {
     citations: Citation[]
     label?: string
+    variant?: 'cited' | 'retrieved'
 }
 
 interface ReferenceGroup {
@@ -13,6 +14,7 @@ interface ReferenceGroup {
     documentId: string
     title: string
     citationCount: number
+    citationIndices: number[]
     pageLabels: string[]
 }
 
@@ -20,7 +22,57 @@ function buildReferenceKey(citation: Citation): string {
     return `doc:${citation.documentId}`
 }
 
-export default function ReferenceList({ citations, label = '本轮检索过的资料' }: ReferenceListProps) {
+async function loadDocumentPreview(documentId: string) {
+    const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/documents/${documentId}/preview`)
+    const data = await response.json().catch(() => null) as { title?: string; markdownPreview?: string; message?: string } | null
+
+    if (!response.ok || !data?.markdownPreview) {
+        throw new Error(data?.message || response.statusText)
+    }
+
+    return data
+}
+
+function groupReferences(citations: Citation[]): ReferenceGroup[] {
+    const groups: ReferenceGroup[] = []
+    const groupsByKey = new Map<string, ReferenceGroup>()
+
+    for (const citation of citations) {
+        if (!citation.documentId) continue
+
+        const key = buildReferenceKey(citation)
+        const existing = groupsByKey.get(key)
+        if (existing) {
+            existing.citationCount += 1
+            if (!existing.citationIndices.includes(citation.index)) {
+                existing.citationIndices.push(citation.index)
+            }
+            if (citation.pageLabel && !existing.pageLabels.includes(citation.pageLabel)) {
+                existing.pageLabels.push(citation.pageLabel)
+            }
+            continue
+        }
+
+        const group: ReferenceGroup = {
+            key,
+            documentId: citation.documentId,
+            title: citation.title,
+            citationCount: 1,
+            citationIndices: [citation.index],
+            pageLabels: citation.pageLabel ? [citation.pageLabel] : [],
+        }
+        groupsByKey.set(key, group)
+        groups.push(group)
+    }
+
+    return groups
+}
+
+export default function ReferenceList({
+    citations,
+    label = '本轮检索过的资料',
+    variant = 'retrieved',
+}: ReferenceListProps) {
     if (citations.length === 0) return null
     const { openPreview } = usePreview()
     const [openingKey, setOpeningKey] = useState<string | null>(null)
@@ -37,11 +89,7 @@ export default function ReferenceList({ citations, label = '本轮检索过的�
                 previewKind: 'markdown',
             })
 
-            const response = await fetch(`${KNOWLEDGE_SERVICE_URL}/ops-knowledge/documents/${group.documentId}/preview`)
-            const data = await response.json().catch(() => null) as { title?: string; markdownPreview?: string; message?: string } | null
-            if (!response.ok || !data?.markdownPreview) {
-                throw new Error(data?.message || response.statusText)
-            }
+            const data = await loadDocumentPreview(group.documentId)
 
             await openPreview({
                 name: data.title || group.title,
@@ -55,34 +103,7 @@ export default function ReferenceList({ citations, label = '本轮检索过的�
         }
     }, [openPreview])
 
-    const groups: ReferenceGroup[] = []
-    const groupsByKey = new Map<string, ReferenceGroup>()
-
-    for (const citation of citations) {
-        if (!citation.documentId) {
-            continue
-        }
-
-        const key = buildReferenceKey(citation)
-        const existing = groupsByKey.get(key)
-        if (existing) {
-            existing.citationCount += 1
-            if (citation.pageLabel && !existing.pageLabels.includes(citation.pageLabel)) {
-                existing.pageLabels.push(citation.pageLabel)
-            }
-            continue
-        }
-
-        const group: ReferenceGroup = {
-            key,
-            documentId: citation.documentId,
-            title: citation.title,
-            citationCount: 1,
-            pageLabels: citation.pageLabel ? [citation.pageLabel] : [],
-        }
-        groupsByKey.set(key, group)
-        groups.push(group)
-    }
+    const groups = groupReferences(citations)
 
     if (groups.length === 0) return null
 
@@ -104,10 +125,16 @@ export default function ReferenceList({ citations, label = '本轮检索过的�
                         onClick={() => void handlePreview(group)}
                         disabled={openingKey === group.key}
                     >
-                        <span className="reference-capsule-index">{group.citationCount}</span>
+                        {variant === 'cited' ? (
+                            <span className="reference-capsule-indices" aria-label={`引用序号 ${group.citationIndices.join(', ')}`}>
+                                {group.citationIndices.map(index => (
+                                    <span key={index} className="reference-capsule-index">{index}</span>
+                                ))}
+                            </span>
+                        ) : null}
                         <span className="reference-capsule-title">{group.title}</span>
                         <span className="reference-capsule-meta">
-                            {group.citationCount} chunks
+                            {variant === 'cited' ? `${group.citationCount} 处引用` : `${group.citationCount} chunks`}
                             {group.pageLabels.length > 0 ? ` · p.${group.pageLabels.join(', ')}` : ''}
                         </span>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">

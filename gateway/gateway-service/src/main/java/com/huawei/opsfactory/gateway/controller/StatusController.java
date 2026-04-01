@@ -12,7 +12,7 @@ import reactor.core.publisher.Mono;
 import java.util.Map;
 
 @RestController
-@RequestMapping(value = "/ops-gateway")
+@RequestMapping(value = "/gateway")
 public class StatusController {
 
     private final GatewayProperties properties;

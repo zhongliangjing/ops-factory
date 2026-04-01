@@ -48,7 +48,7 @@ public class HookPipelineE2ETest extends BaseE2ETest {
         when(sseRelayService.relay(eq(9999), eq("/reply"), anyString(), eq("test-agent"), eq("alice"), any()))
                 .thenReturn(Flux.just(buffer));
 
-        webClient.post().uri("/ops-gateway/agents/test-agent/reply")
+        webClient.post().uri("/gateway/agents/test-agent/reply")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -64,7 +64,7 @@ public class HookPipelineE2ETest extends BaseE2ETest {
                 .thenReturn(Mono.error(new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE,
                         "Request body exceeds maximum allowed size")));
 
-        webClient.post().uri("/ops-gateway/agents/test-agent/reply")
+        webClient.post().uri("/gateway/agents/test-agent/reply")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -83,7 +83,7 @@ public class HookPipelineE2ETest extends BaseE2ETest {
                 .thenReturn(Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "File path escapes allowed directory")));
 
-        webClient.post().uri("/ops-gateway/agents/test-agent/reply")
+        webClient.post().uri("/gateway/agents/test-agent/reply")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -100,7 +100,7 @@ public class HookPipelineE2ETest extends BaseE2ETest {
         when(hookPipeline.executeRequest(any(HookContext.class)))
                 .thenReturn(Mono.error(new RuntimeException("Unexpected hook failure")));
 
-        webClient.post().uri("/ops-gateway/agents/test-agent/reply")
+        webClient.post().uri("/gateway/agents/test-agent/reply")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -126,7 +126,7 @@ public class HookPipelineE2ETest extends BaseE2ETest {
                 eq("test-agent"), eq("alice"), anyString()))
                 .thenReturn(Flux.just(buffer));
 
-        webClient.post().uri("/ops-gateway/agents/test-agent/reply")
+        webClient.post().uri("/gateway/agents/test-agent/reply")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .contentType(MediaType.APPLICATION_JSON)

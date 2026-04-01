@@ -36,7 +36,7 @@ public class InstanceLimitE2ETest extends BaseE2ETest {
         when(instanceManager.getOrSpawn("test-agent", "alice"))
                 .thenReturn(Mono.error(new IllegalStateException("Per-user instance limit reached (5)")));
 
-        webClient.post().uri("/ops-gateway/agents/test-agent/reply")
+        webClient.post().uri("/gateway/agents/test-agent/reply")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -50,7 +50,7 @@ public class InstanceLimitE2ETest extends BaseE2ETest {
         when(instanceManager.getOrSpawn("test-agent", "bob"))
                 .thenReturn(Mono.error(new IllegalStateException("Global instance limit reached (50)")));
 
-        webClient.post().uri("/ops-gateway/agents/test-agent/reply")
+        webClient.post().uri("/gateway/agents/test-agent/reply")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "bob")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -72,7 +72,7 @@ public class InstanceLimitE2ETest extends BaseE2ETest {
         when(sseRelayService.relay(eq(9999), eq("/reply"), anyString(), eq("test-agent"), eq("alice"), any()))
                 .thenReturn(Flux.just(buffer));
 
-        webClient.post().uri("/ops-gateway/agents/test-agent/reply")
+        webClient.post().uri("/gateway/agents/test-agent/reply")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -84,7 +84,7 @@ public class InstanceLimitE2ETest extends BaseE2ETest {
 
     @Test
     public void reply_unauthenticated_returns401() {
-        webClient.post().uri("/ops-gateway/agents/test-agent/reply")
+        webClient.post().uri("/gateway/agents/test-agent/reply")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("{\"message\":\"hello\"}")
                 .exchange()
@@ -96,7 +96,7 @@ public class InstanceLimitE2ETest extends BaseE2ETest {
         when(instanceManager.getOrSpawn("test-agent", "alice"))
                 .thenReturn(Mono.error(new IllegalStateException("Per-user instance limit reached (5)")));
 
-        webClient.post().uri("/ops-gateway/agents/test-agent/resume")
+        webClient.post().uri("/gateway/agents/test-agent/resume")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .contentType(MediaType.APPLICATION_JSON)

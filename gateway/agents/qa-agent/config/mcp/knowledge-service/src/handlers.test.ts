@@ -46,7 +46,7 @@ describe('tool definitions', () => {
 
 describe('handleSearch', () => {
   it('uses the configured default source when sourceIds is omitted', async () => {
-    routes['POST /ops-knowledge/search'] = {
+    routes['POST /knowledge/search'] = {
       query: '故障定位',
       hits: [],
       total: 0,
@@ -65,7 +65,7 @@ describe('handleSearch', () => {
   })
 
   it('passes explicit sourceIds through', async () => {
-    routes['POST /ops-knowledge/search'] = {
+    routes['POST /knowledge/search'] = {
       query: '容量规划',
       hits: [{ chunkId: 'chk_1', sourceId: 'src_x', title: '容量', titlePath: [], snippet: '说明', score: 0.9, lexicalScore: 0.9, semanticScore: 0.2, fusionScore: 0.9, documentId: 'doc_1', pageFrom: 1, pageTo: 1 }],
       total: 1,
@@ -86,7 +86,7 @@ describe('handleSearch', () => {
 
 describe('handleFetch', () => {
   it('fetches chunk detail with optional neighbors', async () => {
-    routes['GET /ops-knowledge/fetch/chk_123?includeNeighbors=true&neighborWindow=2&includeMarkdown=true&includeRawText=true'] = {
+    routes['GET /knowledge/fetch/chk_123?includeNeighbors=true&neighborWindow=2&includeMarkdown=true&includeRawText=true'] = {
       chunkId: 'chk_123',
       documentId: 'doc_1',
       sourceId: 'src_ac8da09a7cfd',
@@ -117,13 +117,13 @@ describe('handleFetch', () => {
 
 describe('dispatch', () => {
   it('routes search', async () => {
-    routes['POST /ops-knowledge/search'] = { query: 'Q', hits: [], total: 0 }
+    routes['POST /knowledge/search'] = { query: 'Q', hits: [], total: 0 }
     const result = JSON.parse(await dispatch('search', { query: 'Q' }))
     assert.equal(result.query, 'Q')
   })
 
   it('routes fetch', async () => {
-    routes['GET /ops-knowledge/fetch/chk_1?includeNeighbors=false&neighborWindow=1&includeMarkdown=true&includeRawText=true'] = {
+    routes['GET /knowledge/fetch/chk_1?includeNeighbors=false&neighborWindow=1&includeMarkdown=true&includeRawText=true'] = {
       chunkId: 'chk_1',
       documentId: 'doc_1',
       sourceId: 'src_ac8da09a7cfd',

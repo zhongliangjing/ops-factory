@@ -3,6 +3,7 @@ import { GoosedClient } from '@goosed/sdk'
 import type { TokenState, ImageData, OutputFile } from '@goosed/sdk'
 import type { AttachedFile, ChatMessage, MessageContent } from '../types/message'
 import { getCompactingMessage, getThinkingMessage } from '../utils/messageContent'
+import { normalizeChatStreamError } from '../utils/chatStreamError'
 
 // ── ChatState enum ──────────────────────────────────────────────
 export enum ChatState {
@@ -250,7 +251,7 @@ export function useChat({ sessionId, client }: UseChatOptions): UseChatReturn {
                     }
 
                     case 'Error': {
-                        const errorMsg = event.error || 'Unknown error occurred'
+                        const errorMsg = normalizeChatStreamError(event.error || 'Unknown error occurred')
                         streamErrorRef.current = errorMsg
                         dispatch({ type: 'SET_ERROR', payload: errorMsg })
                         break
@@ -276,7 +277,7 @@ export function useChat({ sessionId, client }: UseChatOptions): UseChatReturn {
             }
         } catch (err) {
             if (isMountedRef.current && !(err instanceof DOMException && err.name === 'AbortError')) {
-                const errorMsg = err instanceof Error ? err.message : 'Failed to send message'
+                const errorMsg = normalizeChatStreamError(err)
                 streamErrorRef.current = errorMsg
                 dispatch({ type: 'SET_ERROR', payload: errorMsg })
             }

@@ -41,7 +41,7 @@ public class FileCapsuleEndpointE2ETest extends BaseE2ETest {
         when(fileService.loadOutputFiles(any(Path.class), eq("session-1")))
                 .thenReturn(entries);
 
-        webClient.get().uri("/ops-gateway/agents/test-agent/file-capsules?sessionId=session-1")
+        webClient.get().uri("/gateway/agents/test-agent/file-capsules?sessionId=session-1")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .exchange()
@@ -56,7 +56,7 @@ public class FileCapsuleEndpointE2ETest extends BaseE2ETest {
         when(fileService.loadOutputFiles(any(Path.class), eq("session-1")))
                 .thenReturn(Collections.emptyMap());
 
-        webClient.get().uri("/ops-gateway/agents/test-agent/file-capsules?sessionId=session-1")
+        webClient.get().uri("/gateway/agents/test-agent/file-capsules?sessionId=session-1")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .exchange()
@@ -68,7 +68,7 @@ public class FileCapsuleEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void getFileCapsules_unauthenticated_returns401() {
-        webClient.get().uri("/ops-gateway/agents/test-agent/file-capsules?sessionId=session-1")
+        webClient.get().uri("/gateway/agents/test-agent/file-capsules?sessionId=session-1")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
@@ -83,7 +83,7 @@ public class FileCapsuleEndpointE2ETest extends BaseE2ETest {
         when(fileService.loadOutputFiles(any(Path.class), eq("session-2")))
                 .thenReturn(entries);
 
-        webClient.get().uri("/ops-gateway/agents/test-agent/file-capsules?sessionId=session-2")
+        webClient.get().uri("/gateway/agents/test-agent/file-capsules?sessionId=session-2")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .exchange()
@@ -97,7 +97,7 @@ public class FileCapsuleEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void saveFileCapsule_validBody_returnsOk() {
-        webClient.post().uri("/ops-gateway/agents/test-agent/file-capsules")
+        webClient.post().uri("/gateway/agents/test-agent/file-capsules")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -113,7 +113,7 @@ public class FileCapsuleEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void saveFileCapsule_missingSessionId_returnsError() {
-        webClient.post().uri("/ops-gateway/agents/test-agent/file-capsules")
+        webClient.post().uri("/gateway/agents/test-agent/file-capsules")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -126,7 +126,7 @@ public class FileCapsuleEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void saveFileCapsule_missingMessageId_returnsError() {
-        webClient.post().uri("/ops-gateway/agents/test-agent/file-capsules")
+        webClient.post().uri("/gateway/agents/test-agent/file-capsules")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -139,7 +139,7 @@ public class FileCapsuleEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void saveFileCapsule_missingFiles_returnsError() {
-        webClient.post().uri("/ops-gateway/agents/test-agent/file-capsules")
+        webClient.post().uri("/gateway/agents/test-agent/file-capsules")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -152,7 +152,7 @@ public class FileCapsuleEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void saveFileCapsule_unauthenticated_returns401() {
-        webClient.post().uri("/ops-gateway/agents/test-agent/file-capsules")
+        webClient.post().uri("/gateway/agents/test-agent/file-capsules")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("{\"sessionId\":\"s1\",\"messageId\":\"msg_001\",\"files\":[]}")
                 .exchange()
@@ -175,7 +175,7 @@ public class FileCapsuleEndpointE2ETest extends BaseE2ETest {
         when(fileService.loadOutputFiles(eq(bobDir), eq("s1"))).thenReturn(bobEntries);
 
         // Alice sees her capsules
-        webClient.get().uri("/ops-gateway/agents/test-agent/file-capsules?sessionId=s1")
+        webClient.get().uri("/gateway/agents/test-agent/file-capsules?sessionId=s1")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .exchange()
@@ -184,7 +184,7 @@ public class FileCapsuleEndpointE2ETest extends BaseE2ETest {
                 .jsonPath("$.entries.msg_a[0].name").isEqualTo("alice.txt");
 
         // Bob sees his capsules
-        webClient.get().uri("/ops-gateway/agents/test-agent/file-capsules?sessionId=s1")
+        webClient.get().uri("/gateway/agents/test-agent/file-capsules?sessionId=s1")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "bob")
                 .exchange()

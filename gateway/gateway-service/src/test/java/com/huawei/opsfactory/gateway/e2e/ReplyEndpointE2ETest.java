@@ -49,7 +49,7 @@ public class ReplyEndpointE2ETest extends BaseE2ETest {
         when(sseRelayService.relay(eq(9999), eq("/reply"), anyString(), eq("test-agent"), eq("alice"), any()))
                 .thenReturn(Flux.just(buffer));
 
-        webClient.post().uri("/ops-gateway/agents/test-agent/reply")
+        webClient.post().uri("/gateway/agents/test-agent/reply")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -61,7 +61,7 @@ public class ReplyEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void reply_unauthenticated_returns401() {
-        webClient.post().uri("/ops-gateway/agents/test-agent/reply")
+        webClient.post().uri("/gateway/agents/test-agent/reply")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("{\"message\":\"hello\"}")
                 .exchange()
@@ -71,7 +71,7 @@ public class ReplyEndpointE2ETest extends BaseE2ETest {
     @Test
     public void reply_noUserIdHeader_returns400() {
         // Without x-user-id header, UserContextFilter now rejects with 400
-        webClient.post().uri("/ops-gateway/agents/test-agent/reply")
+        webClient.post().uri("/gateway/agents/test-agent/reply")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 // No x-user-id header → rejected by UserContextFilter
                 .contentType(MediaType.APPLICATION_JSON)
@@ -90,7 +90,7 @@ public class ReplyEndpointE2ETest extends BaseE2ETest {
         when(goosedProxy.fetchJson(eq(9999), eq(HttpMethod.POST), eq("/agent/resume"), anyString(), anyInt(), anyString()))
                 .thenReturn(Mono.just("{\"session\":{\"id\":\"session-123\"},\"extension_results\":[]}"));
 
-        webClient.post().uri("/ops-gateway/agents/test-agent/resume")
+        webClient.post().uri("/gateway/agents/test-agent/resume")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -105,7 +105,7 @@ public class ReplyEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void resume_unauthenticated_returns401() {
-        webClient.post().uri("/ops-gateway/agents/test-agent/resume")
+        webClient.post().uri("/gateway/agents/test-agent/resume")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("{}")
                 .exchange()
@@ -122,7 +122,7 @@ public class ReplyEndpointE2ETest extends BaseE2ETest {
                 eq(HttpMethod.POST), anyString(), anyString()))
                 .thenReturn(Mono.empty());
 
-        webClient.post().uri("/ops-gateway/agents/test-agent/restart")
+        webClient.post().uri("/gateway/agents/test-agent/restart")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -141,7 +141,7 @@ public class ReplyEndpointE2ETest extends BaseE2ETest {
                 eq(HttpMethod.POST), anyString(), anyString()))
                 .thenReturn(Mono.empty());
 
-        webClient.post().uri("/ops-gateway/agents/test-agent/stop")
+        webClient.post().uri("/gateway/agents/test-agent/stop")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "bob")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -152,7 +152,7 @@ public class ReplyEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void stop_unauthenticated_returns401() {
-        webClient.post().uri("/ops-gateway/agents/test-agent/stop")
+        webClient.post().uri("/gateway/agents/test-agent/stop")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("{}")
                 .exchange()
@@ -166,7 +166,7 @@ public class ReplyEndpointE2ETest extends BaseE2ETest {
         when(instanceManager.getOrSpawn(anyString(), anyString()))
                 .thenReturn(Mono.error(new RuntimeException("Failed to spawn")));
 
-        webClient.post().uri("/ops-gateway/agents/test-agent/reply")
+        webClient.post().uri("/gateway/agents/test-agent/reply")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .contentType(MediaType.APPLICATION_JSON)

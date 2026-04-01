@@ -44,7 +44,7 @@ public class SessionEndpointExtendedE2ETest extends BaseE2ETest {
         when(goosedProxy.fetchJson(eq(9999), eq("/sessions/session-abc"), anyString()))
                 .thenReturn(Mono.just("{\"id\":\"session-abc\",\"conversation\":[]}"));
 
-        webClient.get().uri("/ops-gateway/sessions/session-abc?agentId=test-agent")
+        webClient.get().uri("/gateway/sessions/session-abc?agentId=test-agent")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .exchange()
@@ -56,7 +56,7 @@ public class SessionEndpointExtendedE2ETest extends BaseE2ETest {
 
     @Test
     public void getSessionGlobal_unauthenticated_returns401() {
-        webClient.get().uri("/ops-gateway/sessions/session-abc?agentId=test-agent")
+        webClient.get().uri("/gateway/sessions/session-abc?agentId=test-agent")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
@@ -70,7 +70,7 @@ public class SessionEndpointExtendedE2ETest extends BaseE2ETest {
         when(goosedProxy.proxy(any(), any(), eq(9999), eq("/sessions/session-xyz"), any()))
                 .thenReturn(Mono.empty());
 
-        webClient.delete().uri("/ops-gateway/sessions/session-xyz?agentId=test-agent")
+        webClient.delete().uri("/gateway/sessions/session-xyz?agentId=test-agent")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .exchange()
@@ -81,7 +81,7 @@ public class SessionEndpointExtendedE2ETest extends BaseE2ETest {
 
     @Test
     public void deleteSessionGlobal_unauthenticated_returns401() {
-        webClient.delete().uri("/ops-gateway/sessions/session-xyz?agentId=test-agent")
+        webClient.delete().uri("/gateway/sessions/session-xyz?agentId=test-agent")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
@@ -96,7 +96,7 @@ public class SessionEndpointExtendedE2ETest extends BaseE2ETest {
                 eq(HttpMethod.PUT), anyString(), anyString()))
                 .thenReturn(Mono.empty());
 
-        webClient.put().uri("/ops-gateway/agents/test-agent/sessions/session-123/name")
+        webClient.put().uri("/gateway/agents/test-agent/sessions/session-123/name")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -110,7 +110,7 @@ public class SessionEndpointExtendedE2ETest extends BaseE2ETest {
 
     @Test
     public void renameSession_unauthenticated_returns401() {
-        webClient.put().uri("/ops-gateway/agents/test-agent/sessions/session-123/name")
+        webClient.put().uri("/gateway/agents/test-agent/sessions/session-123/name")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("{\"name\":\"test\"}")
                 .exchange()
@@ -127,7 +127,7 @@ public class SessionEndpointExtendedE2ETest extends BaseE2ETest {
                 .thenReturn(Mono.error(org.springframework.web.reactive.function.client.WebClientResponseException
                         .create(404, "Not Found", org.springframework.http.HttpHeaders.EMPTY, new byte[0], null)));
 
-        webClient.get().uri("/ops-gateway/agents/test-agent/sessions/nonexistent")
+        webClient.get().uri("/gateway/agents/test-agent/sessions/nonexistent")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .exchange()

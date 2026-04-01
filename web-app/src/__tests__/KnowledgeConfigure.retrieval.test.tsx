@@ -137,11 +137,11 @@ describe('KnowledgeConfigure retrieval tab', () => {
             const parsedUrl = new URL(url, 'http://localhost')
             const method = init?.method ?? 'GET'
 
-            if (method === 'GET' && url.endsWith('/ops-knowledge/sources/src_001')) {
+            if (method === 'GET' && url.endsWith('/knowledge/sources/src_001')) {
                 return { ok: true, json: async () => baseSource } as Response
             }
 
-            if (method === 'GET' && url.endsWith('/ops-knowledge/sources/src_001/stats')) {
+            if (method === 'GET' && url.endsWith('/knowledge/sources/src_001/stats')) {
                 return {
                     ok: true,
                     json: async () => ({
@@ -157,7 +157,7 @@ describe('KnowledgeConfigure retrieval tab', () => {
                 } as Response
             }
 
-            if (method === 'GET' && url.endsWith('/ops-knowledge/capabilities')) {
+            if (method === 'GET' && url.endsWith('/knowledge/capabilities')) {
                 return {
                     ok: true,
                     json: async () => ({
@@ -176,7 +176,7 @@ describe('KnowledgeConfigure retrieval tab', () => {
                 } as Response
             }
 
-            if (method === 'GET' && url.endsWith('/ops-knowledge/system/defaults')) {
+            if (method === 'GET' && url.endsWith('/knowledge/system/defaults')) {
                 return {
                     ok: true,
                     json: async () => ({
@@ -188,11 +188,11 @@ describe('KnowledgeConfigure retrieval tab', () => {
                 } as Response
             }
 
-            if (method === 'GET' && url.endsWith('/ops-knowledge/profiles/index/ip_default')) {
+            if (method === 'GET' && url.endsWith('/knowledge/profiles/index/ip_default')) {
                 return { ok: true, json: async () => ({ id: 'ip_default', name: '默认索引配置', config: { chunking: { mode: 'hierarchical', targetTokens: 512 } } }) } as Response
             }
 
-            if (method === 'GET' && url.endsWith('/ops-knowledge/profiles/retrieval/rp_default')) {
+            if (method === 'GET' && url.endsWith('/knowledge/profiles/retrieval/rp_default')) {
                 return {
                     ok: true,
                     json: async () => ({
@@ -206,7 +206,7 @@ describe('KnowledgeConfigure retrieval tab', () => {
                 } as Response
             }
 
-            if (method === 'GET' && url.includes('/ops-knowledge/documents?sourceId=src_001&page=1&pageSize=100')) {
+            if (method === 'GET' && url.includes('/knowledge/documents?sourceId=src_001&page=1&pageSize=100')) {
                 return {
                     ok: true,
                     json: async () => ({
@@ -222,7 +222,7 @@ describe('KnowledgeConfigure retrieval tab', () => {
                 } as Response
             }
 
-            if (method === 'POST' && url.endsWith('/ops-knowledge/search/compare')) {
+            if (method === 'POST' && url.endsWith('/knowledge/search/compare')) {
                 const body = JSON.parse(String(init?.body || '{}')) as Record<string, unknown>
                 compareRequests.push(body)
 
@@ -255,7 +255,7 @@ describe('KnowledgeConfigure retrieval tab', () => {
                 } as Response
             }
 
-            if (method === 'POST' && url.endsWith('/ops-knowledge/search')) {
+            if (method === 'POST' && url.endsWith('/knowledge/search')) {
                 if (!useLegacyFallback) {
                     return { ok: true, json: async () => ({ query: 'unused', total: 0, hits: [] }) } as Response
                 }
@@ -270,12 +270,12 @@ describe('KnowledgeConfigure retrieval tab', () => {
                 return { ok: true, json: async () => ({ query: body.query, total: 1, hits: [hit] }) } as Response
             }
 
-            if (method === 'GET' && url.includes('/ops-knowledge/chunks/')) {
+            if (method === 'GET' && url.includes('/knowledge/chunks/')) {
                 const chunkId = parsedUrl.pathname.split('/').at(-1) as keyof typeof detailByChunkId | undefined
                 return { ok: true, json: async () => (chunkId ? detailByChunkId[chunkId] : detailByChunkId.chk_hyb_001) } as Response
             }
 
-            if (method === 'PATCH' && url.endsWith('/ops-knowledge/chunks/chk_lex_001')) {
+            if (method === 'PATCH' && url.endsWith('/knowledge/chunks/chk_lex_001')) {
                 return { ok: true, json: async () => ({ id: 'chk_lex_001', reembedded: true, reindexed: true, editStatus: 'USER_EDITED' }) } as Response
             }
 

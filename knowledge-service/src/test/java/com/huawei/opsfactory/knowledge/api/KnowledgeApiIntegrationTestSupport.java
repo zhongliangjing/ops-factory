@@ -68,7 +68,7 @@ abstract class KnowledgeApiIntegrationTestSupport {
             indexProfileId != null ? ",\n  \"indexProfileId\": \"" + indexProfileId + "\"" : "",
             retrievalProfileId != null ? ",\n  \"retrievalProfileId\": \"" + retrievalProfileId + "\"" : ""
         );
-        JsonNode json = readJson(mockMvc.perform(post("/ops-knowledge/sources")
+        JsonNode json = readJson(mockMvc.perform(post("/knowledge/sources")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body))
             .andExpect(status().isOk())
@@ -77,7 +77,7 @@ abstract class KnowledgeApiIntegrationTestSupport {
     }
 
     protected JsonNode uploadInputFiles(String sourceId) throws Exception {
-        var ingestRequest = multipart("/ops-knowledge/sources/{sourceId}/documents:ingest", sourceId);
+        var ingestRequest = multipart("/knowledge/sources/{sourceId}/documents:ingest", sourceId);
         for (Path file : inputFiles()) {
             ingestRequest.file(toMultipartFile(file));
         }
@@ -88,14 +88,14 @@ abstract class KnowledgeApiIntegrationTestSupport {
 
     protected JsonNode uploadMarkdownFile(String sourceId, String fileName, String markdown) throws Exception {
         MockMultipartFile file = new MockMultipartFile("files", fileName, "text/markdown", markdown.getBytes());
-        return readJson(mockMvc.perform(multipart("/ops-knowledge/sources/{sourceId}/documents:ingest", sourceId)
+        return readJson(mockMvc.perform(multipart("/knowledge/sources/{sourceId}/documents:ingest", sourceId)
                 .file(file))
             .andExpect(status().isOk())
             .andReturn());
     }
 
     protected JsonNode listDocuments(String sourceId) throws Exception {
-        return readJson(mockMvc.perform(get("/ops-knowledge/documents")
+        return readJson(mockMvc.perform(get("/knowledge/documents")
                 .param("sourceId", sourceId))
             .andExpect(status().isOk())
             .andReturn());
@@ -116,7 +116,7 @@ abstract class KnowledgeApiIntegrationTestSupport {
         String documentIdsJson = documentIds == null ? "[]" : objectMapper.writeValueAsString(documentIds);
         String filtersJson = contentTypes == null ? "null" : "{\"contentTypes\":" + objectMapper.writeValueAsString(contentTypes) + "}";
         String overrideValue = overrideJson == null ? "null" : overrideJson;
-        return readJson(mockMvc.perform(post("/ops-knowledge/search")
+        return readJson(mockMvc.perform(post("/knowledge/search")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -133,7 +133,7 @@ abstract class KnowledgeApiIntegrationTestSupport {
     }
 
     protected JsonNode compareSearch(String sourceId, String query, List<String> modes) throws Exception {
-        return readJson(mockMvc.perform(post("/ops-knowledge/search/compare")
+        return readJson(mockMvc.perform(post("/knowledge/search/compare")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {

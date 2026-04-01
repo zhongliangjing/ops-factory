@@ -31,7 +31,7 @@ import java.util.Map;
 import org.springframework.http.MediaType;
 
 @RestController
-@RequestMapping(value = "/ops-gateway")
+@RequestMapping(value = "/gateway")
 public class SessionController {
 
     private static final Logger log = LogManager.getLogger(SessionController.class);

@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/ops-knowledge")
+@RequestMapping("/knowledge")
 public class DocumentController {
 
     private final KnowledgeServiceFacade facade;

@@ -26,6 +26,8 @@ public class GatewayProperties {
     private Sse sse = new Sse();
     private Langfuse langfuse = new Langfuse();
     private OfficePreview officePreview = new OfficePreview();
+    private String credentialEncryptionKey = "changeit-changeit-changeit-32";
+    private RemoteExecution remoteExecution = new RemoteExecution();
 
     // ---- Getters / Setters ----
 
@@ -129,6 +131,22 @@ public class GatewayProperties {
         this.officePreview = officePreview;
     }
 
+    public String getCredentialEncryptionKey() {
+        return credentialEncryptionKey;
+    }
+
+    public void setCredentialEncryptionKey(String credentialEncryptionKey) {
+        this.credentialEncryptionKey = credentialEncryptionKey;
+    }
+
+    public RemoteExecution getRemoteExecution() {
+        return remoteExecution;
+    }
+
+    public void setRemoteExecution(RemoteExecution remoteExecution) {
+        this.remoteExecution = remoteExecution;
+    }
+
     // ---- Nested config classes ----
 
     public static class Paths {
@@ -227,6 +245,16 @@ public class GatewayProperties {
         public void setOnlyofficeUrl(String onlyofficeUrl) { this.onlyofficeUrl = onlyofficeUrl; }
         public String getFileBaseUrl() { return fileBaseUrl; }
         public void setFileBaseUrl(String fileBaseUrl) { this.fileBaseUrl = fileBaseUrl; }
+    }
+
+    public static class RemoteExecution {
+        private int defaultTimeout = 30;
+        private int maxTimeout = 120;
+
+        public int getDefaultTimeout() { return defaultTimeout; }
+        public void setDefaultTimeout(int defaultTimeout) { this.defaultTimeout = defaultTimeout; }
+        public int getMaxTimeout() { return maxTimeout; }
+        public void setMaxTimeout(int maxTimeout) { this.maxTimeout = maxTimeout; }
     }
 
     // ---- PostConstruct for logging configuration values ----

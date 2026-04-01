@@ -24,7 +24,7 @@ public class CatchAllProxyEndpointE2ETest extends BaseE2ETest {
         when(instanceManager.getOrSpawn("test-agent", "admin")).thenReturn(Mono.just(instance));
         when(goosedProxy.proxy(any(), any(), eq(9000), eq("/schedules/list"), any())).thenReturn(Mono.empty());
 
-        webClient.get().uri("/ops-gateway/agents/test-agent/schedules/list")
+        webClient.get().uri("/gateway/agents/test-agent/schedules/list")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()
@@ -42,7 +42,7 @@ public class CatchAllProxyEndpointE2ETest extends BaseE2ETest {
         when(instanceManager.getOrSpawn("test-agent", "alice")).thenReturn(Mono.just(instance));
         when(goosedProxy.proxy(any(), any(), eq(9000), eq("/system_info"), any())).thenReturn(Mono.empty());
 
-        webClient.get().uri("/ops-gateway/agents/test-agent/system_info")
+        webClient.get().uri("/gateway/agents/test-agent/system_info")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .exchange()
@@ -56,7 +56,7 @@ public class CatchAllProxyEndpointE2ETest extends BaseE2ETest {
         when(instanceManager.getOrSpawn("test-agent", "alice")).thenReturn(Mono.just(instance));
         when(goosedProxy.proxy(any(), any(), eq(9000), eq("/status"), any())).thenReturn(Mono.empty());
 
-        webClient.get().uri("/ops-gateway/agents/test-agent/status")
+        webClient.get().uri("/gateway/agents/test-agent/status")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .exchange()
@@ -67,7 +67,7 @@ public class CatchAllProxyEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void userAccessToAdminRoute_returns403() {
-        webClient.get().uri("/ops-gateway/agents/test-agent/schedules/list")
+        webClient.get().uri("/gateway/agents/test-agent/schedules/list")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .exchange()
@@ -76,7 +76,7 @@ public class CatchAllProxyEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void userAccessToConfigPrompts_returns403() {
-        webClient.get().uri("/ops-gateway/agents/test-agent/config/prompts")
+        webClient.get().uri("/gateway/agents/test-agent/config/prompts")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "bob")
                 .exchange()
@@ -87,7 +87,7 @@ public class CatchAllProxyEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void unauthenticated_returns401() {
-        webClient.get().uri("/ops-gateway/agents/test-agent/schedules/list")
+        webClient.get().uri("/gateway/agents/test-agent/schedules/list")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
@@ -101,7 +101,7 @@ public class CatchAllProxyEndpointE2ETest extends BaseE2ETest {
         when(instanceManager.getOrSpawn("test-agent", "admin")).thenReturn(Mono.just(instance));
         when(goosedProxy.proxy(any(), any(), eq(9000), eq("/schedules/list?limit=5"), any())).thenReturn(Mono.empty());
 
-        webClient.get().uri("/ops-gateway/agents/test-agent/schedules/list?limit=5")
+        webClient.get().uri("/gateway/agents/test-agent/schedules/list?limit=5")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()

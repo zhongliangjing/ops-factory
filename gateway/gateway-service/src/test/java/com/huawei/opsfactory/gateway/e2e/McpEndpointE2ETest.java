@@ -45,7 +45,7 @@ public class McpEndpointE2ETest extends BaseE2ETest {
         when(goosedProxy.proxy(any(), any(), eq(9999), eq("/config/extensions"), any()))
                 .thenReturn(Mono.empty());
 
-        webClient.get().uri("/ops-gateway/agents/test-agent/mcp")
+        webClient.get().uri("/gateway/agents/test-agent/mcp")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()
@@ -57,7 +57,7 @@ public class McpEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void getMcpExtensions_nonAdmin_returns403() {
-        webClient.get().uri("/ops-gateway/agents/test-agent/mcp")
+        webClient.get().uri("/gateway/agents/test-agent/mcp")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .exchange()
@@ -66,7 +66,7 @@ public class McpEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void getMcpExtensions_unauthenticated_returns401() {
-        webClient.get().uri("/ops-gateway/agents/test-agent/mcp")
+        webClient.get().uri("/gateway/agents/test-agent/mcp")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
@@ -82,7 +82,7 @@ public class McpEndpointE2ETest extends BaseE2ETest {
         // McpController creates its own WebClient request; we can't easily mock that
         // chain end-to-end without a real HTTP server. Instead, test the admin guard.
         // The POST to the system instance will fail (no real server), returning 500.
-        webClient.post().uri("/ops-gateway/agents/test-agent/mcp")
+        webClient.post().uri("/gateway/agents/test-agent/mcp")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -93,7 +93,7 @@ public class McpEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void createMcpExtension_nonAdmin_returns403() {
-        webClient.post().uri("/ops-gateway/agents/test-agent/mcp")
+        webClient.post().uri("/gateway/agents/test-agent/mcp")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "alice")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -106,7 +106,7 @@ public class McpEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void deleteMcpExtension_nonAdmin_returns403() {
-        webClient.delete().uri("/ops-gateway/agents/test-agent/mcp/my-extension")
+        webClient.delete().uri("/gateway/agents/test-agent/mcp/my-extension")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "bob")
                 .exchange()
@@ -115,7 +115,7 @@ public class McpEndpointE2ETest extends BaseE2ETest {
 
     @Test
     public void deleteMcpExtension_unauthenticated_returns401() {
-        webClient.delete().uri("/ops-gateway/agents/test-agent/mcp/my-extension")
+        webClient.delete().uri("/gateway/agents/test-agent/mcp/my-extension")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
@@ -127,7 +127,7 @@ public class McpEndpointE2ETest extends BaseE2ETest {
 
         // Will fail with 500 because there's no real goosed to proxy to.
         // The test verifies the admin guard passes and the instance manager is called.
-        webClient.delete().uri("/ops-gateway/agents/test-agent/mcp/my-extension")
+        webClient.delete().uri("/gateway/agents/test-agent/mcp/my-extension")
                 .header(HEADER_SECRET_KEY, SECRET_KEY)
                 .header(HEADER_USER_ID, "admin")
                 .exchange()

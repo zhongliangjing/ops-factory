@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/ops-knowledge")
+@RequestMapping("/knowledge")
 public class RetrievalController {
 
     private final KnowledgeServiceFacade facade;
