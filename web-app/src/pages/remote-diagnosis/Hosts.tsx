@@ -211,7 +211,7 @@ function HostFormModal({
     host: Host | null
     allTags: string[]
     onClose: () => void
-    onSave: (data: HostCreateRequest) => Promise<void>
+    onSave: (data: Partial<HostCreateRequest>) => Promise<void>
 }) {
     const { t } = useTranslation()
     const [name, setName] = useState(host?.name ?? '')
@@ -249,7 +249,7 @@ function HostFormModal({
 
         setSaving(true)
         try {
-            const payload: HostCreateRequest = {
+            const payload: Partial<HostCreateRequest> = {
                 name: name.trim(),
                 ip: ip.trim(),
                 port: Number(port) || 22,
@@ -490,12 +490,15 @@ export function HostsTab() {
     )
 
     const handleSaveHost = useCallback(
-        async (data: HostCreateRequest) => {
+        async (data: Partial<HostCreateRequest>) => {
             if (editingHost) {
                 await updateHost(editingHost.id, data)
-                showToast('success', t('remoteDiagnosis.hosts.editSuccess', { name: data.name }))
+                showToast('success', t('remoteDiagnosis.hosts.editSuccess', { name: data.name || editingHost.name }))
             } else {
-                await createHost(data)
+                if (!data.name || !data.ip || !data.port || !data.username || !data.authType || !data.credential || !data.tags) {
+                    throw new Error(t('remoteDiagnosis.hosts.credentialRequired'))
+                }
+                await createHost(data as HostCreateRequest)
                 showToast('success', t('remoteDiagnosis.hosts.addSuccess', { name: data.name }))
             }
             setShowAddModal(false)
@@ -533,15 +536,15 @@ export function HostsTab() {
             })
             try {
                 const result = await testConnection(host.id)
-                if (result.success) {
+                if (result?.success) {
                     const msg = t('remoteDiagnosis.hosts.testSuccess', {
-                        latency: `${result.latency}ms`,
+                        latency: `${result.latency ?? ''}ms`,
                     })
                     setTestResults(prev => ({ ...prev, [host.id]: { ok: true, msg } }))
                     showToast('success', msg)
                 } else {
                     const msg = t('remoteDiagnosis.hosts.testFailed', {
-                        error: result.error || 'Unknown',
+                        error: result?.message || 'Unknown',
                     })
                     setTestResults(prev => ({ ...prev, [host.id]: { ok: false, msg } }))
                     showToast('error', msg)
@@ -582,7 +585,7 @@ export function HostsTab() {
 
             {error && (
                 <div className="conn-banner conn-banner-error">
-                    {typeof error === 'string' ? error : error.message}
+                    {error}
                 </div>
             )}
 

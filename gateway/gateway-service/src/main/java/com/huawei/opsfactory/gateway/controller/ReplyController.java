@@ -240,6 +240,6 @@ public class ReplyController {
                         .doOnSuccess(ignored -> log.info("[STOP] goosed stop completed agentId={} userId={} sessionId={} status={}",
                                 agentId, userId, sessionId, exchange.getResponse().getStatusCode()))
                         .doOnError(err -> log.warn("[STOP] goosed stop failed agentId={} userId={} sessionId={} port={} error={}",
-                                agentId, userId, sessionId, instance.getPort(), err.getMessage()))));
+                                agentId, userId, sessionId, instance.getPort(), err.getMessage())));
     }
 }

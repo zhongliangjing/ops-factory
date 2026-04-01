@@ -1,3 +1,10 @@
+export interface SopNodeVariable {
+    name: string
+    description: string
+    defaultValue: string
+    required: boolean
+}
+
 export interface SopNode {
     id: string
     name: string
@@ -5,6 +12,7 @@ export interface SopNode {
     hostTags: string[]
     command: string
     commandVariables: Record<string, SopCommandVariable>
+    variables?: SopNodeVariable[]
     outputFormat: string
     analysisInstruction: string
     transitions: SopTransition[]
@@ -20,6 +28,7 @@ export interface SopTransition {
     condition: string
     description: string
     nextNodes: string[]
+    nextNodeId?: string
 }
 
 export interface Sop {

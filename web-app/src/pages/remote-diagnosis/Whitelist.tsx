@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCommandWhitelist } from '../../hooks/useCommandWhitelist'
 import { useToast } from '../../contexts/ToastContext'
@@ -369,7 +369,7 @@ export function WhitelistTab() {
 
             {error && (
                 <div className="conn-banner conn-banner-error">
-                    {typeof error === 'string' ? error : error.message}
+                    {error}
                 </div>
             )}
 
