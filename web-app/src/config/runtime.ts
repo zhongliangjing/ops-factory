@@ -8,7 +8,7 @@ interface RuntimeConfig {
 }
 
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1'])
-// const GATEWAY_PATH_PREFIX = '/gateway'
+const GATEWAY_PATH_PREFIX = '/gateway'
 const KNOWLEDGE_PATH_PREFIX = '/knowledge'
 const BUSINESS_INTELLIGENCE_PATH_PREFIX = '/business-intelligence'
 
@@ -16,30 +16,30 @@ function isLoopbackHost(host: string): boolean {
     return LOOPBACK_HOSTS.has(host)
 }
 
-// function resolveGatewayUrl(raw: string | undefined): string {
-//     const pageHost = window.location.hostname || '127.0.0.1'
-//     const pageProtocol = window.location.protocol || 'http:'
-//     const fallbackOrigin = `${pageProtocol}//${pageHost}:3000`
+function resolveGatewayUrl(raw: string | undefined): string {
+    const pageHost = window.location.hostname || '127.0.0.1'
+    const pageProtocol = window.location.protocol || 'http:'
+    const fallbackOrigin = `${pageProtocol}//${pageHost}:3000`
 
-//     if (!raw) return `${fallbackOrigin}${GATEWAY_PATH_PREFIX}`
+    if (!raw) return `${GATEWAY_PATH_PREFIX}`
 
-//     try {
-//         const url = new URL(raw)
-//         if (isLoopbackHost(url.hostname) && !isLoopbackHost(pageHost)) {
-//             url.hostname = pageHost
-//         }
-//         return `${url.origin}${GATEWAY_PATH_PREFIX}`
-//     } catch {
-//         return `${fallbackOrigin}${GATEWAY_PATH_PREFIX}`
-//     }
-// }
+    try {
+        const url = new URL(raw)
+        if (isLoopbackHost(url.hostname) && !isLoopbackHost(pageHost)) {
+            url.hostname = pageHost
+        }
+        return `${url.origin}${GATEWAY_PATH_PREFIX}`
+    } catch {
+        return `${fallbackOrigin}${GATEWAY_PATH_PREFIX}`
+    }
+}
 
 function resolveKnowledgeServiceUrl(raw: string | undefined): string {
     const pageHost = window.location.hostname || '127.0.0.1'
     const pageProtocol = window.location.protocol || 'http:'
     const fallbackOrigin = `${pageProtocol}//${pageHost}:8092`
 
-    if (!raw) return `${fallbackOrigin}${KNOWLEDGE_PATH_PREFIX}`
+    if (!raw) return `${KNOWLEDGE_PATH_PREFIX}`
 
     try {
         const url = new URL(raw)
@@ -57,7 +57,7 @@ function resolveBusinessIntelligenceServiceUrl(raw: string | undefined): string 
     const pageProtocol = window.location.protocol || 'http:'
     const fallbackOrigin = `${pageProtocol}//${pageHost}:8093`
 
-    if (!raw) return `${fallbackOrigin}${BUSINESS_INTELLIGENCE_PATH_PREFIX}`
+    if (!raw) return `${BUSINESS_INTELLIGENCE_PATH_PREFIX}`
 
     try {
         const url = new URL(raw)
@@ -71,13 +71,13 @@ function resolveBusinessIntelligenceServiceUrl(raw: string | undefined): string 
 }
 
 const DEFAULT_SECRET_KEY = 'test'
-export const GATEWAY_URL = window.location.port ==='5173' ? `${window.location.protocol}//${window.location.hostname}:3000` : `${window.location.origin}/gateway`
+export let GATEWAY_URL = resolveGatewayUrl(undefined)
 export let GATEWAY_SECRET_KEY = DEFAULT_SECRET_KEY
 export let KNOWLEDGE_SERVICE_URL = resolveKnowledgeServiceUrl(undefined)
 export let BUSINESS_INTELLIGENCE_SERVICE_URL = resolveBusinessIntelligenceServiceUrl(undefined)
 
 function setRuntimeConfig(config: RuntimeConfig): void {
-    // GATEWAY_URL = resolveGatewayUrl(config.gatewayUrl)
+    GATEWAY_URL = resolveGatewayUrl(config.gatewayUrl)
     GATEWAY_SECRET_KEY = config.gatewaySecretKey || DEFAULT_SECRET_KEY
     KNOWLEDGE_SERVICE_URL = resolveKnowledgeServiceUrl(config.knowledgeServiceUrl)
     BUSINESS_INTELLIGENCE_SERVICE_URL = resolveBusinessIntelligenceServiceUrl(config.businessIntelligenceServiceUrl)
