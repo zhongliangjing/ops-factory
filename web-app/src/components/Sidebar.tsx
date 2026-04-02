@@ -153,24 +153,6 @@ export default function Sidebar() {
                 </NavLink>
             ),
         },
-        {
-            key: 'business-intelligence',
-            element: (
-                <NavLink
-                    to="/business-intelligence"
-                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                    title={isCollapsed ? t('sidebar.businessIntelligence') : undefined}
-                >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M3 3v18h18" />
-                        <rect x="7" y="11" width="3" height="6" rx="1" />
-                        <rect x="12" y="7" width="3" height="10" rx="1" />
-                        <rect x="17" y="4" width="3" height="13" rx="1" />
-                    </svg>
-                    <span className="nav-label">{t('sidebar.businessIntelligence')}</span>
-                </NavLink>
-            ),
-        },
     ]
 
     const configNavItems = [

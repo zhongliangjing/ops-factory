@@ -1,7 +1,7 @@
 {
-    "gatewayUrl": "",
+    "gatewayUrl": "http://127.0.0.1:3000",
     "gatewaySecretKey": "test",
-    "knowledgeServiceUrl": "",
-    "businessIntelligenceServiceUrl": "",
+    "knowledgeServiceUrl": "http://127.0.0.1:8092",
+    "businessIntelligenceServiceUrl": "http://127.0.0.1:8093",
     "port": 5173
 }

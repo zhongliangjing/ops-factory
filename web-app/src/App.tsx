@@ -12,7 +12,6 @@ import Inbox from './pages/Inbox'
 import Diagnosis from './pages/remote-diagnosis/Diagnosis'
 import Knowledge from './pages/Knowledge'
 import KnowledgeConfigure from './pages/KnowledgeConfigure'
-import BusinessIntelligence from './pages/BusinessIntelligence'
 import FilePreview from './components/FilePreview'
 import { PreviewProvider, usePreview } from './contexts/PreviewContext'
 import { InboxProvider } from './contexts/InboxContext'
@@ -53,7 +52,6 @@ function AppContent() {
                         <Route path="/files" element={<Files />} />
                         <Route path="/scheduled-actions" element={<AdminRoute><ScheduledActions /></AdminRoute>} />
                         <Route path="/monitoring" element={<AdminRoute><Monitoring /></AdminRoute>} />
-                        <Route path="/business-intelligence" element={<AdminRoute><BusinessIntelligence /></AdminRoute>} />
                         <Route path="/remote-diagnosis" element={<Diagnosis />} />
                         <Route path="/remote-diagnosis/:tab" element={<Diagnosis />} />
                         <Route path="/inbox" element={<Inbox />} />
