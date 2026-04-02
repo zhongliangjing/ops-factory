@@ -1,0 +1,5 @@
+business-intelligence:
+  corsOrigin: "*"
+  runtime:
+    base-dir: "./data"
+    cache-enabled: true
