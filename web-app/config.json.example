@@ -1,5 +1,0 @@
-{
-    "gatewayUrl": "http://127.0.0.1:3000",
-    "gatewaySecretKey": "",
-    "knowledgeServiceUrl": "http://127.0.0.1:8092"
-}
