@@ -12,7 +12,7 @@
  */
 import { execFile } from 'node:child_process'
 import { resolve, join } from 'node:path'
-import { access, constants } from 'node:fs/promises'
+import { access, constants, readFile } from 'node:fs/promises'
 import { describe, it, expect } from 'vitest'
 
 const PROJECT_ROOT = resolve(import.meta.dirname, '..')
@@ -273,6 +273,29 @@ describe('--background flag parsing', () => {
       expect(output).toContain('Usage:')
     })
   }
+})
+
+describe('gateway API password handling', () => {
+  it('gateway script prompts for password when a tty is available', async () => {
+    const content = await readFile(SCRIPTS.gateway, 'utf-8')
+    expect(content).toContain('Enter API password for gateway REST interface: ')
+    expect(content).toContain('if read_gateway_api_password; then')
+  })
+
+  it('read_gateway_api_password returns 2 without a tty', async () => {
+    const { stdout, code } = await run('bash', [
+      '-lc',
+      `tmp=$(mktemp); sed '/^ACTION=/,$d' "${SCRIPTS.gateway}" > "$tmp"; source "$tmp"; rm "$tmp"; set +e; read_gateway_api_password; status=$?; printf "status=%s\\n" "$status"`,
+    ])
+    expect(code).toBe(0)
+    expect(stdout).toContain('status=2')
+  })
+
+  it('gateway startup falls back to generated password without a tty', async () => {
+    const content = await readFile(SCRIPTS.gateway, 'utf-8')
+    expect(content).toContain('Generated random internal gateway API password for child processes')
+    expect(content).toContain('if [ "${password_status}" -ne 2 ]; then')
+  })
 })
 
 // (gateway .gitignore test removed — gateway is now Java/Spring Boot)

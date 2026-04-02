@@ -27,8 +27,8 @@ gateway:
 
   sse:
     first-byte-timeout-sec: ${SSE_FIRST_BYTE_TIMEOUT:120}
-    idle-timeout-sec: ${SSE_IDLE_TIMEOUT:300}
-    max-duration-sec: ${SSE_MAX_DURATION:600}
+    idle-timeout-sec: ${SSE_IDLE_TIMEOUT:600}
+    max-duration-sec: ${SSE_MAX_DURATION:1200}
 
   prewarm:
     enabled: ${PREWARM_ENABLED:true}

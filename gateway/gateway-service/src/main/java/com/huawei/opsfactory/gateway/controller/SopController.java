@@ -1,6 +1,7 @@
 package com.huawei.opsfactory.gateway.controller;
 
 import com.huawei.opsfactory.gateway.service.SopService;
+import com.huawei.opsfactory.gateway.filter.UserContextFilter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpStatus;
@@ -28,6 +29,7 @@ public class SopController {
 
     @GetMapping
     public Mono<Map<String, Object>> listSops(ServerWebExchange exchange) {
+        UserContextFilter.requireAdmin(exchange);
         return Mono.fromCallable(() -> {
             List<Map<String, Object>> sops = sopService.listSops();
             Map<String, Object> result = new LinkedHashMap<>();
@@ -40,6 +42,7 @@ public class SopController {
     public Mono<ResponseEntity<Map<String, Object>>> getSop(
             @PathVariable String id,
             ServerWebExchange exchange) {
+        UserContextFilter.requireAdmin(exchange);
         return Mono.fromCallable(() -> {
             Map<String, Object> sop = sopService.getSop(id);
             if (sop == null) {
@@ -59,6 +62,7 @@ public class SopController {
     public Mono<ResponseEntity<Map<String, Object>>> createSop(
             @RequestBody Map<String, Object> request,
             ServerWebExchange exchange) {
+        UserContextFilter.requireAdmin(exchange);
         return Mono.fromCallable(() -> {
             try {
                 Map<String, Object> sop = sopService.createSop(request);
@@ -87,6 +91,7 @@ public class SopController {
             @PathVariable String id,
             @RequestBody Map<String, Object> request,
             ServerWebExchange exchange) {
+        UserContextFilter.requireAdmin(exchange);
         return Mono.fromCallable(() -> {
             try {
                 Map<String, Object> sop = sopService.updateSop(id, request);
@@ -120,6 +125,7 @@ public class SopController {
     public Mono<ResponseEntity<Map<String, Object>>> deleteSop(
             @PathVariable String id,
             ServerWebExchange exchange) {
+        UserContextFilter.requireAdmin(exchange);
         return Mono.fromCallable(() -> {
             boolean deleted = sopService.deleteSop(id);
             if (!deleted) {

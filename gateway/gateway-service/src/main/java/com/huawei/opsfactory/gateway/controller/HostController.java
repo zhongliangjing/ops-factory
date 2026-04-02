@@ -1,6 +1,7 @@
 package com.huawei.opsfactory.gateway.controller;
 
 import com.huawei.opsfactory.gateway.service.HostService;
+import com.huawei.opsfactory.gateway.filter.UserContextFilter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpStatus;
@@ -32,6 +33,7 @@ public class HostController {
     public Mono<Map<String, Object>> listHosts(
             @RequestParam(required = false) String tags,
             ServerWebExchange exchange) {
+        UserContextFilter.requireAdmin(exchange);
         List<String> tagList = (tags != null && !tags.isBlank())
                 ? Arrays.asList(tags.split(","))
                 : Collections.emptyList();
@@ -48,6 +50,7 @@ public class HostController {
     public Mono<ResponseEntity<Map<String, Object>>> getHost(
             @PathVariable String id,
             ServerWebExchange exchange) {
+        UserContextFilter.requireAdmin(exchange);
         return Mono.fromCallable(() -> {
             Map<String, Object> host = hostService.getHost(id);
             if (host == null) {
@@ -67,6 +70,7 @@ public class HostController {
     public Mono<ResponseEntity<Map<String, Object>>> createHost(
             @RequestBody Map<String, Object> request,
             ServerWebExchange exchange) {
+        UserContextFilter.requireAdmin(exchange);
         return Mono.fromCallable(() -> {
             try {
                 Map<String, Object> host = hostService.createHost(request);
@@ -89,6 +93,7 @@ public class HostController {
             @PathVariable String id,
             @RequestBody Map<String, Object> request,
             ServerWebExchange exchange) {
+        UserContextFilter.requireAdmin(exchange);
         return Mono.fromCallable(() -> {
             try {
                 Map<String, Object> host = hostService.updateHost(id, request);
@@ -116,6 +121,7 @@ public class HostController {
     public Mono<ResponseEntity<Map<String, Object>>> deleteHost(
             @PathVariable String id,
             ServerWebExchange exchange) {
+        UserContextFilter.requireAdmin(exchange);
         return Mono.fromCallable(() -> {
             boolean deleted = hostService.deleteHost(id);
             if (!deleted) {
@@ -132,6 +138,7 @@ public class HostController {
 
     @GetMapping("/tags")
     public Mono<Map<String, Object>> getTags(ServerWebExchange exchange) {
+        UserContextFilter.requireAdmin(exchange);
         return Mono.fromCallable(() -> {
             List<String> tags = hostService.getAllTags();
             Map<String, Object> result = new LinkedHashMap<>();
@@ -144,6 +151,7 @@ public class HostController {
     public Mono<Map<String, Object>> testConnectivity(
             @PathVariable String id,
             ServerWebExchange exchange) {
+        UserContextFilter.requireAdmin(exchange);
         return Mono.fromCallable(() -> {
             try {
                 Map<String, Object> testResult = hostService.testConnection(id);

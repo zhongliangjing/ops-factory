@@ -1,6 +1,7 @@
 package com.huawei.opsfactory.gateway.controller;
 
 import com.huawei.opsfactory.gateway.service.CommandWhitelistService;
+import com.huawei.opsfactory.gateway.filter.UserContextFilter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpStatus;
@@ -28,6 +29,7 @@ public class CommandWhitelistController {
 
     @GetMapping
     public Mono<Map<String, Object>> getWhitelist(ServerWebExchange exchange) {
+        UserContextFilter.requireAdmin(exchange);
         return Mono.fromCallable(() -> {
             Map<String, Object> whitelist = commandWhitelistService.getWhitelist();
             return whitelist;
@@ -38,6 +40,7 @@ public class CommandWhitelistController {
     public Mono<ResponseEntity<Map<String, Object>>> addCommand(
             @RequestBody Map<String, Object> request,
             ServerWebExchange exchange) {
+        UserContextFilter.requireAdmin(exchange);
         return Mono.fromCallable(() -> {
             try {
                 commandWhitelistService.addCommand(request);
@@ -65,6 +68,7 @@ public class CommandWhitelistController {
             @PathVariable String pattern,
             @RequestBody Map<String, Object> request,
             ServerWebExchange exchange) {
+        UserContextFilter.requireAdmin(exchange);
         return Mono.fromCallable(() -> {
             try {
                 commandWhitelistService.updateCommand(pattern, request);
@@ -91,6 +95,7 @@ public class CommandWhitelistController {
     public Mono<ResponseEntity<Map<String, Object>>> deleteCommand(
             @PathVariable String pattern,
             ServerWebExchange exchange) {
+        UserContextFilter.requireAdmin(exchange);
         return Mono.fromCallable(() -> {
             try {
                 commandWhitelistService.deleteCommand(pattern);

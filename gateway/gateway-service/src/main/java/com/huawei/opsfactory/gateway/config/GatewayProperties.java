@@ -213,8 +213,8 @@ public class GatewayProperties {
 
     public static class Sse {
         private int firstByteTimeoutSec = 120;
-        private int idleTimeoutSec = 300;
-        private int maxDurationSec = 600;
+        private int idleTimeoutSec = 600;
+        private int maxDurationSec = 1200;
 
         public int getFirstByteTimeoutSec() { return firstByteTimeoutSec; }
         public void setFirstByteTimeoutSec(int firstByteTimeoutSec) { this.firstByteTimeoutSec = firstByteTimeoutSec; }

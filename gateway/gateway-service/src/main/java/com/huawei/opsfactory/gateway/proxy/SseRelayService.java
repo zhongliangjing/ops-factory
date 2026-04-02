@@ -1,11 +1,13 @@
 package com.huawei.opsfactory.gateway.proxy;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huawei.opsfactory.gateway.common.constants.GatewayConstants;
 import com.huawei.opsfactory.gateway.common.util.JsonUtil;
 import com.huawei.opsfactory.gateway.config.GatewayProperties;
 import com.huawei.opsfactory.gateway.monitoring.MetricsBuffer;
 import com.huawei.opsfactory.gateway.monitoring.RequestTiming;
 import com.huawei.opsfactory.gateway.process.InstanceManager;
+import com.huawei.opsfactory.gateway.common.model.ManagedInstance;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -21,6 +23,7 @@ import reactor.core.scheduler.Schedulers;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -30,6 +33,12 @@ import java.util.concurrent.atomic.AtomicLong;
 public class SseRelayService {
 
     private static final Logger log = LogManager.getLogger(SseRelayService.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    public static class ProviderNotSetException extends RuntimeException {
+        public ProviderNotSetException() {
+            super("Provider not set");
+        }
+    }
 
     private final GoosedProxy goosedProxy;
     private final WebClient webClient;
@@ -96,6 +105,9 @@ public class SseRelayService {
                     // Peek once, derive both ping check and preview from it
                     String preview = peekContent(buf, 500);
                     boolean isPing = isPingContent(preview);
+                    if (seq == 1 && isProviderNotSetContent(preview)) {
+                        throw new ProviderNotSetException();
+                    }
 
                     if (isPing) {
                         pingCount.incrementAndGet();
@@ -138,7 +150,7 @@ public class SseRelayService {
                     log.warn("[SSE-DIAG] relay CANCELLED after {}ms, chunks={}, bytes={}",
                             elapsed, chunkCount.get(), totalBytes.get());
                     // Client disconnected — tell goosed to stop processing the reply
-                    stopAgentAsync(port, body, secretKey);
+                    stopAgentAsync(port, body, secretKey, agentId, userId);
                 });
 
         // Layer 1: First-byte timeout — abort if no data at all (goosed hung).
@@ -221,8 +233,8 @@ public class SseRelayService {
      * Send POST /agent/stop to goosed so it aborts the current reply.
      * Extracts session_id from the original request body.
      */
-    private void stopAgentAsync(int port, String body, String secretKey) {
-        Mono.fromRunnable(() -> {
+    private void stopAgentAsync(int port, String body, String secretKey, String agentId, String userId) {
+        fireAndForget("stop-agent port=" + port, () -> {
             try {
                 // Extract session_id from the reply body (JSON: {"session_id":"...","user_message":...})
                 String sessionId = JsonUtil.extractSessionId(body);
@@ -230,7 +242,11 @@ public class SseRelayService {
                     log.warn("[SSE-DIAG] Cannot stop agent: no session_id in body");
                     return;
                 }
-                String stopBody = "{\"session_id\":\"" + sessionId + "\"}";
+                ManagedInstance instance = instanceManager.getInstance(agentId, userId);
+                if (instance != null) {
+                    instance.unmarkSessionResumed(sessionId);
+                }
+                String stopBody = MAPPER.writeValueAsString(Map.of("session_id", sessionId));
                 String target = goosedProxy.goosedBaseUrl(port) + "/agent/stop";
                 log.info("[SSE-DIAG] sending stop to goosed session={} port={} target={}", sessionId, port, target);
                 webClient.post()
@@ -253,7 +269,13 @@ public class SseRelayService {
             } catch (Exception e) {
                 log.warn("[SSE-DIAG] stopAgentAsync error: {}", e.getMessage());
             }
-        }).subscribeOn(Schedulers.boundedElastic()).subscribe();
+        });
+    }
+
+    private boolean isProviderNotSetContent(String preview) {
+        if (preview == null) return false;
+        String p = preview.toLowerCase();
+        return p.contains("\"provider not set\"") || p.contains("provider not set");
     }
 
     /**
@@ -303,6 +325,15 @@ public class SseRelayService {
         DataBuffer buf = DefaultDataBufferFactory.sharedInstance
                 .wrap(ssePayload.getBytes(StandardCharsets.UTF_8));
         return Flux.just(buf);
+    }
+
+    private void fireAndForget(String operation, Runnable task) {
+        Mono.fromRunnable(task)
+                .subscribeOn(Schedulers.boundedElastic())
+                .subscribe(
+                        ignored -> log.debug("[SSE-DIAG] async task completed: {}", operation),
+                        err -> log.error("[SSE-DIAG] async task failed: {}: {}", operation, err.getMessage(), err)
+                );
     }
 
     /**

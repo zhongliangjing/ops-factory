@@ -1,11 +1,13 @@
 package com.huawei.opsfactory.gateway.controller;
 
+import com.huawei.opsfactory.gateway.filter.UserContextFilter;
 import com.huawei.opsfactory.gateway.service.RemoteExecutionService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
@@ -26,7 +28,9 @@ public class RemoteExecController {
 
     @PostMapping("/execute")
     public Mono<ResponseEntity<Map<String, Object>>> execute(
-            @RequestBody Map<String, Object> request) {
+            @RequestBody Map<String, Object> request,
+            ServerWebExchange exchange) {
+        UserContextFilter.requireAdmin(exchange);
 
         String hostId = (String) request.get("hostId");
         String command = (String) request.get("command");

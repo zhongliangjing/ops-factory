@@ -120,6 +120,7 @@ public class ReplyController {
                                 AtomicLong relayReadyAt = new AtomicLong(instanceReadyAt);
                                 AtomicBoolean firstChunkSeen = new AtomicBoolean(false);
 
+                                AtomicBoolean providerRetried = new AtomicBoolean(false);
                                 Flux<DataBuffer> upstream = ensureSessionResumed(instance, sessionId)
                                         .doOnSuccess(ignored -> {
                                             long now = System.currentTimeMillis();
@@ -130,6 +131,19 @@ public class ReplyController {
                                         })
                                         .thenMany(sseRelayService.relay(instance.getPort(), "/reply",
                                                 processedBody, agentId, userId, instance.getSecretKey()))
+                                        .onErrorResume(SseRelayService.ProviderNotSetException.class, e -> {
+                                            if (sessionId == null || providerRetried.getAndSet(true)) {
+                                                return sseErrorEvent("Provider not set");
+                                            }
+                                            instance.unmarkSessionResumed(sessionId);
+                                            String resumeBody = "{\"session_id\":\"" + sessionId + "\",\"load_model_and_extensions\":true}";
+                                            return resumeSession(instance, sessionId, resumeBody, "[REPLY-RECOVER]")
+                                                    .onErrorResume(err -> Mono.empty())
+                                                    .thenMany(sseRelayService.relay(instance.getPort(), "/reply",
+                                                            processedBody, agentId, userId, instance.getSecretKey()))
+                                                    .onErrorResume(SseRelayService.ProviderNotSetException.class,
+                                                            err -> sseErrorEvent("Provider not set"));
+                                        })
                                         .doOnNext(buf -> {
                                             if (firstChunkSeen.compareAndSet(false, true)) {
                                                 long now = System.currentTimeMillis();
@@ -199,6 +213,18 @@ public class ReplyController {
         } catch (Exception e) {
             log.warn("[REPLY] failed to build OutputFiles event: {}", e.getMessage());
             return Mono.empty();
+        }
+    }
+
+    private Flux<DataBuffer> sseErrorEvent(String reason) {
+        try {
+            String json = MAPPER.writeValueAsString(Map.of("type", "Error", "error", reason));
+            String ssePayload = "data: " + json + "\n\n";
+            DataBuffer buf = DefaultDataBufferFactory.sharedInstance
+                    .wrap(ssePayload.getBytes(StandardCharsets.UTF_8));
+            return Flux.just(buf);
+        } catch (Exception e) {
+            return Flux.empty();
         }
     }
 

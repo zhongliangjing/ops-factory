@@ -9,41 +9,35 @@ version: 1.0.0
 ## 概述
 根据故障根因匹配预定义的 SOP 流程，自动在目标主机上执行诊断命令，收集并分析结果，生成环境实时诊断报告。
 
-## Gateway API 调用约定
+## 执行流程
 
-所有 API 调用使用 PowerShell 原生 `Invoke-RestMethod`（不使用 curl.exe，避免 JSON 转义和编码问题）：
-- **设置 UTF-8 输出编码**：`chcp 65001 | Out-Null; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8`
-- **公共请求头**：`@{"x-secret-key"="test"; "x-user-id"="admin"}`
-- **环境变量**：`$env:GATEWAY_URL`（已由系统注入，默认 `http://127.0.0.1:3000`）
-- **输出 JSON**：响应通过 `ConvertTo-Json -Depth 10` 输出，确保嵌套对象完整展示
-- **每条命令前加 `Write-Host`** 输出描述性标题，便于区分不同操作
+### 调用方式（Node 命令）
+本技能接在本地执行 `node` 命令调用 `sop-executor` 的 handlers。
 
-## PowerShell 脚本约束（必须遵守）
-
-以下约束由 `computercontroller` 的执行方式决定（脚本作为单行字符串传给 `powershell -Command`）：
-
-- **禁止使用 here-string**（`@"..."@` 或 `@'...'@`）：闭合标记 `"@` / `'@` 要求在行首且无缩进，单行执行时必然报错 `TerminatorExpectedAtEndOfString`
-- **写文件方法**：使用 `[IO.File]::WriteAllText($path, $content, $enc)`，其中 `$content` 通过 `` `n `` 拼接换行构建
-- **多行文本构建**：用数组和 `-join"`n"` 拼接，例如 `@( "# 标题", "## 概述", "内容" ) -join "`n"`
-- **示例——写报告文件**：
-```powershell
-$ts = Get-Date -Format 'yyyyMMddHHmmss'; $p = "$PWD/output/sop-diagnosis-report-$ts.md"; $c = @("# SOP诊断报告","## 概述","- SOP: test","## 结果","正常") -join "`n"; $e = New-Object System.Text.UTF8Encoding $false; [IO.File]::WriteAllText($p, $c, $e); Write-Host "报告已保存: $p"
+执行前先进入目录：
+```bash
+cd qos-agent/config/mcp/sop-executor
 ```
 
-## 执行流程
+按需设置环境变量（不设置则使用默认值）：
+```bash
+export GATEWAY_URL="http://127.0.0.1:3000"
+export GATEWAY_SECRET_KEY="test"
+export OUTPUT_DIR="./output"
+```
 
 ### 步骤1：匹配SOP
 根据当前故障根因分析的结果，执行以下命令获取可用SOP列表：
-```powershell
-Write-Host "=== 获取SOP列表 ===" ; chcp 65001 | Out-Null; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; (Invoke-RestMethod -Uri "$env:GATEWAY_URL/gateway/sops" -Headers @{"x-secret-key"="test"; "x-user-id"="admin"}) | ConvertTo-Json -Depth 10
+```bash
+node --input-type=module -e "import { dispatch } from './dist/handlers.js'; console.log(await dispatch('list_sops', {}))"
 ```
 根据返回结果中各 SOP 的 `triggerCondition` 字段匹配最适合的SOP，记录 `sopId`。
 如无匹配SOP，告知用户当前无对应SOP，结束流程。
 
 ### 步骤2：获取SOP详情并生成流程图
 使用匹配到的 sopId 执行以下命令获取完整SOP流程定义：
-```powershell
-Write-Host "=== 获取SOP详情 ===" ; chcp 65001 | Out-Null; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; (Invoke-RestMethod -Uri "$env:GATEWAY_URL/gateway/sops/{sopId}" -Headers @{"x-secret-key"="test"; "x-user-id"="admin"}) | ConvertTo-Json -Depth 10
+```bash
+SOP_ID="<sopId>" node --input-type=module -e "import { dispatch } from './dist/handlers.js'; const r = await dispatch('get_sop_detail', { sopId: process.env.SOP_ID }); console.log(Array.isArray(r) ? r[0].text : r)"
 ```
 
 获取 SOP 详情后，**必须根据返回的 nodes 数组生成 mermaid 流程图**，展示给用户：
@@ -97,10 +91,9 @@ mermaid 生成规则：
 #### 对每个SOP节点（type=start 或 analysis）：
 
 1. **获取目标主机**：执行以下命令获取匹配标签的目标主机列表（将 tags 数组以逗号拼接）：
-```powershell
-Write-Host "=== 查询目标主机: tags={tags} ===" ; chcp 65001 | Out-Null; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; (Invoke-RestMethod -Uri "$env:GATEWAY_URL/gateway/hosts?tags=tag1,tag2" -Headers @{"x-secret-key"="test"; "x-user-id"="admin"}) | ConvertTo-Json -Depth 10
+```bash
+TAGS="<tags>" node --input-type=module -e "import { dispatch } from './dist/handlers.js'; const tags = (process.env.TAGS || '').split(',').map(s => s.trim()).filter(Boolean); console.log(await dispatch('get_hosts', { tags }))"
 ```
-
 
 2. **构造命令（泛化机制）**：
    - 读取节点的 `command` 模板和 `commandVariables` 定义
@@ -109,9 +102,9 @@ Write-Host "=== 查询目标主机: tags={tags} ===" ; chcp 65001 | Out-Null; [C
    - **允许自主调整**：可根据实际情况适当调整命令参数（如增大 tail 行数、修改过滤条件），但**命令主体必须在白名单内**
    - 替换 `{{变量名}}` 占位符，生成最终命令
 
-3. **执行远程命令并保存附件**：对每台匹配主机，使用 `Invoke-RestMethod` 发送 POST 请求（PowerShell 原生 JSON 序列化，无需手动转义）：
-```powershell
-Write-Host "=== 执行远程命令: {hostName} ===" ; chcp 65001 | Out-Null; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $body = @{hostId="{hostId}"; command="{command}"; timeout=30} | ConvertTo-Json -Compress; $r = Invoke-RestMethod -Uri "$env:GATEWAY_URL/gateway/remote/execute" -Method POST -Headers @{"x-secret-key"="test"; "x-user-id"="admin"} -ContentType "application/json" -Body $body; $json = $r | ConvertTo-Json -Depth 10; New-Item -ItemType Directory -Force -Path "./output" | Out-Null; $e = New-Object System.Text.UTF8Encoding $false; [System.IO.File]::WriteAllText("$PWD/output/sop-exec-{hostName}-{timestamp}.log", $json, $e); $json
+3. **执行命令**：对每台匹配主机执行以下命令
+```bash
+HOST_ID="<hostId>" CMD="<command>" TIMEOUT="30" node --input-type=module -e "import { dispatch } from './dist/handlers.js'; console.log(await dispatch('execute_remote_command', { hostId: process.env.HOST_ID, command: process.env.CMD, timeout: process.env.TIMEOUT ? Number(process.env.TIMEOUT) : undefined }))"
 ```
 
 **附件保存要求**：
@@ -120,7 +113,6 @@ Write-Host "=== 执行远程命令: {hostName} ===" ; chcp 65001 | Out-Null; [Co
 - 使用 `UTF8Encoding($false)` 保存，**不带 BOM**，避免中文乱码
 - 系统会自动检测 output 目录中的新文件并生成可下载的附件
 - 你无需在回复中重复粘贴完整原始输出，但需要在分析中引用关键信息
-
 
 4. **收集输出**：汇总所有主机的命令执行结果
    - 每次调用 `execute_remote_command` 的原始输出会自动保存为附件文件，用户可在聊天中直接下载查看

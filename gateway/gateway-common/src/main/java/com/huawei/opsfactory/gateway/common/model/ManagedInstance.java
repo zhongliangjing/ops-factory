@@ -78,6 +78,12 @@ public class ManagedInstance {
         resumedSessions.add(sessionId);
     }
 
+    public void unmarkSessionResumed(String sessionId) {
+        if (sessionId != null) {
+            resumedSessions.remove(sessionId);
+        }
+    }
+
     /** Check whether a session has been resumed on this instance. */
     public boolean isSessionResumed(String sessionId) {
         return sessionId != null && resumedSessions.contains(sessionId);

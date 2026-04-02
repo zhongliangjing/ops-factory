@@ -107,4 +107,15 @@ public class ManagedInstanceTest {
         long second = instance.getLastActivity();
         assertTrue("Touch should update lastActivity", second > first);
     }
+
+    @Test
+    public void testSessionResumedTracking() {
+        ManagedInstance instance = new ManagedInstance("agent1", "user1", 8080, 1234L, null, "test-secret");
+        String sessionId = "s1";
+        assertTrue(!instance.isSessionResumed(sessionId));
+        instance.markSessionResumed(sessionId);
+        assertTrue(instance.isSessionResumed(sessionId));
+        instance.unmarkSessionResumed(sessionId);
+        assertTrue(!instance.isSessionResumed(sessionId));
+    }
 }
